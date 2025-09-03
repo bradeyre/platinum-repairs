@@ -6,52 +6,19 @@ import CompactTicketCard from '@/components/CompactTicketCard'
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tickets')
 
-  // Sample ticket data with different statuses and proper timestamps for sorting
+  // Original real ticket data - NO MOCK DATA, only what was actually in the system
   const rawTickets = [
     {
       ticketId: 'PR #89022',
       description: 'PPS 00404395+001+009 / SPM 11642/7/25 GeekPls Laptop (S/N: GHH1C16T1A0013...',
-      status: 'Awaiting Rework',
-      timeAgo: '48h ago',
-      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      status: 'Awaiting Damage Report',
+      timeAgo: '14.5h ago',
+      timestamp: new Date(Date.now() - 14.5 * 60 * 60 * 1000),
       deviceInfo: 'Unknown Device',
       aiPriority: 'P4',
       estimatedTime: '2h',
       ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'DD #12845',
-      description: 'MacBook Pro 14" M3 - Liquid damage from coffee spill, keyboard not responding...',
-      status: 'Awaiting Rework',
-      timeAgo: '36h ago',
-      timestamp: new Date(Date.now() - 36 * 60 * 60 * 1000),
-      deviceInfo: 'MacBook Pro 14" M3',
-      assignedTo: 'Alex',
-      aiPriority: 'P4',
-      estimatedTime: '3h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'OUT #15678',
-      description: 'Dell XPS 13 - Won\'t power on, suspected motherboard issue...',
-      status: 'Awaiting Workshop Repairs',
-      timeAgo: '72h ago',
-      timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000),
-      deviceInfo: 'Dell XPS 13',
-      aiPriority: 'P4',
-      estimatedTime: '4h',
-      ticketType: 'OUT' as const
-    },
-    {
-      ticketId: 'PPS #23456',
-      description: 'Surface Pro 9 - Type cover connection issues, not detecting keyboard...',
-      status: 'Awaiting Workshop Repairs',
-      timeAgo: '24h ago',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      deviceInfo: 'Surface Pro 9',
-      aiPriority: 'P4',
-      estimatedTime: '1.5h',
-      ticketType: 'PPS' as const
+      // NO assignedTo - this ticket is unassigned
     },
     {
       ticketId: 'DD #12811',
@@ -60,7 +27,7 @@ export default function AdminDashboard() {
       timeAgo: '21.7h ago',
       timestamp: new Date(Date.now() - 21.7 * 60 * 60 * 1000),
       deviceInfo: 'iPhone 15 Pro',
-      assignedTo: 'Ben',
+      assignedTo: 'Ben', // This was the ONLY real assignment you mentioned
       aiPriority: 'P4',
       estimatedTime: '2h',
       ticketType: 'DR' as const
@@ -75,64 +42,7 @@ export default function AdminDashboard() {
       aiPriority: 'P4',
       estimatedTime: '2h',
       ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'DD #12892',
-      description: 'iPad Air 5th Gen - Cracked screen and bent frame from drop...',
-      status: 'Awaiting Damage Report',
-      timeAgo: '9.8h ago',
-      timestamp: new Date(Date.now() - 9.8 * 60 * 60 * 1000),
-      deviceInfo: 'iPad Air 5th Gen',
-      assignedTo: 'Ben',
-      aiPriority: 'P4',
-      estimatedTime: '2.5h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'PR #89456',
-      description: 'iPhone 14 Pro Max - Battery replacement, experiencing rapid drain...',
-      status: 'Awaiting Repair',
-      timeAgo: '18h ago',
-      timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000),
-      deviceInfo: 'iPhone 14 Pro Max',
-      aiPriority: 'P4',
-      estimatedTime: '1h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'PR #89789',
-      description: 'Google Pixel 8 Pro - Camera module replacement, rear camera not functioning...',
-      status: 'Awaiting Repair',
-      timeAgo: '12h ago',
-      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
-      deviceInfo: 'Google Pixel 8 Pro',
-      aiPriority: 'P4',
-      estimatedTime: '2h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'PR #89123',
-      description: 'Samsung Galaxy S24 Ultra - Screen replacement needed after drop damage...',
-      status: 'In Progress',
-      timeAgo: '8.2h ago',
-      timestamp: new Date(Date.now() - 8.2 * 60 * 60 * 1000),
-      deviceInfo: 'Samsung Galaxy S24 Ultra',
-      assignedTo: 'Ben',
-      aiPriority: 'P4',
-      estimatedTime: '1.5h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'OUT #15702',
-      description: 'Nintendo Switch OLED - Joy-Con drift issues, both controllers affected...',
-      status: 'In Progress',
-      timeAgo: '4h ago',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      deviceInfo: 'Nintendo Switch OLED',
-      assignedTo: 'Alex',
-      aiPriority: 'P4',
-      estimatedTime: '1h',
-      ticketType: 'OUT' as const
+      // NO assignedTo - this ticket is unassigned
     }
   ]
 
