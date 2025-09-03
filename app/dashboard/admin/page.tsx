@@ -43,12 +43,12 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-red-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">Platinum Repairs - Admin Dashboard v3 🚀</h1>
+            <h1 className="text-2xl font-bold text-red-600">🔥 DEPLOYMENT TEST v4 - NEW VERSION 🔥</h1>
             <div className="flex items-center gap-4">
               <span className="text-gray-600">Welcome, Andre</span>
               <button className="text-blue-600 hover:text-blue-800">Logout</button>
