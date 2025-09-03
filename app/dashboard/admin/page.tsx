@@ -137,7 +137,7 @@ export default function AdminDashboard() {
   ]
 
   // Status priority for sorting (lower number = higher priority)
-  const statusPriority = {
+  const statusPriority: Record<string, number> = {
     'Awaiting Rework': 1,
     'Awaiting Workshop Repairs': 2,
     'Awaiting Damage Report': 3,
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
 
   // Sort tickets by status priority first, then by timestamp (oldest first)
   const tickets = rawTickets.sort((a, b) => {
-    const statusDiff = statusPriority[a.status] - statusPriority[b.status]
+    const statusDiff = (statusPriority[a.status] || 999) - (statusPriority[b.status] || 999)
     if (statusDiff !== 0) return statusDiff
     return a.timestamp.getTime() - b.timestamp.getTime()
   })
