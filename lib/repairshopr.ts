@@ -70,18 +70,36 @@ function getTicketType(problemType: string, locationName?: string): 'DR' | 'OUT'
 // Fetch tickets from RepairShopr instance
 async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<RepairShoprTicket[]> {
   try {
-    const response = await fetch(`${baseUrl}/tickets?status=New,In Progress,Waiting on Customer,Waiting on Parts,Ready for Pickup`, {
+    // Try fetching all tickets first, then filter
+    const url = `${baseUrl}/tickets`
+    console.log(`Fetching from RepairShopr: ${url}`)
+    console.log(`Using token: ${token.substring(0, 10)}...`)
+    
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     })
     
+    console.log(`RepairShopr response status: ${response.status}`)
+    console.log(`RepairShopr response headers:`, Object.fromEntries(response.headers.entries()))
+    
     if (!response.ok) {
-      throw new Error(`RepairShopr API error: ${response.status}`)
+      const errorText = await response.text()
+      console.error(`RepairShopr API error: ${response.status} - ${errorText}`)
+      throw new Error(`RepairShopr API error: ${response.status} - ${errorText}`)
     }
     
     const data = await response.json()
+    console.log(`RepairShopr response structure:`, Object.keys(data))
+    console.log(`RepairShopr tickets count:`, data.tickets ? data.tickets.length : 'No tickets property')
+    
+    if (data.tickets && data.tickets.length > 0) {
+      console.log(`Sample ticket:`, data.tickets[0])
+    }
+    
     return data.tickets || []
   } catch (error) {
     console.error('Error fetching from RepairShopr:', error)

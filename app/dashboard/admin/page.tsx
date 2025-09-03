@@ -130,7 +130,7 @@ export default function AdminDashboard() {
                 </select>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-gray-600">Welcome, Andre</span>
+                <span className="text-gray-600">Welcome, Admin</span>
                 <button 
                   onClick={() => window.location.href = '/login'} 
                   className="text-blue-600 hover:text-blue-800"
