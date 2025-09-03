@@ -1,9 +1,52 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+
+interface ProcessedTicket {
+  ticketId: string
+  description: string
+  status: string
+  timeAgo: string
+  timestamp: Date
+  deviceInfo: string
+  assignedTo?: string
+  aiPriority: string
+  estimatedTime: string
+  ticketType: 'DR' | 'OUT' | 'PPS'
+}
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tickets')
+  const [tickets, setTickets] = useState<ProcessedTicket[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch real ticket data from RepairShopr
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/tickets')
+        if (!response.ok) {
+          throw new Error('Failed to fetch tickets')
+        }
+        const data = await response.json()
+        setTickets(data.tickets)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching tickets:', err)
+        setError('Failed to load tickets from RepairShopr')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTickets()
+    
+    // Refresh tickets every 5 minutes if realtime sync is enabled
+    const interval = setInterval(fetchTickets, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Function to calculate business hours between two dates
   const getBusinessHours = (startDate: Date, endDate: Date) => {
@@ -43,131 +86,6 @@ export default function AdminDashboard() {
     return businessHours
   }
 
-  // Real ticket data with correct 5 statuses distributed across tickets
-  const rawTickets = [
-    {
-      ticketId: 'PR #89022',
-      description: 'PPS 00404395+001+009 / SPM 11642/7/25 GeekPls Laptop (S/N: GHH1C16T1A0013...',
-      status: 'Awaiting Rework',
-      timeAgo: '5 business hours ago',
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago (>4 business hours = RED)
-      deviceInfo: 'Unknown Device',
-      aiPriority: 'P4',
-      estimatedTime: '2h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'DD #12845',
-      description: 'MacBook Pro 14" M3 - Liquid damage from coffee spill, keyboard not responding...',
-      status: 'Awaiting Rework',
-      timeAgo: '6 business hours ago',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago (>4 business hours = RED)
-      deviceInfo: 'MacBook Pro 14" M3',
-      aiPriority: 'P4',
-      estimatedTime: '3h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'OUT #15678',
-      description: 'Dell XPS 13 - Won\'t power on, suspected motherboard issue...',
-      status: 'Awaiting Workshop Repairs',
-      timeAgo: '7 business hours ago',
-      timestamp: new Date(Date.now() - 7 * 60 * 60 * 1000), // 7 hours ago (>4 business hours = RED)
-      deviceInfo: 'Dell XPS 13',
-      aiPriority: 'P4',
-      estimatedTime: '4h',
-      ticketType: 'OUT' as const
-    },
-    {
-      ticketId: 'PPS #23456',
-      description: 'Surface Pro 9 - Type cover connection issues, not detecting keyboard...',
-      status: 'Awaiting Workshop Repairs',
-      timeAgo: '3 business hours ago',
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago (2-4 business hours = ORANGE)
-      deviceInfo: 'Surface Pro 9',
-      aiPriority: 'P4',
-      estimatedTime: '1.5h',
-      ticketType: 'PPS' as const
-    },
-    {
-      ticketId: 'DD #12811',
-      description: 'Naked Insurance DR - iPhone 15 Pro, Rear casing cracked & pieces fell out. Camera...',
-      status: 'Awaiting Damage Report',
-      timeAgo: '2.5 business hours ago',
-      timestamp: new Date(Date.now() - 2.5 * 60 * 60 * 1000), // ORANGE: 2-4 business hours
-      deviceInfo: 'iPhone 15 Pro',
-      assignedTo: 'Ben', // Only real assignment
-      aiPriority: 'P4',
-      estimatedTime: '2h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'PR #89674',
-      description: 'OUT Mobile DR | iPad Pro 4 Chip 11 Inch - Storage 256Gb grey liquid damaged |...',
-      status: 'Awaiting Damage Report',
-      timeAgo: '1.5 business hours ago',
-      timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000), // GREEN: <2 business hours
-      deviceInfo: 'iPad Pro 4 Chip 11 Inch - Storage 256Gb grey liquid damaged',
-      aiPriority: 'P4',
-      estimatedTime: '2h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'DD #12892',
-      description: 'iPad Air 5th Gen - Cracked screen and bent frame from drop...',
-      status: 'Awaiting Damage Report',
-      timeAgo: '3.5 business hours ago',
-      timestamp: new Date(Date.now() - 3.5 * 60 * 60 * 1000), // ORANGE: 2-4 business hours
-      deviceInfo: 'iPad Air 5th Gen',
-      aiPriority: 'P4',
-      estimatedTime: '2.5h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'PR #89456',
-      description: 'iPhone 14 Pro Max - Battery replacement, experiencing rapid drain...',
-      status: 'Awaiting Repair',
-      timeAgo: '0.5 business hours ago',
-      timestamp: new Date(Date.now() - 0.5 * 60 * 60 * 1000), // GREEN: <2 business hours
-      deviceInfo: 'iPhone 14 Pro Max',
-      aiPriority: 'P4',
-      estimatedTime: '1h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'PR #89789',
-      description: 'Google Pixel 8 Pro - Camera module replacement, rear camera not functioning...',
-      status: 'Awaiting Repair',
-      timeAgo: '1 business hour ago',
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), // GREEN: <2 business hours
-      deviceInfo: 'Google Pixel 8 Pro',
-      aiPriority: 'P4',
-      estimatedTime: '2h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'PR #89123',
-      description: 'Samsung Galaxy S24 Ultra - Screen replacement needed after drop damage...',
-      status: 'In Progress',
-      timeAgo: '3 business hours ago',
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // ORANGE: 2-4 business hours
-      deviceInfo: 'Samsung Galaxy S24 Ultra',
-      aiPriority: 'P4',
-      estimatedTime: '1.5h',
-      ticketType: 'DR' as const
-    },
-    {
-      ticketId: 'OUT #15702',
-      description: 'Nintendo Switch OLED - Joy-Con drift issues, both controllers affected...',
-      status: 'In Progress',
-      timeAgo: '15 minutes ago',
-      timestamp: new Date(Date.now() - 0.25 * 60 * 60 * 1000), // GREEN: <2 business hours
-      deviceInfo: 'Nintendo Switch OLED',
-      aiPriority: 'P4',
-      estimatedTime: '1h',
-      ticketType: 'OUT' as const
-    }
-  ]
 
   // Status priority for sorting (lower number = higher priority)
   const statusPriority: Record<string, number> = {
@@ -179,7 +97,7 @@ export default function AdminDashboard() {
   }
 
   // Sort tickets by status priority first, then by timestamp (oldest first)
-  const tickets = rawTickets.sort((a, b) => {
+  const sortedTickets = [...tickets].sort((a, b) => {
     const statusDiff = (statusPriority[a.status] || 999) - (statusPriority[b.status] || 999)
     if (statusDiff !== 0) return statusDiff
     return a.timestamp.getTime() - b.timestamp.getTime()
@@ -187,12 +105,12 @@ export default function AdminDashboard() {
 
   // Calculate stats
   const stats = {
-    total: tickets.length,
-    activeReports: tickets.filter(t => t.status !== 'In Progress').length,
-    completedReports: 0, // None completed in this sample
-    overdueReports: tickets.filter(t => t.timestamp < new Date(Date.now() - 24 * 60 * 60 * 1000)).length,
-    totalRSTickets: tickets.length,
-    unassigned: tickets.filter(t => !t.assignedTo).length
+    total: sortedTickets.length,
+    activeReports: sortedTickets.filter(t => t.status !== 'In Progress').length,
+    completedReports: 0, // Completed tickets not shown in this view
+    overdueReports: sortedTickets.filter(t => getBusinessHours(t.timestamp, new Date()) > 4).length,
+    totalRSTickets: sortedTickets.length,
+    unassigned: sortedTickets.filter(t => !t.assignedTo).length
   }
 
   return (
@@ -403,7 +321,31 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {tickets.map((ticket, index) => (
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center">
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <span className="ml-2 text-gray-600">Loading tickets from RepairShopr...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : error ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center">
+                          <div className="text-red-600">
+                            <p className="font-semibold">Error loading tickets</p>
+                            <p className="text-sm">{error}</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : sortedTickets.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                          No tickets found in RepairShopr instances
+                        </td>
+                      </tr>
+                    ) : sortedTickets.map((ticket, index) => (
                       <tr key={ticket.ticketId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           <div className="flex items-center gap-2">
