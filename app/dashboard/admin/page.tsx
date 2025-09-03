@@ -1,11 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import CompactTicketCard from '@/components/CompactTicketCard'
 
 export default function AdminDashboard() {
-  const [currentRole, setCurrentRole] = useState('admin')
-  const [selectedTechnician, setSelectedTechnician] = useState('')
 
   // Sample ticket data based on the screenshot
   const tickets = [
@@ -43,12 +41,12 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-red-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-red-600">🔥 DEPLOYMENT TEST v4 - NEW VERSION 🔥</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Platinum Repairs - Admin Dashboard</h1>
             <div className="flex items-center gap-4">
               <span className="text-gray-600">Welcome, Andre</span>
               <button className="text-blue-600 hover:text-blue-800">Logout</button>
@@ -57,61 +55,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Testing Mode Banner */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <span className="text-green-600 mr-2">✓</span>
-              <span className="text-yellow-800">
-                <strong>Testing Mode:</strong> Current role: {currentRole}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button 
-                className={`px-3 py-1 rounded text-sm ${currentRole === 'admin' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                onClick={() => setCurrentRole('admin')}
-              >
-                Admin
-              </button>
-              <button 
-                className={`px-3 py-1 rounded text-sm ${currentRole === 'claim-manager' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                onClick={() => setCurrentRole('claim-manager')}
-              >
-                Claim Manager
-              </button>
-              <button 
-                className={`px-3 py-1 rounded text-sm ${currentRole === 'technician' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                onClick={() => setCurrentRole('technician')}
-              >
-                Technician
-              </button>
-              <button className="px-3 py-1 rounded text-sm bg-red-500 text-white">
-                Exit Testing
-              </button>
-            </div>
-          </div>
-          
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex items-center">
-              <span className="text-orange-600 mr-2">🔧</span>
-              <span className="text-yellow-800">Test as Technician:</span>
-              <select 
-                className="ml-2 border border-gray-300 rounded px-2 py-1 text-sm"
-                value={selectedTechnician}
-                onChange={(e) => setSelectedTechnician(e.target.value)}
-              >
-                <option value="">Select a technician...</option>
-                <option value="ben">Ben</option>
-                <option value="alex">Alex</option>
-              </select>
-            </div>
-            <div className="ml-auto">
-              <span className="text-blue-600">👁️ Switch & View Their Tickets</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
