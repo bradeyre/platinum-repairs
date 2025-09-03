@@ -5,14 +5,52 @@ import React, { useState } from 'react'
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tickets')
 
+  // Function to calculate business hours between two dates
+  const getBusinessHours = (startDate: Date, endDate: Date) => {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    let businessHours = 0
+    
+    // Business hours: 8 AM to 6 PM, Monday to Friday
+    const businessStart = 8 // 8 AM
+    const businessEnd = 18 // 6 PM
+    
+    while (start < end) {
+      const dayOfWeek = start.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      
+      // Only count Monday (1) through Friday (5)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        const dayStart = new Date(start)
+        dayStart.setHours(businessStart, 0, 0, 0)
+        
+        const dayEnd = new Date(start)
+        dayEnd.setHours(businessEnd, 0, 0, 0)
+        
+        // Calculate overlap with business hours for this day
+        const effectiveStart = start < dayStart ? dayStart : start
+        const effectiveEnd = end < dayEnd ? end : dayEnd
+        
+        if (effectiveStart < effectiveEnd) {
+          businessHours += (effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60)
+        }
+      }
+      
+      // Move to next day
+      start.setDate(start.getDate() + 1)
+      start.setHours(businessStart, 0, 0, 0)
+    }
+    
+    return businessHours
+  }
+
   // Real ticket data with correct 5 statuses distributed across tickets
   const rawTickets = [
     {
       ticketId: 'PR #89022',
       description: 'PPS 00404395+001+009 / SPM 11642/7/25 GeekPls Laptop (S/N: GHH1C16T1A0013...',
       status: 'Awaiting Rework',
-      timeAgo: '48h ago',
-      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      timeAgo: '5 business hours ago',
+      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago (>4 business hours = RED)
       deviceInfo: 'Unknown Device',
       aiPriority: 'P4',
       estimatedTime: '2h',
@@ -22,8 +60,8 @@ export default function AdminDashboard() {
       ticketId: 'DD #12845',
       description: 'MacBook Pro 14" M3 - Liquid damage from coffee spill, keyboard not responding...',
       status: 'Awaiting Rework',
-      timeAgo: '36h ago',
-      timestamp: new Date(Date.now() - 36 * 60 * 60 * 1000),
+      timeAgo: '6 business hours ago',
+      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago (>4 business hours = RED)
       deviceInfo: 'MacBook Pro 14" M3',
       aiPriority: 'P4',
       estimatedTime: '3h',
@@ -33,8 +71,8 @@ export default function AdminDashboard() {
       ticketId: 'OUT #15678',
       description: 'Dell XPS 13 - Won\'t power on, suspected motherboard issue...',
       status: 'Awaiting Workshop Repairs',
-      timeAgo: '72h ago',
-      timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000),
+      timeAgo: '7 business hours ago',
+      timestamp: new Date(Date.now() - 7 * 60 * 60 * 1000), // 7 hours ago (>4 business hours = RED)
       deviceInfo: 'Dell XPS 13',
       aiPriority: 'P4',
       estimatedTime: '4h',
@@ -44,8 +82,8 @@ export default function AdminDashboard() {
       ticketId: 'PPS #23456',
       description: 'Surface Pro 9 - Type cover connection issues, not detecting keyboard...',
       status: 'Awaiting Workshop Repairs',
-      timeAgo: '24h ago',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      timeAgo: '3 business hours ago',
+      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago (2-4 business hours = ORANGE)
       deviceInfo: 'Surface Pro 9',
       aiPriority: 'P4',
       estimatedTime: '1.5h',
@@ -55,8 +93,8 @@ export default function AdminDashboard() {
       ticketId: 'DD #12811',
       description: 'Naked Insurance DR - iPhone 15 Pro, Rear casing cracked & pieces fell out. Camera...',
       status: 'Awaiting Damage Report',
-      timeAgo: '21.7h ago',
-      timestamp: new Date(Date.now() - 21.7 * 60 * 60 * 1000),
+      timeAgo: '2.5 business hours ago',
+      timestamp: new Date(Date.now() - 2.5 * 60 * 60 * 1000), // ORANGE: 2-4 business hours
       deviceInfo: 'iPhone 15 Pro',
       assignedTo: 'Ben', // Only real assignment
       aiPriority: 'P4',
@@ -67,8 +105,8 @@ export default function AdminDashboard() {
       ticketId: 'PR #89674',
       description: 'OUT Mobile DR | iPad Pro 4 Chip 11 Inch - Storage 256Gb grey liquid damaged |...',
       status: 'Awaiting Damage Report',
-      timeAgo: '16.4h ago',
-      timestamp: new Date(Date.now() - 16.4 * 60 * 60 * 1000),
+      timeAgo: '1.5 business hours ago',
+      timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000), // GREEN: <2 business hours
       deviceInfo: 'iPad Pro 4 Chip 11 Inch - Storage 256Gb grey liquid damaged',
       aiPriority: 'P4',
       estimatedTime: '2h',
@@ -78,8 +116,8 @@ export default function AdminDashboard() {
       ticketId: 'DD #12892',
       description: 'iPad Air 5th Gen - Cracked screen and bent frame from drop...',
       status: 'Awaiting Damage Report',
-      timeAgo: '9.8h ago',
-      timestamp: new Date(Date.now() - 9.8 * 60 * 60 * 1000),
+      timeAgo: '3.5 business hours ago',
+      timestamp: new Date(Date.now() - 3.5 * 60 * 60 * 1000), // ORANGE: 2-4 business hours
       deviceInfo: 'iPad Air 5th Gen',
       aiPriority: 'P4',
       estimatedTime: '2.5h',
@@ -89,8 +127,8 @@ export default function AdminDashboard() {
       ticketId: 'PR #89456',
       description: 'iPhone 14 Pro Max - Battery replacement, experiencing rapid drain...',
       status: 'Awaiting Repair',
-      timeAgo: '18h ago',
-      timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000),
+      timeAgo: '0.5 business hours ago',
+      timestamp: new Date(Date.now() - 0.5 * 60 * 60 * 1000), // GREEN: <2 business hours
       deviceInfo: 'iPhone 14 Pro Max',
       aiPriority: 'P4',
       estimatedTime: '1h',
@@ -100,8 +138,8 @@ export default function AdminDashboard() {
       ticketId: 'PR #89789',
       description: 'Google Pixel 8 Pro - Camera module replacement, rear camera not functioning...',
       status: 'Awaiting Repair',
-      timeAgo: '12h ago',
-      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
+      timeAgo: '1 business hour ago',
+      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), // GREEN: <2 business hours
       deviceInfo: 'Google Pixel 8 Pro',
       aiPriority: 'P4',
       estimatedTime: '2h',
@@ -111,8 +149,8 @@ export default function AdminDashboard() {
       ticketId: 'PR #89123',
       description: 'Samsung Galaxy S24 Ultra - Screen replacement needed after drop damage...',
       status: 'In Progress',
-      timeAgo: '8.2h ago',
-      timestamp: new Date(Date.now() - 8.2 * 60 * 60 * 1000),
+      timeAgo: '3 business hours ago',
+      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // ORANGE: 2-4 business hours
       deviceInfo: 'Samsung Galaxy S24 Ultra',
       aiPriority: 'P4',
       estimatedTime: '1.5h',
@@ -122,8 +160,8 @@ export default function AdminDashboard() {
       ticketId: 'OUT #15702',
       description: 'Nintendo Switch OLED - Joy-Con drift issues, both controllers affected...',
       status: 'In Progress',
-      timeAgo: '4h ago',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+      timeAgo: '15 minutes ago',
+      timestamp: new Date(Date.now() - 0.25 * 60 * 60 * 1000), // GREEN: <2 business hours
       deviceInfo: 'Nintendo Switch OLED',
       aiPriority: 'P4',
       estimatedTime: '1h',
@@ -400,14 +438,16 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-bold ${
-                            // Color coding based on waiting time to create urgency
-                            ticket.timestamp < new Date(Date.now() - 48 * 60 * 60 * 1000) 
-                              ? 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // 48+ hours - CRITICAL
-                              : ticket.timestamp < new Date(Date.now() - 24 * 60 * 60 * 1000)
-                              ? 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 24+ hours - URGENT  
-                              : ticket.timestamp < new Date(Date.now() - 12 * 60 * 60 * 1000)
-                              ? 'bg-yellow-200 text-yellow-900 border border-yellow-500' // 12+ hours - HIGH
-                              : 'bg-blue-100 text-blue-800' // Less than 12 hours - NORMAL
+                            (() => {
+                              const businessHoursWaiting = getBusinessHours(ticket.timestamp, new Date())
+                              if (businessHoursWaiting > 4) {
+                                return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >4 business hours - RED
+                              } else if (businessHoursWaiting > 2) {
+                                return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 2-4 business hours - ORANGE
+                              } else {
+                                return 'bg-green-100 text-green-800' // <2 business hours - GREEN
+                              }
+                            })()
                           }`}>
                             <span className="mr-1">🚨</span>
                             {ticket.timeAgo}
