@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import CompactTicketCard from '@/components/CompactTicketCard'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tickets')
@@ -165,9 +164,24 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <h1 className="text-2xl font-bold text-gray-900">Platinum Repairs - Admin Dashboard</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-600">Welcome, Andre</span>
-              <button className="text-blue-600 hover:text-blue-800">Logout</button>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Switch to:</span>
+                <select className="border border-gray-300 rounded px-3 py-1 text-sm">
+                  <option value="admin">Admin</option>
+                  <option value="tech">Technician</option>
+                  <option value="claim-manager">Claim Manager</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-gray-600">Welcome, Andre</span>
+                <button 
+                  onClick={() => window.location.href = '/login'} 
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -321,14 +335,95 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Tickets Grid - More compact layout */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {tickets.map((ticket) => (
-                <CompactTicketCard
-                  key={ticket.ticketId}
-                  {...ticket}
-                />
-              ))}
+            {/* Tickets Table - Clean list view */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ticket ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Device & Description
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Assigned To
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Priority
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Est. Time
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {tickets.map((ticket, index) => (
+                      <tr key={ticket.ticketId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <div className="flex items-center gap-2">
+                            <span>{ticket.ticketId}</span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              ticket.ticketType === 'DR' ? 'bg-yellow-100 text-yellow-800' :
+                              ticket.ticketType === 'OUT' ? 'bg-blue-100 text-blue-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {ticket.ticketType}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="max-w-xs">
+                            <div className="font-medium text-gray-900 mb-1">{ticket.deviceInfo}</div>
+                            <div className="text-gray-600 text-sm truncate">
+                              {ticket.description}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            {ticket.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {ticket.timeAgo}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {ticket.assignedTo ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {ticket.assignedTo}
+                            </span>
+                          ) : (
+                            <select className="border border-gray-300 rounded px-2 py-1 text-xs">
+                              <option>Select technician...</option>
+                              <option>Ben</option>
+                              <option>Alex</option>
+                            </select>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-500 text-white">
+                            AI: {ticket.aiPriority}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <span>🕒</span>
+                            {ticket.estimatedTime}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
