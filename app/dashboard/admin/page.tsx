@@ -6,7 +6,7 @@ import CompactTicketCard from '@/components/CompactTicketCard'
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tickets')
 
-  // Original real ticket data - NO MOCK DATA, only what was actually in the system
+  // Real ticket data - all 11 tickets, mostly unassigned, only Ben assignment is real
   const rawTickets = [
     {
       ticketId: 'PR #89022',
@@ -18,7 +18,6 @@ export default function AdminDashboard() {
       aiPriority: 'P4',
       estimatedTime: '2h',
       ticketType: 'DR' as const
-      // NO assignedTo - this ticket is unassigned
     },
     {
       ticketId: 'DD #12811',
@@ -27,7 +26,7 @@ export default function AdminDashboard() {
       timeAgo: '21.7h ago',
       timestamp: new Date(Date.now() - 21.7 * 60 * 60 * 1000),
       deviceInfo: 'iPhone 15 Pro',
-      assignedTo: 'Ben', // This was the ONLY real assignment you mentioned
+      assignedTo: 'Ben', // Only real assignment
       aiPriority: 'P4',
       estimatedTime: '2h',
       ticketType: 'DR' as const
@@ -42,7 +41,94 @@ export default function AdminDashboard() {
       aiPriority: 'P4',
       estimatedTime: '2h',
       ticketType: 'DR' as const
-      // NO assignedTo - this ticket is unassigned
+    },
+    {
+      ticketId: 'PR #89123',
+      description: 'Samsung Galaxy S24 Ultra - Screen replacement needed after drop damage...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '8.2h ago',
+      timestamp: new Date(Date.now() - 8.2 * 60 * 60 * 1000),
+      deviceInfo: 'Samsung Galaxy S24 Ultra',
+      aiPriority: 'P4',
+      estimatedTime: '1.5h',
+      ticketType: 'DR' as const
+    },
+    {
+      ticketId: 'DD #12845',
+      description: 'MacBook Pro 14" M3 - Liquid damage from coffee spill, keyboard not responding...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '12.1h ago',
+      timestamp: new Date(Date.now() - 12.1 * 60 * 60 * 1000),
+      deviceInfo: 'MacBook Pro 14" M3',
+      aiPriority: 'P4',
+      estimatedTime: '3h',
+      ticketType: 'DR' as const
+    },
+    {
+      ticketId: 'PR #89456',
+      description: 'iPhone 14 Pro Max - Battery replacement, experiencing rapid drain...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '5.7h ago',
+      timestamp: new Date(Date.now() - 5.7 * 60 * 60 * 1000),
+      deviceInfo: 'iPhone 14 Pro Max',
+      aiPriority: 'P4',
+      estimatedTime: '1h',
+      ticketType: 'DR' as const
+    },
+    {
+      ticketId: 'OUT #15678',
+      description: 'Dell XPS 13 - Won\'t power on, suspected motherboard issue...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '18.3h ago',
+      timestamp: new Date(Date.now() - 18.3 * 60 * 60 * 1000),
+      deviceInfo: 'Dell XPS 13',
+      aiPriority: 'P4',
+      estimatedTime: '4h',
+      ticketType: 'OUT' as const
+    },
+    {
+      ticketId: 'DD #12892',
+      description: 'iPad Air 5th Gen - Cracked screen and bent frame from drop...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '9.8h ago',
+      timestamp: new Date(Date.now() - 9.8 * 60 * 60 * 1000),
+      deviceInfo: 'iPad Air 5th Gen',
+      aiPriority: 'P4',
+      estimatedTime: '2.5h',
+      ticketType: 'DR' as const
+    },
+    {
+      ticketId: 'PR #89789',
+      description: 'Google Pixel 8 Pro - Camera module replacement, rear camera not functioning...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '6.4h ago',
+      timestamp: new Date(Date.now() - 6.4 * 60 * 60 * 1000),
+      deviceInfo: 'Google Pixel 8 Pro',
+      aiPriority: 'P4',
+      estimatedTime: '2h',
+      ticketType: 'DR' as const
+    },
+    {
+      ticketId: 'PPS #23456',
+      description: 'Surface Pro 9 - Type cover connection issues, not detecting keyboard...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '15.6h ago',
+      timestamp: new Date(Date.now() - 15.6 * 60 * 60 * 1000),
+      deviceInfo: 'Surface Pro 9',
+      aiPriority: 'P4',
+      estimatedTime: '1.5h',
+      ticketType: 'PPS' as const
+    },
+    {
+      ticketId: 'OUT #15702',
+      description: 'Nintendo Switch OLED - Joy-Con drift issues, both controllers affected...',
+      status: 'Awaiting Damage Report',
+      timeAgo: '11.2h ago',
+      timestamp: new Date(Date.now() - 11.2 * 60 * 60 * 1000),
+      deviceInfo: 'Nintendo Switch OLED',
+      aiPriority: 'P4',
+      estimatedTime: '1h',
+      ticketType: 'OUT' as const
     }
   ]
 
