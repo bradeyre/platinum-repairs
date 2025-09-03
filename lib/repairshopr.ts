@@ -32,13 +32,39 @@ const REPAIRSHOPR_DD_BASE_URL = 'https://devicedoctor.repairshopr.com/api/v1'
 
 // Status mappings from RepairShopr to our 5 statuses
 const STATUS_MAPPING: Record<string, string> = {
-  'New': 'Awaiting Damage Report',
-  'In Progress': 'In Progress', 
-  'Waiting on Customer': 'Awaiting Rework',
-  'Waiting on Parts': 'Awaiting Workshop Repairs',
-  'Ready for Pickup': 'Awaiting Repair',
-  'Completed': 'Completed',
-  'Cancelled': 'Cancelled'
+  // Awaiting Rework
+  'Parts Allocated': 'Awaiting Rework',
+  'Waiting for Parts': 'Awaiting Rework',
+  
+  // Awaiting Workshop Repairs  
+  'Parts Required': 'Awaiting Workshop Repairs',
+  'Parts Ordered': 'Awaiting Workshop Repairs',
+  'Parts Transferred': 'Awaiting Workshop Repairs',
+  'To Be Repaired Off-site': 'Awaiting Workshop Repairs',
+  'Cape Town Repair': 'Awaiting Workshop Repairs',
+  
+  // Awaiting Damage Report
+  'Damage Report': 'Awaiting Damage Report',
+  'Call For Info/Courier to be Booked': 'Awaiting Damage Report',
+  'Awaiting Courier Arrival': 'Awaiting Damage Report',
+  'Awaiting Biker Collection': 'Awaiting Damage Report',
+  'Awaiting Mobile Booking': 'Awaiting Damage Report',
+  'Awaiting Walk-in': 'Awaiting Damage Report',
+  
+  // Awaiting Repair
+  'Awaiting Authorization': 'Awaiting Repair',
+  'Awaiting Virtual Assessment': 'Awaiting Repair',
+  'No Parts': 'Awaiting Repair',
+  
+  // In Progress
+  'In Progress': 'In Progress',
+  'Damage Report Completed': 'In Progress',
+  
+  // Completed/Other (not shown in main view)
+  'Resolved': 'Completed',
+  'Closed File': 'Completed',
+  'Salvage': 'Completed',
+  'BER': 'Completed'
 }
 
 // Function to calculate time ago in business hours
@@ -148,6 +174,13 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     const allTickets = [...tickets1, ...tickets2]
     const processedTickets = allTickets.map(processTicket)
     
+    // Filter out completed tickets - only show active workflow tickets
+    const activeTickets = processedTickets.filter(ticket => 
+      ticket.status !== 'Completed' && ticket.status !== 'Cancelled'
+    )
+    
+    console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
+    
     // Sort by status priority and timestamp
     const statusPriority: Record<string, number> = {
       'Awaiting Rework': 1,
@@ -157,7 +190,7 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       'In Progress': 5
     }
     
-    return processedTickets.sort((a, b) => {
+    return activeTickets.sort((a, b) => {
       const statusDiff = (statusPriority[a.status] || 999) - (statusPriority[b.status] || 999)
       if (statusDiff !== 0) return statusDiff
       return a.timestamp.getTime() - b.timestamp.getTime()
