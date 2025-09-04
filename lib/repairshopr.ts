@@ -27,7 +27,7 @@ export interface ProcessedTicket {
   assignedTo?: string
   aiPriority: string
   estimatedTime: string
-  ticketType: 'P' | 'DD'
+  ticketType: 'PR' | 'DD'
 }
 
 // RepairShopr API configuration
@@ -90,8 +90,8 @@ function getTimeAgo(dateString: string): string {
 }
 
 // Function to determine ticket type based on RepairShopr instance
-function getTicketType(repairShoprInstance: 'platinum' | 'devicedoctor'): 'P' | 'DD' {
-  return repairShoprInstance === 'platinum' ? 'P' : 'DD'
+function getTicketType(repairShoprInstance: 'platinum' | 'devicedoctor'): 'PR' | 'DD' {
+  return repairShoprInstance === 'platinum' ? 'PR' : 'DD'
 }
 
 // Fetch tickets from RepairShopr instance

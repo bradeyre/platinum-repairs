@@ -12,7 +12,7 @@ interface ProcessedTicket {
   assignedTo?: string
   aiPriority: string
   estimatedTime: string
-  ticketType: 'P' | 'DD'
+  ticketType: 'PR' | 'DD'
 }
 
 export default function AdminDashboard() {
@@ -396,7 +396,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-2">
                             <span>{ticket.ticketId}</span>
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              ticket.ticketType === 'P' ? 'bg-blue-100 text-blue-800' :
+                              ticket.ticketType === 'PR' ? 'bg-blue-100 text-blue-800' :
                               'bg-purple-100 text-purple-800'
                             }`}>
                               {ticket.ticketType}
