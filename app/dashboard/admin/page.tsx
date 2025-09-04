@@ -1,6 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import PerformanceLeaderboard from '@/components/PerformanceLeaderboard'
+import MonthlyReports from '@/components/MonthlyReports'
+import TicketClaimingModal from '@/components/TicketClaimingModal'
+import DamageReportModal from '@/components/DamageReportModal'
 
 interface ProcessedTicket {
   ticketId: string
@@ -21,6 +25,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [assigningTicket, setAssigningTicket] = useState<string | null>(null)
+  const [showPerformanceModal, setShowPerformanceModal] = useState(false)
+  const [showReportsModal, setShowReportsModal] = useState(false)
+  const [showTicketClaimingModal, setShowTicketClaimingModal] = useState(false)
+  const [selectedDRTicket, setSelectedDRTicket] = useState<ProcessedTicket | null>(null)
 
   // Fetch real ticket data from RepairShopr
   useEffect(() => {
@@ -263,8 +271,8 @@ export default function AdminDashboard() {
                     </svg>
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-500">Completed Reports</h3>
-                    <p className="text-2xl font-semibold text-gray-900">{stats.completedReports}</p>
+                    <h3 className="text-sm font-medium text-gray-500">Completed Today</h3>
+                    <p className="text-2xl font-semibold text-gray-900">{stats.completedToday}</p>
                   </div>
                 </div>
               </div>
@@ -277,8 +285,8 @@ export default function AdminDashboard() {
                     </svg>
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-500">Overdue Reports</h3>
-                    <p className="text-2xl font-semibold text-gray-900">{stats.overdueReports}</p>
+                    <h3 className="text-sm font-medium text-gray-500">Overdue</h3>
+                    <p className="text-2xl font-semibold text-gray-900">{stats.overdue}</p>
                   </div>
                 </div>
               </div>
@@ -307,18 +315,35 @@ export default function AdminDashboard() {
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Technician Management</h3>
-                <p className="text-sm text-gray-600 mb-4">Manage technician profiles, skills, and performance tracking.</p>
-                <button className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600">
-                  👥 Manage Users
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Performance Tracking</h3>
+                <p className="text-sm text-gray-600 mb-4">View technician leaderboard and 8-hour activity monitoring.</p>
+                <button 
+                  onClick={() => setShowPerformanceModal(true)}
+                  className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600"
+                >
+                  🏆 View Leaderboard
                 </button>
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Parts Pricing</h3>
-                <p className="text-sm text-gray-600 mb-4">Manage parts pricing from Google Sheets integration.</p>
-                <button className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600">
-                  🔧 Parts Pricing
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Monthly Reports</h3>
+                <p className="text-sm text-gray-600 mb-4">View detailed monthly performance reports and analytics.</p>
+                <button 
+                  onClick={() => setShowReportsModal(true)}
+                  className="w-full bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600"
+                >
+                  📊 Monthly Reports
+                </button>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Get Tickets</h3>
+                <p className="text-sm text-gray-600 mb-4">Claim unassigned tickets and manage technician workload.</p>
+                <button 
+                  onClick={() => setShowTicketClaimingModal(true)}
+                  className="w-full bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-600"
+                >
+                  🎯 Get Ticket
                 </button>
               </div>
 
@@ -337,7 +362,7 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-900">RepairShopper Tickets</h2>
               <div className="text-sm text-gray-600">
-                {stats.totalRSTickets} tickets • {stats.unassigned} unassigned
+                {stats.total} tickets • {stats.unassigned} unassigned
               </div>
             </div>
 
@@ -440,41 +465,51 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {ticket.assignedTo ? (
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                {ticket.assignedTo}
-                              </span>
+                          <div className="space-y-2">
+                            {ticket.assignedTo ? (
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  {ticket.assignedTo}
+                                </span>
+                                <select 
+                                  className="border border-gray-300 rounded px-2 py-1 text-xs bg-white"
+                                  onChange={(e) => handleAssignTicket(ticket.ticketId, e.target.value)}
+                                  disabled={assigningTicket === ticket.ticketId}
+                                  defaultValue=""
+                                >
+                                  <option value="">Reassign...</option>
+                                  <option value="Ben">Ben</option>
+                                  <option value="Alex">Alex</option>
+                                  <option value="Sarah">Sarah</option>
+                                  <option value="Mike">Mike</option>
+                                </select>
+                              </div>
+                            ) : (
                               <select 
                                 className="border border-gray-300 rounded px-2 py-1 text-xs bg-white"
                                 onChange={(e) => handleAssignTicket(ticket.ticketId, e.target.value)}
                                 disabled={assigningTicket === ticket.ticketId}
                                 defaultValue=""
                               >
-                                <option value="">Reassign...</option>
+                                <option value="">Select technician...</option>
                                 <option value="Ben">Ben</option>
                                 <option value="Alex">Alex</option>
                                 <option value="Sarah">Sarah</option>
                                 <option value="Mike">Mike</option>
                               </select>
-                            </div>
-                          ) : (
-                            <select 
-                              className="border border-gray-300 rounded px-2 py-1 text-xs bg-white"
-                              onChange={(e) => handleAssignTicket(ticket.ticketId, e.target.value)}
-                              disabled={assigningTicket === ticket.ticketId}
-                              defaultValue=""
-                            >
-                              <option value="">Select technician...</option>
-                              <option value="Ben">Ben</option>
-                              <option value="Alex">Alex</option>
-                              <option value="Sarah">Sarah</option>
-                              <option value="Mike">Mike</option>
-                            </select>
-                          )}
-                          {assigningTicket === ticket.ticketId && (
-                            <span className="ml-2 text-xs text-gray-500">Assigning...</span>
-                          )}
+                            )}
+                            {assigningTicket === ticket.ticketId && (
+                              <span className="ml-2 text-xs text-gray-500">Assigning...</span>
+                            )}
+                            {ticket.status === 'Awaiting Damage Report' && (
+                              <button
+                                onClick={() => setSelectedDRTicket(ticket)}
+                                className="bg-orange-600 text-white px-2 py-1 rounded text-xs hover:bg-orange-700"
+                              >
+                                📝 Create DR
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -483,6 +518,43 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        )}
+        
+        {/* Performance Modals */}
+        {showPerformanceModal && (
+          <PerformanceLeaderboard onClose={() => setShowPerformanceModal(false)} />
+        )}
+        
+        {showReportsModal && (
+          <MonthlyReports onClose={() => setShowReportsModal(false)} />
+        )}
+        
+        {showTicketClaimingModal && (
+          <TicketClaimingModal 
+            onClose={() => setShowTicketClaimingModal(false)}
+            tickets={sortedTickets}
+            onTicketClaimed={(ticketId, techName) => {
+              // Update ticket assignment in local state
+              setTickets(prev => prev.map(ticket => 
+                ticket.ticketId === ticketId 
+                  ? { ...ticket, assignedTo: techName }
+                  : ticket
+              ))
+              console.log(`Ticket ${ticketId} claimed by ${techName}`)
+            }}
+          />
+        )}
+        
+        {selectedDRTicket && (
+          <DamageReportModal
+            ticket={selectedDRTicket}
+            onClose={() => setSelectedDRTicket(null)}
+            onSave={(reportData) => {
+              console.log('Damage report saved:', reportData)
+              // Update ticket status or handle the saved report data
+              setSelectedDRTicket(null)
+            }}
+          />
         )}
       </div>
     </div>
