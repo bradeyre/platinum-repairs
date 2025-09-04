@@ -313,24 +313,18 @@ export default function AdminDashboard() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ⚠️ WAITING TIME
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                        ⚠️ TIME
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Assigned To
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Priority
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Est. Time
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {loading ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center">
+                        <td colSpan={4} className="px-6 py-12 text-center">
                           <div className="flex items-center justify-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                             <span className="ml-2 text-gray-600">Loading tickets from RepairShopr...</span>
@@ -339,7 +333,7 @@ export default function AdminDashboard() {
                       </tr>
                     ) : error ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center">
+                        <td colSpan={4} className="px-6 py-12 text-center">
                           <div className="text-red-600">
                             <p className="font-semibold">Error loading tickets</p>
                             <p className="text-sm">{error}</p>
@@ -348,7 +342,7 @@ export default function AdminDashboard() {
                       </tr>
                     ) : sortedTickets.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
                           No tickets found in RepairShopr instances
                         </td>
                       </tr>
@@ -385,8 +379,8 @@ export default function AdminDashboard() {
                             {ticket.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-bold ${
+                        <td className="px-3 py-4 whitespace-nowrap w-20">
+                          <div className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${
                             (() => {
                               // Ensure timestamp is a Date object
                               const ticketDate = ticket.timestamp instanceof Date ? ticket.timestamp : new Date(ticket.timestamp)
@@ -400,7 +394,6 @@ export default function AdminDashboard() {
                               }
                             })()
                           }`}>
-                            <span className="mr-1">🚨</span>
                             {ticket.timeAgo}
                           </div>
                         </td>
@@ -416,17 +409,6 @@ export default function AdminDashboard() {
                               <option>Alex</option>
                             </select>
                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-500 text-white">
-                            AI: {ticket.aiPriority}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <span>🕒</span>
-                            {ticket.estimatedTime}
-                          </div>
                         </td>
                       </tr>
                     ))}

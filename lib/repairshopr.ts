@@ -7,9 +7,13 @@ export interface RepairShoprTicket {
   customer_business_then_name: string
   location_name: string
   user_id: number | null
+  subject: string
+  comment: string
   assets: Array<{
     name: string
     asset_type_name: string
+    manufacturer: string
+    model: string
   }>
 }
 
@@ -67,7 +71,7 @@ const STATUS_MAPPING: Record<string, string> = {
   'BER': 'Completed'
 }
 
-// Function to calculate time ago in business hours
+// Function to calculate time ago in business hours - simplified format
 function getTimeAgo(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
@@ -76,12 +80,12 @@ function getTimeAgo(dateString: string): string {
   
   if (diffInHours < 1) {
     const minutes = Math.floor(diffInMs / (1000 * 60))
-    return `${minutes} minutes ago`
+    return `${minutes}m`
   } else if (diffInHours < 24) {
-    return `${diffInHours.toFixed(1)} business hours ago`
+    return `${diffInHours.toFixed(1)}h`
   } else {
     const days = Math.floor(diffInHours / 24)
-    return `${days} days ago`
+    return `${days}d`
   }
 }
 
@@ -135,13 +139,34 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
 
 // Process RepairShopr ticket into our format
 function processTicket(ticket: RepairShoprTicket): ProcessedTicket {
-  const deviceInfo = ticket.assets?.[0] 
-    ? `${ticket.assets[0].name} (${ticket.assets[0].asset_type_name})`
-    : 'Unknown Device'
+  // Extract device information from assets or subject
+  let deviceInfo = 'Unknown Device'
+  if (ticket.assets && ticket.assets.length > 0) {
+    const asset = ticket.assets[0]
+    if (asset.manufacturer && asset.model) {
+      deviceInfo = `${asset.manufacturer} ${asset.model}`
+    } else if (asset.name) {
+      deviceInfo = asset.name
+    } else {
+      deviceInfo = asset.asset_type_name || 'Unknown Device'
+    }
+  } else if (ticket.subject) {
+    // Extract device info from subject using basic AI-like parsing
+    deviceInfo = extractDeviceFromText(ticket.subject)
+  }
+
+  // Create better description from subject and problem_type
+  let description = ticket.problem_type || 'No description'
+  if (ticket.subject && ticket.subject !== ticket.problem_type) {
+    description = ticket.subject
+  } else if (ticket.comment) {
+    // Use first 100 characters of comment if subject is generic
+    description = ticket.comment.substring(0, 100) + (ticket.comment.length > 100 ? '...' : '')
+  }
     
   return {
     ticketId: `#${ticket.id}`,
-    description: ticket.problem_type,
+    description,
     status: STATUS_MAPPING[ticket.status] || ticket.status,
     timeAgo: getTimeAgo(ticket.updated_at),
     timestamp: new Date(ticket.updated_at),
@@ -151,6 +176,39 @@ function processTicket(ticket: RepairShoprTicket): ProcessedTicket {
     estimatedTime: '2h', // Default estimate, could be calculated
     ticketType: getTicketType(ticket.problem_type, ticket.location_name)
   }
+}
+
+// AI-like device extraction from text
+function extractDeviceFromText(text: string): string {
+  const lowerText = text.toLowerCase()
+  
+  // Common device patterns
+  const devicePatterns = [
+    /iphone\s*(\d+\s*pro\s*max?|\d+\s*plus?|\d+)/i,
+    /samsung\s*galaxy\s*[a-z]*\s*\d+/i,
+    /macbook\s*(pro|air)?\s*\d*(\"|inch)?/i,
+    /ipad\s*(pro|air|mini)?\s*\d*/i,
+    /google\s*pixel\s*\d*/i,
+    /surface\s*(pro|book|laptop)?\s*\d*/i,
+    /dell\s*xps\s*\d*/i,
+    /lenovo\s*thinkpad\s*[a-z]*\d*/i,
+    /nintendo\s*switch\s*(oled|lite)?/i,
+  ]
+  
+  for (const pattern of devicePatterns) {
+    const match = text.match(pattern)
+    if (match) {
+      return match[0].trim()
+    }
+  }
+  
+  // Fallback to extracting brand + model patterns
+  const brandModel = text.match(/([A-Z][a-z]+)\s+([A-Z][A-Za-z0-9\s]+)/)?.[0]
+  if (brandModel) {
+    return brandModel.trim()
+  }
+  
+  return 'Unknown Device'
 }
 
 // Main function to get all tickets from both RepairShopr instances
