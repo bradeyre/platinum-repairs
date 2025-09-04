@@ -281,7 +281,7 @@ export default function TicketClaimingModal({ onClose, tickets, onTicketClaimed 
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            💡 Tip: Claim tickets based on urgency (red = >4hrs, orange = 2-4hrs)
+            💡 Tip: Claim tickets based on urgency (red = &gt;4hrs, orange = 2-4hrs)
           </div>
           <button
             onClick={() => {
