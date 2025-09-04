@@ -27,7 +27,7 @@ export interface ProcessedTicket {
   assignedTo?: string
   aiPriority: string
   estimatedTime: string
-  ticketType: 'DR' | 'OUT' | 'PPS'
+  ticketType: 'P' | 'DD'
 }
 
 // RepairShopr API configuration
@@ -89,25 +89,9 @@ function getTimeAgo(dateString: string): string {
   }
 }
 
-// Function to determine ticket type based on problem_type and status
-function getTicketType(problemType: string, status: string, locationName?: string): 'DR' | 'OUT' | 'PPS' {
-  const type = problemType.toLowerCase()
-  const statusLower = status.toLowerCase()
-  
-  // Damage Report tickets
-  if (type.includes('damage report') || type.includes('dr') || 
-      statusLower.includes('damage report') || statusLower.includes('damage')) {
-    return 'DR'
-  }
-  
-  // Outsourced tickets  
-  if (type.includes('out') || type.includes('outsourced') ||
-      statusLower.includes('cape town repair') || statusLower.includes('off-site')) {
-    return 'OUT'
-  }
-  
-  // Parts/Processing/Service tickets (default)
-  return 'PPS'
+// Function to determine ticket type based on RepairShopr instance
+function getTicketType(repairShoprInstance: 'platinum' | 'devicedoctor'): 'P' | 'DD' {
+  return repairShoprInstance === 'platinum' ? 'P' : 'DD'
 }
 
 // Fetch tickets from RepairShopr instance
@@ -151,7 +135,7 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
 }
 
 // Process RepairShopr ticket into our format
-function processTicket(ticket: RepairShoprTicket): ProcessedTicket {
+function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'devicedoctor'): ProcessedTicket {
   // Extract device information from assets or subject
   let deviceInfo = 'Unknown Device'
   if (ticket.assets && ticket.assets.length > 0) {
@@ -187,7 +171,7 @@ function processTicket(ticket: RepairShoprTicket): ProcessedTicket {
     assignedTo: undefined, // Don't auto-assign - let actual assignments come from RepairShopr data
     aiPriority: 'P4', // Default priority, could be enhanced
     estimatedTime: '2h', // Default estimate, could be calculated
-    ticketType: getTicketType(ticket.problem_type, ticket.status, ticket.location_name)
+    ticketType: getTicketType(instance)
   }
 }
 
@@ -241,9 +225,10 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       fetchFromRepairShopr(token2, REPAIRSHOPR_DD_BASE_URL)
     ])
     
-    // Combine and process all tickets
-    const allTickets = [...tickets1, ...tickets2]
-    const processedTickets = allTickets.map(processTicket)
+    // Process tickets with instance information
+    const processedTickets1 = tickets1.map(ticket => processTicket(ticket, 'platinum'))
+    const processedTickets2 = tickets2.map(ticket => processTicket(ticket, 'devicedoctor'))
+    const processedTickets = [...processedTickets1, ...processedTickets2]
     
     // Filter out completed tickets - only show active workflow tickets
     const activeTickets = processedTickets.filter(ticket => 
