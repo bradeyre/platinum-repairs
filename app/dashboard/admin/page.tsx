@@ -100,7 +100,11 @@ export default function AdminDashboard() {
   const sortedTickets = [...tickets].sort((a, b) => {
     const statusDiff = (statusPriority[a.status] || 999) - (statusPriority[b.status] || 999)
     if (statusDiff !== 0) return statusDiff
-    return a.timestamp.getTime() - b.timestamp.getTime()
+    
+    // Ensure timestamps are Date objects for comparison
+    const aTime = a.timestamp instanceof Date ? a.timestamp.getTime() : new Date(a.timestamp).getTime()
+    const bTime = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp).getTime()
+    return aTime - bTime
   })
 
   // Calculate stats
@@ -108,7 +112,10 @@ export default function AdminDashboard() {
     total: sortedTickets.length,
     activeReports: sortedTickets.filter(t => t.status !== 'In Progress').length,
     completedReports: 0, // Completed tickets not shown in this view
-    overdueReports: sortedTickets.filter(t => getBusinessHours(t.timestamp, new Date()) > 4).length,
+    overdueReports: sortedTickets.filter(t => {
+      const ticketDate = t.timestamp instanceof Date ? t.timestamp : new Date(t.timestamp)
+      return getBusinessHours(ticketDate, new Date()) > 4
+    }).length,
     totalRSTickets: sortedTickets.length,
     unassigned: sortedTickets.filter(t => !t.assignedTo).length
   }
@@ -381,7 +388,9 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-bold ${
                             (() => {
-                              const businessHoursWaiting = getBusinessHours(ticket.timestamp, new Date())
+                              // Ensure timestamp is a Date object
+                              const ticketDate = ticket.timestamp instanceof Date ? ticket.timestamp : new Date(ticket.timestamp)
+                              const businessHoursWaiting = getBusinessHours(ticketDate, new Date())
                               if (businessHoursWaiting > 4) {
                                 return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >4 business hours - RED
                               } else if (businessHoursWaiting > 2) {
