@@ -1,0 +1,7 @@
+{
+  "/api/performance/route": "app/api/performance/route.js",
+  "/api/activity-logs/route": "app/api/activity-logs/route.js",
+  "/api/time-tracking/route": "app/api/time-tracking/route.js",
+  "/api/tickets/assign/route": "app/api/tickets/assign/route.js",
+  "/api/tickets/route": "app/api/tickets/route.js"
+}

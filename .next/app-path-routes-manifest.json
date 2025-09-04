@@ -1,0 +1,7 @@
+{
+  "/api/performance/route": "/api/performance",
+  "/api/activity-logs/route": "/api/activity-logs",
+  "/api/time-tracking/route": "/api/time-tracking",
+  "/api/tickets/assign/route": "/api/tickets/assign",
+  "/api/tickets/route": "/api/tickets"
+}

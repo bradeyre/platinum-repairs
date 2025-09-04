@@ -1,0 +1,39 @@
+{
+  "pages": {
+    "/api/performance/route": [
+      "static/chunks/webpack-23055d52f9c766c3.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/58-1749d8e712449088.js",
+      "static/chunks/main-app-c1532ef50aa77d54.js",
+      "static/chunks/app/api/performance/route-e498ed22102de605.js"
+    ],
+    "/api/activity-logs/route": [
+      "static/chunks/webpack-23055d52f9c766c3.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/58-1749d8e712449088.js",
+      "static/chunks/main-app-c1532ef50aa77d54.js",
+      "static/chunks/app/api/activity-logs/route-e498ed22102de605.js"
+    ],
+    "/api/time-tracking/route": [
+      "static/chunks/webpack-23055d52f9c766c3.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/58-1749d8e712449088.js",
+      "static/chunks/main-app-c1532ef50aa77d54.js",
+      "static/chunks/app/api/time-tracking/route-e498ed22102de605.js"
+    ],
+    "/api/tickets/assign/route": [
+      "static/chunks/webpack-23055d52f9c766c3.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/58-1749d8e712449088.js",
+      "static/chunks/main-app-c1532ef50aa77d54.js",
+      "static/chunks/app/api/tickets/assign/route-e498ed22102de605.js"
+    ],
+    "/api/tickets/route": [
+      "static/chunks/webpack-23055d52f9c766c3.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/58-1749d8e712449088.js",
+      "static/chunks/main-app-c1532ef50aa77d54.js",
+      "static/chunks/app/api/tickets/route-e498ed22102de605.js"
+    ]
+  }
+}
