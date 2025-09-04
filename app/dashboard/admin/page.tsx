@@ -164,9 +164,19 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Switch to:</span>
-                <select className="border border-gray-300 rounded px-3 py-1 text-sm">
+                <select 
+                  className="border border-gray-300 rounded px-3 py-1 text-sm"
+                  onChange={(e) => {
+                    if (e.target.value === 'technician') {
+                      window.location.href = '/dashboard/technician'
+                    } else if (e.target.value === 'claim-manager') {
+                      window.location.href = '/dashboard/claim-manager'  
+                    }
+                  }}
+                  defaultValue="admin"
+                >
                   <option value="admin">Admin</option>
-                  <option value="tech">Technician</option>
+                  <option value="technician">Technician</option>
                   <option value="claim-manager">Claim Manager</option>
                 </select>
               </div>

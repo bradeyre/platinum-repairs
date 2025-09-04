@@ -89,12 +89,25 @@ function getTimeAgo(dateString: string): string {
   }
 }
 
-// Function to determine ticket type based on problem_type or other criteria
-function getTicketType(problemType: string, locationName?: string): 'DR' | 'OUT' | 'PPS' {
+// Function to determine ticket type based on problem_type and status
+function getTicketType(problemType: string, status: string, locationName?: string): 'DR' | 'OUT' | 'PPS' {
   const type = problemType.toLowerCase()
-  if (type.includes('damage') || type.includes('dr')) return 'DR'
-  if (type.includes('out') || type.includes('outsourced')) return 'OUT'
-  return 'PPS' // Default to PPS
+  const statusLower = status.toLowerCase()
+  
+  // Damage Report tickets
+  if (type.includes('damage report') || type.includes('dr') || 
+      statusLower.includes('damage report') || statusLower.includes('damage')) {
+    return 'DR'
+  }
+  
+  // Outsourced tickets  
+  if (type.includes('out') || type.includes('outsourced') ||
+      statusLower.includes('cape town repair') || statusLower.includes('off-site')) {
+    return 'OUT'
+  }
+  
+  // Parts/Processing/Service tickets (default)
+  return 'PPS'
 }
 
 // Fetch tickets from RepairShopr instance
@@ -174,7 +187,7 @@ function processTicket(ticket: RepairShoprTicket): ProcessedTicket {
     assignedTo: undefined, // Don't auto-assign - let actual assignments come from RepairShopr data
     aiPriority: 'P4', // Default priority, could be enhanced
     estimatedTime: '2h', // Default estimate, could be calculated
-    ticketType: getTicketType(ticket.problem_type, ticket.location_name)
+    ticketType: getTicketType(ticket.problem_type, ticket.status, ticket.location_name)
   }
 }
 
