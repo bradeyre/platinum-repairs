@@ -144,14 +144,13 @@ export default function AdminDashboard() {
   // Calculate stats
   const stats = {
     total: sortedTickets.length,
-    activeReports: sortedTickets.filter(t => t.status !== 'In Progress').length,
-    completedReports: 0, // Completed tickets not shown in this view
-    overdueReports: sortedTickets.filter(t => {
+    waiting: sortedTickets.filter(t => t.status !== 'In Progress' && t.status !== 'Completed').length,
+    unassigned: sortedTickets.filter(t => !t.assignedTo).length,
+    overdue: sortedTickets.filter(t => {
       const ticketDate = t.timestamp instanceof Date ? t.timestamp : new Date(t.timestamp)
       return getBusinessHours(ticketDate, new Date()) > 4
     }).length,
-    totalRSTickets: sortedTickets.length,
-    unassigned: sortedTickets.filter(t => !t.assignedTo).length
+    completedToday: 0 // Will need to fetch completed tickets from today
   }
 
   return (
@@ -173,7 +172,7 @@ export default function AdminDashboard() {
                       window.location.href = '/dashboard/claim-manager'  
                     }
                   }}
-                  defaultValue="admin"
+                  value="admin"
                 >
                   <option value="admin">Admin</option>
                   <option value="technician">Technician</option>
@@ -236,7 +235,7 @@ export default function AdminDashboard() {
                     </svg>
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-500">Total Reports</h3>
+                    <h3 className="text-sm font-medium text-gray-500">Total Tickets</h3>
                     <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
                   </div>
                 </div>
@@ -250,8 +249,8 @@ export default function AdminDashboard() {
                     </svg>
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-500">Active Reports</h3>
-                    <p className="text-2xl font-semibold text-gray-900">{stats.activeReports}</p>
+                    <h3 className="text-sm font-medium text-gray-500">Waiting</h3>
+                    <p className="text-2xl font-semibold text-gray-900">{stats.waiting}</p>
                   </div>
                 </div>
               </div>
