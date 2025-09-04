@@ -171,7 +171,7 @@ function processTicket(ticket: RepairShoprTicket): ProcessedTicket {
     timeAgo: getTimeAgo(ticket.updated_at),
     timestamp: new Date(ticket.updated_at),
     deviceInfo,
-    assignedTo: ticket.user_id ? 'Ben' : undefined, // Map user IDs to names as needed
+    assignedTo: undefined, // Don't auto-assign - let actual assignments come from RepairShopr data
     aiPriority: 'P4', // Default priority, could be enhanced
     estimatedTime: '2h', // Default estimate, could be calculated
     ticketType: getTicketType(ticket.problem_type, ticket.location_name)

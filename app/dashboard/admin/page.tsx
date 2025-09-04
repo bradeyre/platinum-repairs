@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   const [tickets, setTickets] = useState<ProcessedTicket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [assigningTicket, setAssigningTicket] = useState<string | null>(null)
 
   // Fetch real ticket data from RepairShopr
   useEffect(() => {
@@ -47,6 +48,39 @@ export default function AdminDashboard() {
     const interval = setInterval(fetchTickets, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
+
+  // Handle ticket assignment
+  const handleAssignTicket = async (ticketId: string, technician: string) => {
+    if (technician === 'Select technician...') return
+    
+    setAssigningTicket(ticketId)
+    try {
+      const response = await fetch('/api/tickets/assign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticketId, technician })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to assign ticket')
+      }
+      
+      // Update the ticket assignment in local state
+      setTickets(prev => prev.map(ticket => 
+        ticket.ticketId === ticketId 
+          ? { ...ticket, assignedTo: technician }
+          : ticket
+      ))
+      
+    } catch (err) {
+      console.error('Error assigning ticket:', err)
+      alert('Failed to assign ticket. Please try again.')
+    } finally {
+      setAssigningTicket(null)
+    }
+  }
 
   // Function to calculate business hours between two dates
   const getBusinessHours = (startDate: Date, endDate: Date) => {
@@ -399,15 +433,39 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {ticket.assignedTo ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              {ticket.assignedTo}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {ticket.assignedTo}
+                              </span>
+                              <select 
+                                className="border border-gray-300 rounded px-2 py-1 text-xs bg-white"
+                                onChange={(e) => handleAssignTicket(ticket.ticketId, e.target.value)}
+                                disabled={assigningTicket === ticket.ticketId}
+                                defaultValue=""
+                              >
+                                <option value="">Reassign...</option>
+                                <option value="Ben">Ben</option>
+                                <option value="Alex">Alex</option>
+                                <option value="Sarah">Sarah</option>
+                                <option value="Mike">Mike</option>
+                              </select>
+                            </div>
                           ) : (
-                            <select className="border border-gray-300 rounded px-2 py-1 text-xs">
-                              <option>Select technician...</option>
-                              <option>Ben</option>
-                              <option>Alex</option>
+                            <select 
+                              className="border border-gray-300 rounded px-2 py-1 text-xs bg-white"
+                              onChange={(e) => handleAssignTicket(ticket.ticketId, e.target.value)}
+                              disabled={assigningTicket === ticket.ticketId}
+                              defaultValue=""
+                            >
+                              <option value="">Select technician...</option>
+                              <option value="Ben">Ben</option>
+                              <option value="Alex">Alex</option>
+                              <option value="Sarah">Sarah</option>
+                              <option value="Mike">Mike</option>
                             </select>
+                          )}
+                          {assigningTicket === ticket.ticketId && (
+                            <span className="ml-2 text-xs text-gray-500">Assigning...</span>
                           )}
                         </td>
                       </tr>
