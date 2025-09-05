@@ -1,5 +1,6 @@
 export interface RepairShoprTicket {
   id: string
+  number: string  // Add the actual ticket number field
   problem_type: string
   status: string
   created_at: string
@@ -19,6 +20,7 @@ export interface RepairShoprTicket {
 
 export interface ProcessedTicket {
   ticketId: string
+  ticketNumber: string
   description: string
   status: string
   timeAgo: string
@@ -162,7 +164,8 @@ function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'device
   }
     
   return {
-    ticketId: `#${ticket.id}`,
+    ticketId: `#${ticket.number}`, // Use ticket number for display
+    ticketNumber: ticket.number, // Use the actual ticket number from API
     description,
     status: STATUS_MAPPING[ticket.status] || ticket.status,
     timeAgo: getTimeAgo(ticket.updated_at),
@@ -230,12 +233,19 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     const processedTickets2 = tickets2.map(ticket => processTicket(ticket, 'devicedoctor'))
     const processedTickets = [...processedTickets1, ...processedTickets2]
     
+    console.log(`🔍 API Debug: PR tickets: ${tickets1.length}, DD tickets: ${tickets2.length}`)
+    console.log(`🔍 Processed: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
+    
     // Filter out completed tickets - only show active workflow tickets
     const activeTickets = processedTickets.filter(ticket => 
       ticket.status !== 'Completed' && ticket.status !== 'Cancelled'
     )
     
     console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
+    console.log(`🔍 Active tickets by type:`, {
+      PR: activeTickets.filter(t => t.ticketType === 'PR').length,
+      DD: activeTickets.filter(t => t.ticketType === 'DD').length
+    })
     
     // Sort by status priority and timestamp
     const statusPriority: Record<string, number> = {

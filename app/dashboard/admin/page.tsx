@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react'
 import PerformanceLeaderboard from '@/components/PerformanceLeaderboard'
 import MonthlyReports from '@/components/MonthlyReports'
 import TicketClaimingModal from '@/components/TicketClaimingModal'
-import DamageReportModal from '@/components/DamageReportModal'
 
 interface ProcessedTicket {
   ticketId: string
+  ticketNumber: string
   description: string
   status: string
   timeAgo: string
@@ -28,7 +28,6 @@ export default function AdminDashboard() {
   const [showPerformanceModal, setShowPerformanceModal] = useState(false)
   const [showReportsModal, setShowReportsModal] = useState(false)
   const [showTicketClaimingModal, setShowTicketClaimingModal] = useState(false)
-  const [selectedDRTicket, setSelectedDRTicket] = useState<ProcessedTicket | null>(null)
 
   // Fetch real ticket data from RepairShopr
   useEffect(() => {
@@ -373,7 +372,7 @@ export default function AdminDashboard() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ticket ID
+                        Ticket Number
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Device & Description
@@ -418,10 +417,10 @@ export default function AdminDashboard() {
                       <tr key={ticket.ticketId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           <div className="flex items-center gap-2">
-                            <span>{ticket.ticketId}</span>
+                            <span>#{ticket.ticketNumber}</span>
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
                               ticket.ticketType === 'PR' ? 'bg-blue-100 text-blue-800' :
-                              'bg-purple-100 text-purple-800'
+                              'bg-green-100 text-green-800'
                             }`}>
                               {ticket.ticketType}
                             </span>
@@ -501,14 +500,6 @@ export default function AdminDashboard() {
                             {assigningTicket === ticket.ticketId && (
                               <span className="ml-2 text-xs text-gray-500">Assigning...</span>
                             )}
-                            {ticket.status === 'Awaiting Damage Report' && (
-                              <button
-                                onClick={() => setSelectedDRTicket(ticket)}
-                                className="bg-orange-600 text-white px-2 py-1 rounded text-xs hover:bg-orange-700"
-                              >
-                                📝 Create DR
-                              </button>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -545,17 +536,6 @@ export default function AdminDashboard() {
           />
         )}
         
-        {selectedDRTicket && (
-          <DamageReportModal
-            ticket={selectedDRTicket}
-            onClose={() => setSelectedDRTicket(null)}
-            onSave={(reportData) => {
-              console.log('Damage report saved:', reportData)
-              // Update ticket status or handle the saved report data
-              setSelectedDRTicket(null)
-            }}
-          />
-        )}
       </div>
     </div>
   )
