@@ -216,7 +216,7 @@ export const triggerCelebration = (techName: string, action: string, context?: a
   document.body.appendChild(container)
   
   // Import React and render celebration
-  import('react-dom').then(({ createRoot }) => {
+  import('react-dom/client').then(({ createRoot }) => {
     const root = createRoot(container)
     root.render(
       React.createElement(CelebrationSystem, {

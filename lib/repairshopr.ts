@@ -1,6 +1,6 @@
 export interface RepairShoprTicket {
   id: string
-  number: string  // Add the actual ticket number field
+  number?: string  // Make optional - some APIs might not have this field
   problem_type: string
   status: string
   created_at: string
@@ -164,8 +164,8 @@ function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'device
   }
     
   return {
-    ticketId: `#${ticket.number}`, // Use ticket number for display
-    ticketNumber: ticket.number, // Use the actual ticket number from API
+    ticketId: `#${ticket.number || ticket.id}`, // Use ticket number if available, fallback to ID
+    ticketNumber: ticket.number || ticket.id, // Use the actual ticket number from API, fallback to ID
     description,
     status: STATUS_MAPPING[ticket.status] || ticket.status,
     timeAgo: getTimeAgo(ticket.updated_at),

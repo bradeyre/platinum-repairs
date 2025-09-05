@@ -45,8 +45,8 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     deviceInfo: '',
     estimatedCost: '',
     repairability: '',
-    recommendedActions: [],
-    riskFactors: []
+    recommendedActions: [] as string[],
+    riskFactors: [] as string[]
   })
 
   const technicians = ['Ben', 'Alex', 'Sarah', 'Mike']
