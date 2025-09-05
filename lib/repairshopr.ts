@@ -114,6 +114,7 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
     
     console.log(`RepairShopr response status: ${response.status}`)
     console.log(`RepairShopr response headers:`, Object.fromEntries(response.headers.entries()))
+    console.log(`🔍 Fetching from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
     
     if (!response.ok) {
       const errorText = await response.text()
@@ -236,9 +237,15 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     console.log(`🔍 API Debug: PR tickets: ${tickets1.length}, DD tickets: ${tickets2.length}`)
     console.log(`🔍 Processed: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
-    // Filter out completed tickets - only show active workflow tickets
+    // Debug: Show all statuses being returned
+    const allStatuses = processedTickets.map(t => t.status)
+    const uniqueStatuses = [...new Set(allStatuses)]
+    console.log(`🔍 All statuses from APIs:`, uniqueStatuses)
+    
+    // Filter to ONLY show the 5 allowed statuses
+    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
     const activeTickets = processedTickets.filter(ticket => 
-      ticket.status !== 'Completed' && ticket.status !== 'Cancelled'
+      allowedStatuses.includes(ticket.status)
     )
     
     console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
