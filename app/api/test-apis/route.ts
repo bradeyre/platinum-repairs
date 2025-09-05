@@ -16,8 +16,8 @@ export async function GET() {
         prToken: prToken ? 'Present' : 'Missing',
         ddToken: ddToken ? 'Present' : 'Missing'
       },
-      prApi: { status: 'Not tested', totalTickets: 0, error: null },
-      ddApi: { status: 'Not tested', totalTickets: 0, error: null }
+      prApi: { status: 'Not tested', totalTickets: 0, error: null as string | null },
+      ddApi: { status: 'Not tested', totalTickets: 0, error: null as string | null }
     }
     
     if (!prToken || !ddToken) {
