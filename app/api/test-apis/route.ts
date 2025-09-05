@@ -64,8 +64,8 @@ export async function GET() {
     // Analyze statuses
     const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
     
-    let prStatuses = []
-    let ddStatuses = []
+    let prStatuses: string[] = []
+    let ddStatuses: string[] = []
     let prAllowedCount = 0
     let ddAllowedCount = 0
     
