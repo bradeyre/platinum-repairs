@@ -70,13 +70,13 @@ export async function GET() {
     let ddAllowedCount = 0
     
     if (prData?.tickets) {
-      prStatuses = [...new Set(prData.tickets.map((t: any) => t.status))]
-      prAllowedCount = prData.tickets.filter((t: any) => allowedStatuses.includes(t.status)).length
+      prStatuses = [...new Set(prData.tickets.map((t: any) => t.status as string))]
+      prAllowedCount = prData.tickets.filter((t: any) => allowedStatuses.includes(t.status as string)).length
     }
     
     if (ddData?.tickets) {
-      ddStatuses = [...new Set(ddData.tickets.map((t: any) => t.status))]
-      ddAllowedCount = ddData.tickets.filter((t: any) => allowedStatuses.includes(t.status)).length
+      ddStatuses = [...new Set(ddData.tickets.map((t: any) => t.status as string))]
+      ddAllowedCount = ddData.tickets.filter((t: any) => allowedStatuses.includes(t.status as string)).length
     }
     
     const result = {
