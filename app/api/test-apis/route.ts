@@ -11,92 +11,97 @@ export async function GET() {
     console.log('REPAIRSHOPR_TOKEN:', prToken ? 'Present' : 'Missing')
     console.log('REPAIRSHOPR_TOKEN_DD:', ddToken ? 'Present' : 'Missing')
     
+    const result = {
+      environment: {
+        prToken: prToken ? 'Present' : 'Missing',
+        ddToken: ddToken ? 'Present' : 'Missing'
+      },
+      prApi: { status: 'Not tested', error: null },
+      ddApi: { status: 'Not tested', error: null }
+    }
+    
     if (!prToken || !ddToken) {
       return NextResponse.json({ 
         error: 'Missing API tokens',
-        prToken: prToken ? 'Present' : 'Missing',
-        ddToken: ddToken ? 'Present' : 'Missing'
+        ...result
       }, { status: 500 })
     }
     
     // Test PR API
-    console.log('🔍 Testing PR API...')
-    const prResponse = await fetch('https://platinumrepairs.repairshopr.com/tickets', {
-      headers: {
-        'Authorization': `Bearer ${prToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+    try {
+      console.log('🔍 Testing PR API...')
+      const prResponse = await fetch('https://platinumrepairs.repairshopr.com/tickets', {
+        headers: {
+          'Authorization': `Bearer ${prToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+      
+      console.log(`PR API response status: ${prResponse.status}`)
+      
+      if (prResponse.ok) {
+        const prData = await prResponse.json()
+        console.log(`PR API tickets count: ${prData.tickets ? prData.tickets.length : 'No tickets property'}`)
+        result.prApi = {
+          status: prResponse.status,
+          totalTickets: prData.tickets?.length || 0,
+          error: null
+        }
+      } else {
+        const errorText = await prResponse.text()
+        console.error(`PR API error: ${prResponse.status} - ${errorText}`)
+        result.prApi = {
+          status: prResponse.status,
+          totalTickets: 0,
+          error: errorText
+        }
       }
-    })
-    
-    console.log(`PR API response status: ${prResponse.status}`)
-    
-    let prData = null
-    if (prResponse.ok) {
-      prData = await prResponse.json()
-      console.log(`PR API tickets count: ${prData.tickets ? prData.tickets.length : 'No tickets property'}`)
-    } else {
-      const errorText = await prResponse.text()
-      console.error(`PR API error: ${prResponse.status} - ${errorText}`)
+    } catch (error) {
+      console.error('PR API test failed:', error)
+      result.prApi = {
+        status: 'Error',
+        totalTickets: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     }
     
     // Test DD API
-    console.log('🔍 Testing DD API...')
-    const ddResponse = await fetch('https://devic_doctorsa.repairshopr.com/tickets', {
-      headers: {
-        'Authorization': `Bearer ${ddToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+    try {
+      console.log('🔍 Testing DD API...')
+      const ddResponse = await fetch('https://devic_doctorsa.repairshopr.com/tickets', {
+        headers: {
+          'Authorization': `Bearer ${ddToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+      
+      console.log(`DD API response status: ${ddResponse.status}`)
+      
+      if (ddResponse.ok) {
+        const ddData = await ddResponse.json()
+        console.log(`DD API tickets count: ${ddData.tickets ? ddData.tickets.length : 'No tickets property'}`)
+        result.ddApi = {
+          status: ddResponse.status,
+          totalTickets: ddData.tickets?.length || 0,
+          error: null
+        }
+      } else {
+        const errorText = await ddResponse.text()
+        console.error(`DD API error: ${ddResponse.status} - ${errorText}`)
+        result.ddApi = {
+          status: ddResponse.status,
+          totalTickets: 0,
+          error: errorText
+        }
       }
-    })
-    
-    console.log(`DD API response status: ${ddResponse.status}`)
-    
-    let ddData = null
-    if (ddResponse.ok) {
-      ddData = await ddResponse.json()
-      console.log(`DD API tickets count: ${ddData.tickets ? ddData.tickets.length : 'No tickets property'}`)
-    } else {
-      const errorText = await ddResponse.text()
-      console.error(`DD API error: ${ddResponse.status} - ${errorText}`)
-    }
-    
-    // Analyze statuses
-    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
-    
-    let prStatuses: string[] = []
-    let ddStatuses: string[] = []
-    let prAllowedCount = 0
-    let ddAllowedCount = 0
-    
-    if (prData?.tickets) {
-      prStatuses = [...new Set(prData.tickets.map((t: any) => t.status as string))] as string[]
-      prAllowedCount = prData.tickets.filter((t: any) => allowedStatuses.includes(t.status as string)).length
-    }
-    
-    if (ddData?.tickets) {
-      ddStatuses = [...new Set(ddData.tickets.map((t: any) => t.status as string))] as string[]
-      ddAllowedCount = ddData.tickets.filter((t: any) => allowedStatuses.includes(t.status as string)).length
-    }
-    
-    const result = {
-      prApi: {
-        status: prResponse.status,
-        totalTickets: prData?.tickets?.length || 0,
-        allowedTickets: prAllowedCount,
-        allStatuses: prStatuses,
-        allowedStatuses: prStatuses.filter(s => allowedStatuses.includes(s))
-      },
-      ddApi: {
-        status: ddResponse.status,
-        totalTickets: ddData?.tickets?.length || 0,
-        allowedTickets: ddAllowedCount,
-        allStatuses: ddStatuses,
-        allowedStatuses: ddStatuses.filter(s => allowedStatuses.includes(s))
-      },
-      summary: {
-        totalTickets: (prData?.tickets?.length || 0) + (ddData?.tickets?.length || 0),
-        totalAllowedTickets: prAllowedCount + ddAllowedCount
+    } catch (error) {
+      console.error('DD API test failed:', error)
+      result.ddApi = {
+        status: 'Error',
+        totalTickets: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
     
