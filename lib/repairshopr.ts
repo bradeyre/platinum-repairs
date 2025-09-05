@@ -34,7 +34,7 @@ export interface ProcessedTicket {
 
 // RepairShopr API configuration
 const REPAIRSHOPR_BASE_URL = 'https://platinumrepairs.repairshopr.com/api/v1'
-const REPAIRSHOPR_DD_BASE_URL = 'https://devic_doctorsa.repairshopr.com/api/v1'
+const REPAIRSHOPR_DD_BASE_URL = 'https://devicedoctorsa.repairshopr.com/api/v1'
 
 // Status mappings from RepairShopr to our 5 statuses
 const STATUS_MAPPING: Record<string, string> = {
