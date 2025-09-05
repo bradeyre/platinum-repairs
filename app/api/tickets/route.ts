@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getAllTickets } from '@/lib/repairshopr'
 
+console.log('🚀 API route file loaded!')
+
 export async function GET() {
   try {
     console.log('🚀 API route called - fetching tickets...')

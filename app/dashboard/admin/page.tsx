@@ -20,6 +20,7 @@ interface ProcessedTicket {
 }
 
 export default function AdminDashboard() {
+  console.log('🚀 AdminDashboard component loaded!')
   const [activeTab, setActiveTab] = useState('tickets')
   const [tickets, setTickets] = useState<ProcessedTicket[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,12 +34,15 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchTickets = async () => {
       try {
+        console.log('🚀 Admin page: Starting to fetch tickets...')
         setLoading(true)
         const response = await fetch('/api/tickets')
+        console.log('🚀 Admin page: API response status:', response.status)
         if (!response.ok) {
           throw new Error('Failed to fetch tickets')
         }
         const data = await response.json()
+        console.log('🚀 Admin page: Received data:', data)
         setTickets(data.tickets)
         setError(null)
       } catch (err) {
