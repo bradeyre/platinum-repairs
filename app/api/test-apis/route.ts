@@ -44,7 +44,7 @@ export async function GET() {
         const prData = await prResponse.json()
         console.log(`PR API tickets count: ${prData.tickets ? prData.tickets.length : 'No tickets property'}`)
         result.prApi = {
-          status: prResponse.status,
+          status: prResponse.status.toString(),
           totalTickets: prData.tickets?.length || 0,
           error: null
         }
@@ -52,7 +52,7 @@ export async function GET() {
         const errorText = await prResponse.text()
         console.error(`PR API error: ${prResponse.status} - ${errorText}`)
         result.prApi = {
-          status: prResponse.status,
+          status: prResponse.status.toString(),
           totalTickets: 0,
           error: errorText
         }
@@ -83,7 +83,7 @@ export async function GET() {
         const ddData = await ddResponse.json()
         console.log(`DD API tickets count: ${ddData.tickets ? ddData.tickets.length : 'No tickets property'}`)
         result.ddApi = {
-          status: ddResponse.status,
+          status: ddResponse.status.toString(),
           totalTickets: ddData.tickets?.length || 0,
           error: null
         }
@@ -91,7 +91,7 @@ export async function GET() {
         const errorText = await ddResponse.text()
         console.error(`DD API error: ${ddResponse.status} - ${errorText}`)
         result.ddApi = {
-          status: ddResponse.status,
+          status: ddResponse.status.toString(),
           totalTickets: 0,
           error: errorText
         }
