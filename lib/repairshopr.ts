@@ -99,14 +99,10 @@ function getTicketType(repairShoprInstance: 'platinum' | 'devicedoctor'): 'PR' |
 // Fetch tickets from RepairShopr instance
 async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<RepairShoprTicket[]> {
   try {
-    // Define the 5 allowed statuses we want to query for
-    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
-    
-    // Query for tickets with specific statuses to reduce API load
-    const statusQuery = allowedStatuses.map(status => `status=${encodeURIComponent(status)}`).join('&')
-    const url = `${baseUrl}/tickets?${statusQuery}`
+    // RepairShopr API doesn't support multiple status queries in one request
+    // We need to fetch all tickets and filter client-side
+    const url = `${baseUrl}/tickets`
     console.log(`🔍 Fetching from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
-    console.log(`🎯 Querying for specific statuses: ${allowedStatuses.join(', ')}`)
     console.log(`Fetching from RepairShopr: ${url}`)
     console.log(`Using token: ${token.substring(0, 10)}...`)
     
@@ -114,7 +110,8 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-API-Key': token
       }
     })
     
@@ -124,7 +121,9 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`RepairShopr API error: ${response.status} - ${errorText}`)
+      console.error(`❌ RepairShopr API error: ${response.status} - ${errorText}`)
+      console.error(`❌ URL attempted: ${url}`)
+      console.error(`❌ Token used: ${token.substring(0, 20)}...`)
       throw new Error(`RepairShopr API error: ${response.status} - ${errorText}`)
     }
     
@@ -243,16 +242,18 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     console.log(`🔍 API Debug: PR tickets: ${tickets1.length}, DD tickets: ${tickets2.length}`)
     console.log(`🔍 Processed: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
-    // Debug: Show all statuses being returned (should only be the 5 allowed ones)
+    // Debug: Show all statuses being returned
     const allStatuses = processedTickets.map(t => t.status)
     const uniqueStatuses = [...new Set(allStatuses)]
-    console.log(`🔍 Statuses returned from APIs:`, uniqueStatuses)
-    console.log(`✅ All tickets already filtered by API query - no additional filtering needed`)
+    console.log(`🔍 All statuses from APIs:`, uniqueStatuses)
     
-    // Since we're querying for specific statuses, all returned tickets are already valid
-    const activeTickets = processedTickets
+    // Filter to ONLY show the 5 allowed statuses
+    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
+    const activeTickets = processedTickets.filter(ticket => 
+      allowedStatuses.includes(ticket.status)
+    )
     
-    console.log(`📊 Total active tickets: ${activeTickets.length}`)
+    console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
     console.log(`🔍 Active tickets by type:`, {
       PR: activeTickets.filter(t => t.ticketType === 'PR').length,
       DD: activeTickets.filter(t => t.ticketType === 'DD').length
