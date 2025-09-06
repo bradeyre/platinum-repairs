@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 
 interface ProcessedTicket {
   ticketId: string
+  ticketNumber: string
   description: string
   status: string
   timeAgo: string
