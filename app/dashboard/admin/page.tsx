@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import PerformanceLeaderboard from '@/components/PerformanceLeaderboard'
 import MonthlyReports from '@/components/MonthlyReports'
 import TicketClaimingModal from '@/components/TicketClaimingModal'
+import UserManagement from '@/components/UserManagement'
 
 interface ProcessedTicket {
   ticketId: string
@@ -29,6 +30,7 @@ export default function AdminDashboard() {
   const [showPerformanceModal, setShowPerformanceModal] = useState(false)
   const [showReportsModal, setShowReportsModal] = useState(false)
   const [showTicketClaimingModal, setShowTicketClaimingModal] = useState(false)
+  const [showUserManagement, setShowUserManagement] = useState(false)
 
   // Fetch real ticket data from RepairShopr
   useEffect(() => {
@@ -357,6 +359,17 @@ export default function AdminDashboard() {
                   ⚙️ System Settings
                 </button>
               </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">User Management</h3>
+                <p className="text-sm text-gray-600 mb-4">Manage system users, roles, and permissions.</p>
+                <button 
+                  onClick={() => setShowUserManagement(true)}
+                  className="w-full bg-purple-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-600"
+                >
+                  👥 Manage Users
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -538,6 +551,10 @@ export default function AdminDashboard() {
               console.log(`Ticket ${ticketId} claimed by ${techName}`)
             }}
           />
+        )}
+        
+        {showUserManagement && (
+          <UserManagement onClose={() => setShowUserManagement(false)} />
         )}
         
       </div>
