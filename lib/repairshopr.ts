@@ -51,11 +51,7 @@ const STATUS_MAPPING: Record<string, string> = {
   
   // Awaiting Damage Report
   'Damage Report': 'Awaiting Damage Report',
-  'Call For Info/Courier to be Booked': 'Awaiting Damage Report',
-  'Awaiting Courier Arrival': 'Awaiting Damage Report',
-  'Awaiting Biker Collection': 'Awaiting Damage Report',
-  'Awaiting Mobile Booking': 'Awaiting Damage Report',
-  'Awaiting Walk-in': 'Awaiting Damage Report',
+  // Note: Removed incorrect Device Doctor status mappings that were causing too many tickets to show
   
   // Awaiting Repair
   'Awaiting Authorization': 'Awaiting Repair',
@@ -64,7 +60,7 @@ const STATUS_MAPPING: Record<string, string> = {
   
   // In Progress
   'In Progress': 'In Progress',
-  'Damage Report Completed': 'In Progress',
+  // Note: Removed 'Damage Report Completed' mapping as it should not be shown in active tickets
   
   // Completed/Other (not shown in main view)
   'Resolved': 'Completed',
