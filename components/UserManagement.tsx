@@ -117,6 +117,8 @@ export default function UserManagement({ onClose }: UserManagementProps) {
   }
 
   const handleEditUser = (user: User) => {
+    console.log('🔧 handleEditUser called with:', user)
+    console.log('🔧 Setting editingUser to:', user)
     setEditingUser(user)
     setFormData({
       email: user.email,
@@ -127,6 +129,7 @@ export default function UserManagement({ onClose }: UserManagementProps) {
       bio: user.bio || ''
     })
     setShowAddForm(false)
+    console.log('🔧 Form should now be visible - editingUser set, showAddForm false')
   }
 
   const handleDeleteUser = async (userId: string) => {
@@ -216,6 +219,7 @@ export default function UserManagement({ onClose }: UserManagementProps) {
           )}
 
           {/* Add/Edit Form */}
+          {console.log('🔧 Form render check - showAddForm:', showAddForm, 'editingUser:', editingUser, 'should show:', (showAddForm || editingUser))}
           {(showAddForm || editingUser) && (
             <div className="bg-gray-50 p-6 rounded-lg mb-6">
               <h3 className="text-lg font-semibold mb-4">
@@ -393,8 +397,15 @@ export default function UserManagement({ onClose }: UserManagementProps) {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleEditUser(user)}
-                          className="text-blue-600 hover:text-blue-900"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('🔧 EDIT BUTTON CLICKED!', user)
+                            alert('Edit button clicked for: ' + user.username)
+                            handleEditUser(user)
+                          }}
+                          className="text-blue-600 hover:text-blue-900 cursor-pointer"
+                          style={{ cursor: 'pointer' }}
                         >
                           Edit
                         </button>
