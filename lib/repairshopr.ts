@@ -238,6 +238,13 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     console.log(`🔍 API Debug: PR tickets: ${tickets1.length}, DD tickets: ${tickets2.length}`)
     console.log(`🔍 Processed: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
+    // Debug: Show raw DD ticket statuses before mapping
+    if (tickets2.length > 0) {
+      const ddStatuses = tickets2.map(t => t.status)
+      const uniqueDDStatuses = [...new Set(ddStatuses)]
+      console.log(`🔍 Raw DD statuses before mapping:`, uniqueDDStatuses)
+    }
+    
     // Debug: Show all statuses being returned
     const allStatuses = processedTickets.map(t => t.status)
     const uniqueStatuses = [...new Set(allStatuses)]
