@@ -183,6 +183,14 @@ Only show these 5 statuses:
 - `Awaiting Repair`
 - `In Progress`
 
+### Workshop Assignment Filtering
+**Device Doctor Tickets Only**: Exclude tickets assigned to specific workshops:
+- ❌ **Durban Workshop** - Already assigned, not available for claiming
+- ❌ **Cape Town Workshop** - Already assigned, not available for claiming
+- ✅ **Unassigned or other assignments** - Available for claiming
+
+**Platinum Repairs Tickets**: No workshop filtering applied (all tickets with allowed statuses are shown)
+
 ### API Integration
 - ✅ Pull from both RepairShopr instances
 - ✅ Real-time updates every 1 minute (updated from 5 minutes)
@@ -190,6 +198,7 @@ Only show these 5 statuses:
 - ✅ Proper error handling
 - ✅ Debug logging
 - ✅ No local browser storage (session-only data)
+- ✅ **Workshop Assignment Filtering**: Exclude Device Doctor tickets assigned to "Durban Workshop" or "Cape Town Workshop" (these are already assigned and not available for claiming)
 
 ## 🔍 Debug Endpoints
 
