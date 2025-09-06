@@ -211,6 +211,11 @@ export default function UserManagement({ onClose }: UserManagementProps) {
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          {/* Debug Info */}
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
+            <strong>DEBUG INFO:</strong> showAddForm: {showAddForm.toString()}, editingUser: {editingUser ? `SET (${editingUser.username})` : 'NULL'}, Should show form: {(showAddForm || editingUser).toString()}
+          </div>
+          
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               {error}
@@ -225,10 +230,13 @@ export default function UserManagement({ onClose }: UserManagementProps) {
 
           {/* Add/Edit Form */}
           {(showAddForm || editingUser) && (
-            <div className="bg-gray-50 p-6 rounded-lg mb-6">
-              <h3 className="text-lg font-semibold mb-4">
-                {editingUser ? `Edit User: ${editingUser.username}` : 'Add New User'}
+            <div className="bg-blue-100 border-4 border-blue-500 p-6 rounded-lg mb-6" style={{ zIndex: 1000, position: 'relative' }}>
+              <h3 className="text-lg font-semibold mb-4 text-blue-800">
+                {editingUser ? `🔧 EDITING USER: ${editingUser.username}` : 'Add New User'}
               </h3>
+              <div className="text-sm text-blue-600 mb-4">
+                DEBUG: Form is rendering! showAddForm: {showAddForm.toString()}, editingUser: {editingUser ? 'SET' : 'NULL'}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
