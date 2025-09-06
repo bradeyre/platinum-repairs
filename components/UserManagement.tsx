@@ -38,6 +38,11 @@ export default function UserManagement({ onClose }: UserManagementProps) {
     fetchUsers()
   }, [])
 
+  // Debug logging for form state
+  useEffect(() => {
+    console.log('🔧 Form render check - showAddForm:', showAddForm, 'editingUser:', editingUser, 'should show:', (showAddForm || editingUser))
+  }, [showAddForm, editingUser])
+
   const fetchUsers = async () => {
     try {
       setLoading(true)
@@ -219,7 +224,6 @@ export default function UserManagement({ onClose }: UserManagementProps) {
           )}
 
           {/* Add/Edit Form */}
-          {console.log('🔧 Form render check - showAddForm:', showAddForm, 'editingUser:', editingUser, 'should show:', (showAddForm || editingUser))}
           {(showAddForm || editingUser) && (
             <div className="bg-gray-50 p-6 rounded-lg mb-6">
               <h3 className="text-lg font-semibold mb-4">
