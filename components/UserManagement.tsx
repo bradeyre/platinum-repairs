@@ -213,7 +213,7 @@ export default function UserManagement({ onClose }: UserManagementProps) {
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           {/* Debug Info */}
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-            <strong>DEBUG INFO:</strong> showAddForm: {showAddForm.toString()}, editingUser: {editingUser ? `SET (${editingUser.username})` : 'NULL'}, Should show form: {(showAddForm || editingUser).toString()}
+            <strong>DEBUG INFO:</strong> showAddForm: {showAddForm.toString()}, editingUser: {editingUser ? `SET (${editingUser.username})` : 'NULL'}, Should show form: {(showAddForm || !!editingUser).toString()}
           </div>
           
           {error && (
