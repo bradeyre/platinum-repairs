@@ -110,6 +110,7 @@ export default function UserManagement({ onClose }: UserManagementProps) {
   }
 
   const handleEditUser = (user: User) => {
+    console.log('🔧 Edit button clicked for user:', user)
     setEditingUser(user)
     setFormData({
       email: user.email,
@@ -120,6 +121,7 @@ export default function UserManagement({ onClose }: UserManagementProps) {
       bio: user.bio || ''
     })
     setShowAddForm(false)
+    console.log('🔧 Edit form should now be visible')
   }
 
   const handleDeleteUser = async (userId: string) => {
@@ -206,8 +208,9 @@ export default function UserManagement({ onClose }: UserManagementProps) {
           {(showAddForm || editingUser) && (
             <div className="bg-gray-50 p-6 rounded-lg mb-6">
               <h3 className="text-lg font-semibold mb-4">
-                {editingUser ? 'Edit User' : 'Add New User'}
+                {editingUser ? `Edit User: ${editingUser.username}` : 'Add New User'}
               </h3>
+              {console.log('🔧 Form is rendering - showAddForm:', showAddForm, 'editingUser:', editingUser)}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
