@@ -30,13 +30,13 @@ export default function TicketClaimingModal({ onClose, tickets, onTicketClaimed 
   const technicians = ['Ben', 'Alex', 'Sarah', 'Mike']
 
   useEffect(() => {
-    // Check if technician is already authenticated
-    const storedTech = localStorage.getItem('authenticatedTech')
-    if (storedTech && technicians.includes(storedTech)) {
-      setAuthenticatedTech(storedTech)
-      setSelectedTech(storedTech)
-      setShowAuthModal(false)
-    }
+    // No localStorage - technicians must authenticate each session
+    // const storedTech = localStorage.getItem('authenticatedTech')
+    // if (storedTech && technicians.includes(storedTech)) {
+    //   setAuthenticatedTech(storedTech)
+    //   setSelectedTech(storedTech)
+    //   setShowAuthModal(false)
+    // }
   }, [])
 
   useEffect(() => {
@@ -54,7 +54,8 @@ export default function TicketClaimingModal({ onClose, tickets, onTicketClaimed 
     }
 
     setAuthenticatedTech(selectedTech)
-    localStorage.setItem('authenticatedTech', selectedTech)
+    // No localStorage - session only authentication
+    // localStorage.setItem('authenticatedTech', selectedTech)
     setShowAuthModal(false)
     
     // Show welcome celebration
@@ -285,7 +286,8 @@ export default function TicketClaimingModal({ onClose, tickets, onTicketClaimed 
           </div>
           <button
             onClick={() => {
-              localStorage.removeItem('authenticatedTech')
+              // No localStorage - just clear session state
+              // localStorage.removeItem('authenticatedTech')
               setAuthenticatedTech('')
               setShowAuthModal(true)
             }}

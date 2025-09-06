@@ -56,7 +56,7 @@ export default function TechnicianDashboard() {
     }
 
     fetchTickets()
-    const interval = setInterval(fetchTickets, 5 * 60 * 1000)
+    const interval = setInterval(fetchTickets, 1 * 60 * 1000)
     return () => clearInterval(interval)
   }, [selectedTechnician])
 

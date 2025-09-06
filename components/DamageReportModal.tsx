@@ -67,11 +67,11 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     // Auto-populate some fields from ticket data
     populateFromTicket()
     
-    // Get authenticated technician
-    const authenticatedTech = localStorage.getItem('authenticatedTech')
-    if (authenticatedTech) {
-      setCurrentTech(authenticatedTech)
-    }
+    // Get authenticated technician (no localStorage - session only)
+    // const authenticatedTech = localStorage.getItem('authenticatedTech')
+    // if (authenticatedTech) {
+    //   setCurrentTech(authenticatedTech)
+    // }
 
     // Perform AI analysis of the ticket
     performAiAnalysis()
@@ -218,10 +218,13 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
         aiAnalysis
       }
       
-      // Save to localStorage (in real implementation, this would go to API)
-      const savedReports = JSON.parse(localStorage.getItem('damage_reports') || '[]')
-      savedReports.push(reportData)
-      localStorage.setItem('damage_reports', JSON.stringify(savedReports))
+      // Save to API (no localStorage - data should be server-side only)
+      // const savedReports = JSON.parse(localStorage.getItem('damage_reports') || '[]')
+      // savedReports.push(reportData)
+      // localStorage.setItem('damage_reports', JSON.stringify(savedReports))
+      
+      // TODO: Send to API endpoint instead of localStorage
+      console.log('📝 Damage report data (should be sent to API):', reportData)
       
       // Call parent callback
       if (onSave) {

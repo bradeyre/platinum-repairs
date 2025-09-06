@@ -185,9 +185,11 @@ Only show these 5 statuses:
 
 ### API Integration
 - ✅ Pull from both RepairShopr instances
-- ✅ Real-time updates every 5 minutes
+- ✅ Real-time updates every 1 minute (updated from 5 minutes)
+- ✅ Query for specific statuses only (not fetch all then filter)
 - ✅ Proper error handling
 - ✅ Debug logging
+- ✅ No local browser storage (session-only data)
 
 ## 🔍 Debug Endpoints
 
@@ -434,6 +436,21 @@ const handleClaimTicket = async (ticketId: string) => {
 **Solution**: Implemented automated testing methodology
 **Impact**: Faster issue detection and resolution
 
+#### 4. Polling Frequency Issue
+**Problem**: System was polling every 5 minutes instead of 1 minute
+**Solution**: Changed `setInterval(fetchTickets, 5 * 60 * 1000)` to `setInterval(fetchTickets, 1 * 60 * 1000)`
+**Impact**: Real-time updates every minute instead of every 5 minutes
+
+#### 5. Inefficient Status Filtering
+**Problem**: Fetching ALL tickets then filtering client-side
+**Solution**: Query RepairShopr API for specific statuses only using URL parameters
+**Impact**: Reduced API load and faster response times
+
+#### 6. Local Storage Data Persistence
+**Problem**: Multiple components using localStorage causing data persistence issues
+**Solution**: Removed all localStorage usage, made authentication session-only
+**Impact**: No data saved in browser, cleaner session management
+
 ### File Structure Updates
 
 #### New/Modified Files:
@@ -466,11 +483,12 @@ const handleClaimTicket = async (ticketId: string) => {
 #### ✅ Working Features:
 - Dual API integration (PR + DD)
 - Ticket number display (not IDs)
-- Status filtering (5 allowed statuses)
+- Status filtering (5 allowed statuses) - API-level filtering
 - Technician selection and claiming
 - User management system
-- Real-time updates
+- Real-time updates (1-minute polling)
 - Proper color coding (PR=blue, DD=green)
+- No local browser storage (session-only data)
 
 #### 🔧 Technical Stack:
 - Next.js 14 with TypeScript

@@ -57,8 +57,8 @@ export default function AdminDashboard() {
 
     fetchTickets()
     
-    // Refresh tickets every 5 minutes if realtime sync is enabled
-    const interval = setInterval(fetchTickets, 5 * 60 * 1000)
+    // Refresh tickets every 1 minute for real-time updates
+    const interval = setInterval(fetchTickets, 1 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
