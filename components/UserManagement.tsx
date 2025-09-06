@@ -22,6 +22,7 @@ export default function UserManagement({ onClose }: UserManagementProps) {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -102,15 +103,20 @@ export default function UserManagement({ onClose }: UserManagementProps) {
         full_name: '',
         bio: ''
       })
+      setSuccess(editingUser ? 'User updated successfully!' : 'User added successfully!')
+      setError(null)
       await fetchUsers()
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
       console.error('Error saving user:', err)
       setError('Failed to save user')
+      setSuccess(null)
     }
   }
 
   const handleEditUser = (user: User) => {
-    console.log('🔧 Edit button clicked for user:', user)
     setEditingUser(user)
     setFormData({
       email: user.email,
@@ -121,7 +127,6 @@ export default function UserManagement({ onClose }: UserManagementProps) {
       bio: user.bio || ''
     })
     setShowAddForm(false)
-    console.log('🔧 Edit form should now be visible')
   }
 
   const handleDeleteUser = async (userId: string) => {
@@ -203,6 +208,12 @@ export default function UserManagement({ onClose }: UserManagementProps) {
               {error}
             </div>
           )}
+          
+          {success && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+              {success}
+            </div>
+          )}
 
           {/* Add/Edit Form */}
           {(showAddForm || editingUser) && (
@@ -210,7 +221,6 @@ export default function UserManagement({ onClose }: UserManagementProps) {
               <h3 className="text-lg font-semibold mb-4">
                 {editingUser ? `Edit User: ${editingUser.username}` : 'Add New User'}
               </h3>
-              {console.log('🔧 Form is rendering - showAddForm:', showAddForm, 'editingUser:', editingUser)}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -277,15 +287,28 @@ export default function UserManagement({ onClose }: UserManagementProps) {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bio (for technicians - will appear in PDFs)
+                    Bio {formData.role === 'technician' && <span className="text-blue-600 font-semibold">(Required for Technicians)</span>}
                   </label>
+                  <p className="text-xs text-gray-600 mb-2">
+                    {formData.role === 'technician' 
+                      ? "This bio will appear in damage report PDFs sent to insurance companies. Include your experience, specializations, and certifications."
+                      : "Optional bio for this user."
+                    }
+                  </p>
                   <textarea
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    rows={3}
+                    rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter technician bio for PDF generation..."
+                    placeholder={formData.role === 'technician' 
+                      ? "e.g., Senior Technician specializing in iPhone and iPad repairs with 5+ years experience. Expert in screen replacements, battery repairs, and water damage restoration. Certified in Apple device diagnostics and repair procedures."
+                      : "Enter user bio..."
+                    }
+                    required={formData.role === 'technician'}
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.bio.length} characters {formData.role === 'technician' && formData.bio.length < 50 && <span className="text-orange-600">(Consider adding more detail for insurance reports)</span>}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
@@ -349,8 +372,19 @@ export default function UserManagement({ onClose }: UserManagementProps) {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
-                        {user.bio || 'No bio'}
+                      <div className="text-sm text-gray-900 max-w-md">
+                        {user.bio ? (
+                          <div>
+                            <div className="line-clamp-2">{user.bio}</div>
+                            {user.bio.length > 100 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {user.bio.length} characters
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">No bio</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
