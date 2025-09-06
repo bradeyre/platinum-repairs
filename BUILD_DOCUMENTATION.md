@@ -227,6 +227,72 @@ Only show these 5 statuses:
 5. **TypeScript Errors**: Use proper type annotations
 6. **Build Failures**: Check for syntax errors and missing imports
 
+## 👥 User Management
+
+### System Users
+The system has the following users with specific roles and access levels:
+
+#### Admin & Claim Managers (Full Access)
+These users can access all areas of the system:
+
+| Username | Password | Role | Full Name | Email |
+|----------|----------|------|-----------|-------|
+| brad | b123456 | admin | Brad | brad@platinumrepairs.co.za |
+| andre | a123456 | admin | Andre | andre@platinumrepairs.co.za |
+| celeste | c123456 | admin | Celeste | celeste@platinumrepairs.co.za |
+| braam | b123456 | admin | Braam | braam@platinumrepairs.co.za |
+| melany | m123456 | admin | Melany | melany@platinumrepairs.co.za |
+| janine | j123456 | claim_manager | Janine | janine@platinumrepairs.co.za |
+| dane | d123456 | claim_manager | Dane | dane@platinumrepairs.co.za |
+| derilise | d123456 | claim_manager | Derilise | derilise@platinumrepairs.co.za |
+
+#### Technicians (Limited Access)
+These users can access technician-specific areas:
+
+| Username | Password | Role | Full Name | Email |
+|----------|----------|------|-----------|-------|
+| ben | b123456 | technician | Ben | ben@platinumrepairs.co.za |
+| marshal | m123456 | technician | Marshal | marshal@platinumrepairs.co.za |
+| malvin | m123456 | technician | Malvin | malvin@platinumrepairs.co.za |
+| francis | f123456 | technician | Francis | francis@platinumrepairs.co.za |
+
+### Password Format
+All passwords follow the format: **First letter of username + 123456**
+
+### User Management Endpoints
+
+#### Cleanup Users
+- **URL**: `/api/cleanup-users`
+- **Method**: POST
+- **Purpose**: Remove all existing users from the system
+- **Use Case**: Clean up mock/test users before setting up correct users
+
+#### Setup Users
+- **URL**: `/api/setup-users`
+- **Method**: POST
+- **Purpose**: Set up the correct users with proper roles and passwords
+- **Use Case**: Initialize the system with the specified users
+
+### User Roles & Permissions
+
+#### Admin Role
+- Full access to all dashboard areas
+- Can manage users
+- Can view all tickets and reports
+- Can assign tickets to technicians
+
+#### Claim Manager Role
+- Access to admin dashboard
+- Can view and manage tickets
+- Can process damage reports
+- Cannot manage users
+
+#### Technician Role
+- Access to technician dashboard only
+- Can view assigned tickets
+- Can update ticket status
+- Cannot access admin functions
+
 ## 📞 Support
 
 If issues persist:
@@ -239,5 +305,5 @@ If issues persist:
 ---
 
 **Last Updated**: September 5, 2025
-**Version**: 1.0
-**Status**: ✅ Working - Both APIs integrated successfully
+**Version**: 1.1
+**Status**: ✅ Working - Both APIs integrated successfully, Users configured
