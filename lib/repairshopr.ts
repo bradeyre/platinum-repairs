@@ -107,9 +107,8 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
     console.log(`Fetching from RepairShopr: ${url}`)
     console.log(`Using token: ${token.substring(0, 10)}...`)
     
-    const response = await fetch(url, {
+    const response = await fetch(`${url}?api_key=${token}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
