@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getAllTickets } from '@/lib/repairshopr'
+import { getAllTickets } from '@/lib/repairshopr-new'
 
 console.log('🚀 API route file loaded!')
 
