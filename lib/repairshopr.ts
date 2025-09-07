@@ -274,6 +274,11 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
         const originalTicket = tickets2.find(t => 
           String(t.number || t.id) === String(ticket.ticketNumber)
         )
+        console.log(`🔍 Checking DD ticket ${ticket.ticketNumber}:`, {
+          found: !!originalTicket,
+          userFullName: originalTicket?.user?.full_name,
+          shouldExclude: originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)
+        })
         if (originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)) {
           console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to ${originalTicket.user.full_name}`)
           return false
