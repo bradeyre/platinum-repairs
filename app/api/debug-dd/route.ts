@@ -13,15 +13,13 @@ export async function GET() {
     console.log('Token:', token.substring(0, 20) + '...')
     console.log('URL:', baseUrl)
     
-    const url = `${baseUrl}/tickets`
+    const url = `${baseUrl}/tickets?api_key=${token}`
     console.log('Fetching from:', url)
     
     const response = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-API-Key': token
+        'Accept': 'application/json'
       }
     })
     
