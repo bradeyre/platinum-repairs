@@ -262,48 +262,14 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       allowedStatuses.includes(ticket.status)
     )
     
-    // Additional filtering: Exclude Device Doctor tickets assigned to specific workshops
-    // These tickets are already assigned and shouldn't be available for claiming
-    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
-    console.log(`🔍 Before workshop filtering: ${activeTickets.length} tickets`)
-    
-    activeTickets = activeTickets.filter(ticket => {
-      if (ticket.ticketType === 'DD') {
-        // For DD tickets, check if they're assigned to excluded workshops
-        // Find the original ticket from the DD API response (tickets2)
-        const originalTicket = tickets2.find(t => {
-          const ticketNum = String(t.number || t.id)
-          const processedNum = String(ticket.ticketNumber)
-          console.log(`🔍 Comparing: ${ticketNum} vs ${processedNum}`)
-          return ticketNum === processedNum
-        })
-        
-        // Debug logging
-        console.log(`🔍 Checking DD ticket ${ticket.ticketNumber}:`, {
-          found: !!originalTicket,
-          userFullName: originalTicket?.user?.full_name,
-          shouldExclude: originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)
-        })
-        
-        // Check if ticket is assigned to excluded workshops
-        if (originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)) {
-          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to ${originalTicket.user.full_name}`)
-          return false
-        }
-        
-        // Also check if the ticket description contains workshop information
-        if (ticket.description && (
-          ticket.description.includes('Cape Town Workshop') || 
-          ticket.description.includes('Durban Workshop')
-        )) {
-          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - workshop mentioned in description`)
-          return false
-        }
-      }
-      return true
-    })
-    
-    console.log(`🔍 After workshop filtering: ${activeTickets.length} tickets`)
+    // TEMPORARILY DISABLED: Workshop filtering to see raw DD tickets
+    // const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    console.log(`🔍 Raw tickets after status filtering: ${activeTickets.length} tickets`)
+    console.log(`🔍 DD tickets (no workshop filtering):`, activeTickets.filter(t => t.ticketType === 'DD').map(t => ({
+      ticketNumber: t.ticketNumber,
+      status: t.status,
+      description: t.description.substring(0, 100) + '...'
+    })))
     
     console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
     console.log(`🔍 Active tickets by type:`, {
