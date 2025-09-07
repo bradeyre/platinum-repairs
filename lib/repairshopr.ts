@@ -266,7 +266,6 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     // These tickets are already assigned and shouldn't be available for claiming
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
     console.log(`🔍 Before workshop filtering: ${activeTickets.length} tickets`)
-    console.log(`🔍 DD tickets before filtering:`, activeTickets.filter(t => t.ticketType === 'DD').map(t => t.ticketNumber))
     
     activeTickets = activeTickets.filter(ticket => {
       if (ticket.ticketType === 'DD') {
@@ -274,11 +273,6 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
         const originalTicket = [...tickets1, ...tickets2].find(t => 
           (t.number || t.id) === ticket.ticketNumber.replace('#', '')
         )
-        console.log(`🔍 Checking DD ticket ${ticket.ticketNumber}:`, {
-          originalTicketFound: !!originalTicket,
-          userFullName: originalTicket?.user?.full_name,
-          shouldExclude: originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)
-        })
         if (originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)) {
           console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to ${originalTicket.user.full_name}`)
           return false
@@ -288,7 +282,6 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     })
     
     console.log(`🔍 After workshop filtering: ${activeTickets.length} tickets`)
-    console.log(`🔍 DD tickets after filtering:`, activeTickets.filter(t => t.ticketType === 'DD').map(t => t.ticketNumber))
     
     console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
     console.log(`🔍 Active tickets by type:`, {
