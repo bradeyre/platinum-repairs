@@ -271,9 +271,12 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       if (ticket.ticketType === 'DD') {
         // For DD tickets, check if they're assigned to excluded workshops
         // Find the original ticket from the DD API response (tickets2)
-        const originalTicket = tickets2.find(t => 
-          String(t.number || t.id) === String(ticket.ticketNumber)
-        )
+        const originalTicket = tickets2.find(t => {
+          const ticketNum = String(t.number || t.id)
+          const processedNum = String(ticket.ticketNumber)
+          console.log(`🔍 Comparing: ${ticketNum} vs ${processedNum}`)
+          return ticketNum === processedNum
+        })
         
         // Debug logging
         console.log(`🔍 Checking DD ticket ${ticket.ticketNumber}:`, {
