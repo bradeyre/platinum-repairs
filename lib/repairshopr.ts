@@ -264,24 +264,25 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     
     // Additional filtering: Exclude Device Doctor tickets assigned to specific workshops
     // These tickets are already assigned and shouldn't be available for claiming
-    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
-    console.log(`🔍 Before workshop filtering: ${activeTickets.length} tickets`)
-    
-    activeTickets = activeTickets.filter(ticket => {
-      if (ticket.ticketType === 'DD') {
-        // For DD tickets, check if they're assigned to excluded workshops
-        const originalTicket = [...tickets1, ...tickets2].find(t => 
-          (t.number || t.id) === ticket.ticketNumber.replace('#', '')
-        )
-        if (originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)) {
-          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to ${originalTicket.user.full_name}`)
-          return false
-        }
-      }
-      return true
-    })
-    
-    console.log(`🔍 After workshop filtering: ${activeTickets.length} tickets`)
+    // TEMPORARILY DISABLED FOR DEBUGGING
+    // const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    // console.log(`🔍 Before workshop filtering: ${activeTickets.length} tickets`)
+    // 
+    // activeTickets = activeTickets.filter(ticket => {
+    //   if (ticket.ticketType === 'DD') {
+    //     // For DD tickets, check if they're assigned to excluded workshops
+    //     const originalTicket = [...tickets1, ...tickets2].find(t => 
+    //       (t.number || t.id) === ticket.ticketNumber.replace('#', '')
+    //     )
+    //     if (originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)) {
+    //       console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to ${originalTicket.user.full_name}`)
+    //       return false
+    //     }
+    //   }
+    //   return true
+    // })
+    // 
+    // console.log(`🔍 After workshop filtering: ${activeTickets.length} tickets`)
     
     console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
     console.log(`🔍 Active tickets by type:`, {
