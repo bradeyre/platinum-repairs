@@ -217,26 +217,9 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       DD: activeTickets.filter(t => t.ticketType === 'DD').length
     })
     
-    // Workshop filtering: Exclude Device Doctor tickets assigned to specific workshops
-    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
-    console.log(`🔍 Before workshop filtering: ${activeTickets.length} tickets`)
-    
-    activeTickets = activeTickets.filter(ticket => {
-      if (ticket.ticketType === 'DD') {
-        // Find the original ticket from the DD API response (tickets2)
-        const originalTicket = tickets2.find(t => 
-          String(t.number || t.id) === String(ticket.ticketNumber)
-        )
-        
-        if (originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)) {
-          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to ${originalTicket.user.full_name}`)
-          return false
-        }
-      }
-      return true
-    })
-    
-    console.log(`🔍 After workshop filtering: ${activeTickets.length} tickets`)
+    // TEMPORARILY DISABLED: Workshop filtering to debug ticket counts
+    // const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    console.log(`🔍 Workshop filtering temporarily disabled for debugging`)
     console.log(`🔍 Final tickets by type:`, {
       PR: activeTickets.filter(t => t.ticketType === 'PR').length,
       DD: activeTickets.filter(t => t.ticketType === 'DD').length
