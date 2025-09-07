@@ -50,8 +50,8 @@ export async function GET() {
       const uniqueStatuses = [...new Set(statuses)]
       console.log('All statuses:', uniqueStatuses)
       
-      // Filter for allowed statuses
-      const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
+      // Filter for allowed statuses (6 statuses including Awaiting Authorization)
+      const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'Awaiting Authorization', 'In Progress']
       const filteredTickets = data.tickets.filter((ticket: any) => allowedStatuses.includes(ticket.status))
       console.log('Filtered tickets count:', filteredTickets.length)
       console.log('Filtered statuses:', [...new Set(filteredTickets.map((t: any) => t.status))])
