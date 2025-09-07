@@ -274,13 +274,26 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
         const originalTicket = tickets2.find(t => 
           String(t.number || t.id) === String(ticket.ticketNumber)
         )
+        
+        // Debug logging
         console.log(`🔍 Checking DD ticket ${ticket.ticketNumber}:`, {
           found: !!originalTicket,
           userFullName: originalTicket?.user?.full_name,
           shouldExclude: originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)
         })
+        
+        // Check if ticket is assigned to excluded workshops
         if (originalTicket?.user?.full_name && excludedWorkshops.includes(originalTicket.user.full_name)) {
           console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to ${originalTicket.user.full_name}`)
+          return false
+        }
+        
+        // Also check if the ticket description contains workshop information
+        if (ticket.description && (
+          ticket.description.includes('Cape Town Workshop') || 
+          ticket.description.includes('Durban Workshop')
+        )) {
+          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - workshop mentioned in description`)
           return false
         }
       }
