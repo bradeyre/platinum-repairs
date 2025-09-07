@@ -60,7 +60,6 @@ const STATUS_MAPPING: Record<string, string> = {
   // Note: Removed incorrect Device Doctor status mappings that were causing too many tickets to show
   
   // Awaiting Repair
-  'Awaiting Authorization': 'Awaiting Repair',
   'Awaiting Virtual Assessment': 'Awaiting Repair',
   'No Parts': 'Awaiting Repair',
   
@@ -256,8 +255,8 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     const uniqueStatuses = [...new Set(allStatuses)]
     console.log(`🔍 All statuses from APIs:`, uniqueStatuses)
     
-    // Filter to ONLY show the 5 allowed statuses
-    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
+    // Filter to ONLY show the 6 allowed statuses
+    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'Awaiting Authorization', 'In Progress']
     let activeTickets = processedTickets.filter(ticket => 
       allowedStatuses.includes(ticket.status)
     )
