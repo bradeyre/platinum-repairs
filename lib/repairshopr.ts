@@ -109,10 +109,9 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
     
     const response = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'X-API-Key': token,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-API-Key': token
+        'Accept': 'application/json'
       }
     })
     
