@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getCurrentUser } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
 
 interface ProcessedTicket {
   ticketId: string
@@ -16,7 +18,17 @@ interface ProcessedTicket {
   ticketType: 'PR' | 'DD'
 }
 
+interface User {
+  id: string
+  email: string
+  username: string
+  role: 'admin' | 'technician' | 'claim_manager'
+  full_name?: string
+  bio?: string
+}
+
 export default function TechnicianDashboard() {
+  const [user, setUser] = useState<User | null>(null)
   const [tickets, setTickets] = useState<ProcessedTicket[]>([])
   const [allTickets, setAllTickets] = useState<ProcessedTicket[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,6 +36,23 @@ export default function TechnicianDashboard() {
   const [selectedTechnician, setSelectedTechnician] = useState<string>('')
   const [showTechSelector, setShowTechSelector] = useState(true)
   const [showClaimModal, setShowClaimModal] = useState(false)
+  const router = useRouter()
+
+  // Check authentication
+  useEffect(() => {
+    const checkAuth = async () => {
+      const currentUser = await getCurrentUser()
+      if (!currentUser || currentUser.role !== 'technician') {
+        router.push('/login')
+        return
+      }
+      setUser(currentUser)
+      // Auto-select the logged-in user
+      setSelectedTechnician(currentUser.full_name || currentUser.username)
+      setShowTechSelector(false)
+    }
+    checkAuth()
+  }, [router])
 
   // Fetch all tickets
   useEffect(() => {
@@ -40,7 +69,8 @@ export default function TechnicianDashboard() {
         // Filter for assigned tickets if technician is selected
         if (selectedTechnician) {
           const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => 
-            ticket.assignedTo === selectedTechnician
+            ticket.assignedTo === selectedTechnician || 
+            (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
           )
           setTickets(assignedTickets)
         } else {
@@ -65,7 +95,10 @@ export default function TechnicianDashboard() {
     setShowTechSelector(false)
     
     // Filter tickets for selected technician
-    const assignedTickets = allTickets.filter(ticket => ticket.assignedTo === techName)
+    const assignedTickets = allTickets.filter(ticket => 
+      ticket.assignedTo === techName ||
+      (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
+    )
     setTickets(assignedTickets)
   }
 
