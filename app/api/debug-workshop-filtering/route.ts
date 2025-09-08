@@ -10,15 +10,15 @@ export async function GET() {
     
     console.log(`🔍 Total tickets: ${tickets.length}`)
     console.log(`🔍 DD tickets: ${ddTickets.length}`)
-    console.log(`🔍 DD ticket numbers:`, ddTickets.map(t => t.ticketNumber))
+    console.log(`🔍 DD ticket numbers:`, ddTickets.map(t => t.ticketId))
     
     return NextResponse.json({
       success: true,
       totalTickets: tickets.length,
       ddTickets: ddTickets.length,
-      ddTicketNumbers: ddTickets.map(t => t.ticketNumber),
+      ddTicketNumbers: ddTickets.map(t => t.ticketId),
       allTickets: tickets.map(t => ({
-        ticketNumber: t.ticketNumber,
+        ticketId: t.ticketId,
         ticketType: t.ticketType,
         status: t.status
       }))
