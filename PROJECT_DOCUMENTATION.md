@@ -140,6 +140,46 @@ CREATE TABLE damage_reports (
 );
 ```
 
+#### ticket_wait_times
+```sql
+CREATE TABLE ticket_wait_times (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id TEXT NOT NULL,
+  old_status TEXT NOT NULL,
+  new_status TEXT NOT NULL,
+  technician_id TEXT,
+  wait_time_hours DECIMAL(10,2) NOT NULL,
+  status_changed_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  completed_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_ticket_wait_times_technician ON ticket_wait_times (technician_id);
+CREATE INDEX idx_ticket_wait_times_completed_at ON ticket_wait_times (completed_at);
+CREATE INDEX idx_ticket_wait_times_ticket_id ON ticket_wait_times (ticket_id);
+```
+
+#### technician_performance
+```sql
+CREATE TABLE technician_performance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  technician_id TEXT NOT NULL,
+  date DATE NOT NULL,
+  total_tickets_completed INTEGER DEFAULT 0,
+  average_wait_time_hours DECIMAL(10,2) DEFAULT 0,
+  total_work_hours DECIMAL(10,2) DEFAULT 0,
+  efficiency_score DECIMAL(5,2) DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(technician_id, date)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_technician_performance_technician ON technician_performance (technician_id);
+CREATE INDEX idx_technician_performance_date ON technician_performance (date);
+```
+
 ## 🔌 API Integration
 
 ### RepairShopr API
@@ -200,6 +240,16 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 - **Role-based Access**: Admin, Technician, Claim Manager roles
 - **Authentication**: Supabase-based authentication
 - **User Profiles**: Bio and profile management
+
+### 5. Performance Tracking
+- **Status-Based Timing**: Measures wait time from when ticket status changes, not ticket creation
+- **Business Hours Only**: Only counts 8 AM - 6 PM, Monday-Friday (excludes weekends and after-hours)
+- **Real-Time Updates**: Time display updates automatically as tickets move through statuses
+- **Wait Time Recording**: Automatically records wait times when techs start working (status changes to "In Progress")
+- **Efficiency Scoring**: 0-100 score based on average wait times
+- **Performance Grades**: Excellent (<2h), Good (2-4h), Average (4-8h), Needs Improvement (>8h)
+- **Department Metrics**: Overall team performance and trends
+- **Individual Stats**: Per-technician performance tracking
 
 ## 🚀 Deployment Process
 
@@ -300,6 +350,10 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 ### User Management
 - `POST /api/setup-users` - Setup system users
 - `POST /api/cleanup-users` - Remove all users
+
+### Performance Tracking
+- `POST /api/ticket-status-tracking` - Record status changes and wait times
+- `GET /api/performance-analytics` - Get comprehensive performance metrics
 
 ## 🧪 Testing
 

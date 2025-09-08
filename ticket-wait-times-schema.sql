@@ -8,13 +8,13 @@ CREATE TABLE IF NOT EXISTS ticket_wait_times (
   wait_time_hours DECIMAL(10,2) NOT NULL,
   status_changed_at TIMESTAMP WITH TIME ZONE NOT NULL,
   completed_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  -- Indexes for performance
-  INDEX idx_ticket_wait_times_technician (technician_id),
-  INDEX idx_ticket_wait_times_completed_at (completed_at),
-  INDEX idx_ticket_wait_times_ticket_id (ticket_id)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Create indexes separately
+CREATE INDEX IF NOT EXISTS idx_ticket_wait_times_technician ON ticket_wait_times (technician_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_wait_times_completed_at ON ticket_wait_times (completed_at);
+CREATE INDEX IF NOT EXISTS idx_ticket_wait_times_ticket_id ON ticket_wait_times (ticket_id);
 
 -- Table to track technician performance metrics
 CREATE TABLE IF NOT EXISTS technician_performance (
@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS technician_performance (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
   -- Unique constraint for technician-date combination
-  UNIQUE(technician_id, date),
-  
-  -- Indexes
-  INDEX idx_technician_performance_technician (technician_id),
-  INDEX idx_technician_performance_date (date)
+  UNIQUE(technician_id, date)
 );
+
+-- Create indexes for technician_performance table
+CREATE INDEX IF NOT EXISTS idx_technician_performance_technician ON technician_performance (technician_id);
+CREATE INDEX IF NOT EXISTS idx_technician_performance_date ON technician_performance (date);
 
 -- Function to update technician performance daily
 CREATE OR REPLACE FUNCTION update_technician_performance()
