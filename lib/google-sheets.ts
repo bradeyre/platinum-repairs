@@ -106,14 +106,14 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
     
     const partsData: PartsPricing[] = []
     
-    // Parse the sheet structure based on the screenshot:
+    // Parse the sheet structure based on actual CSV data:
     // Column A: iPhone model names
     // Column B: Repair part names  
-    // Column D: Insurance prices
-    // Column E: ETA information
+    // Column D: Insurance prices (R1,499.00 format)
+    // Column F: ETA information (Next day, etc.)
     // Column G: Retail 1 Year prices
     // Column H: Retail 2 Year prices
-    // Column J: Retail Lifetime prices
+    // Column I: Retail Lifetime prices
     // Column M: Replacement Value
     
     for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) { // Skip header row
@@ -125,8 +125,8 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
       const deviceModel = row[0].trim()
       const partName = row[1].trim()
       
-      // Skip if this looks like a category header (no part name)
-      if (!partName || partName === deviceModel) continue
+      // Skip if this looks like a category header (no part name or same as model)
+      if (!partName || partName === deviceModel || partName === 'iPhone') continue
       
       // Extract device brand from model name
       let deviceBrand = 'iPhone' // Default to iPhone
@@ -136,21 +136,21 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
         deviceBrand = 'Huawei'
       }
       
-      // Parse insurance price (Column D)
+      // Parse insurance price (Column D - index 3)
       const insurancePrice = parsePrice(row[3])
       
       // Skip if no insurance price
       if (insurancePrice === 0) continue
       
-      // Parse ETA info (Column E)
-      const etaInfo = row[4] || 'Next day'
+      // Parse ETA info (Column F - index 5)
+      const etaInfo = row[5] || 'Next day'
       
-      // Parse retail prices
+      // Parse retail prices (Columns G, H, I - indices 6, 7, 8)
       const retail1Year = parsePrice(row[6])
       const retail2Year = parsePrice(row[7])
-      const retailLifetime = parsePrice(row[9])
+      const retailLifetime = parsePrice(row[8])
       
-      // Parse replacement value (Column M)
+      // Parse replacement value (Column M - index 12)
       const replacementValue = parsePrice(row[12])
       
       // Determine stock status based on ETA
