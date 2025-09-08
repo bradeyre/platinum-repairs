@@ -10,12 +10,24 @@ async function fetchGoogleSheetsData() {
     // Use the public CSV export URL for the sheet
     const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`
     
-    const response = await fetch(csvUrl)
+    const response = await fetch(csvUrl, {
+      redirect: 'follow', // Follow redirects
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; PlatinumRepairs/1.0)'
+      }
+    })
+    
     if (!response.ok) {
-      throw new Error(`Failed to fetch Google Sheets data: ${response.status}`)
+      throw new Error(`Failed to fetch Google Sheets data: ${response.status} ${response.statusText}`)
     }
     
     const csvText = await response.text()
+    
+    // Check if we got HTML instead of CSV (indicates access issue)
+    if (csvText.trim().startsWith('<HTML>') || csvText.trim().startsWith('<!DOCTYPE')) {
+      throw new Error('Google Sheets is not publicly accessible. Please ensure the sheet is set to "Anyone with the link can view"')
+    }
+    
     return parseCSVData(csvText)
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error)
