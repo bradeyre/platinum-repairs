@@ -24,55 +24,65 @@ GOOGLE_CLIENT_ID=your_client_id
 ## 📋 Google Sheets Structure
 
 ### Sheet Layout
-The Google Sheets document follows a specific structure for parts pricing:
+The Google Sheets document follows a **vertical structure** where each row represents a specific part for a specific iPhone model:
 
 ```
-Row 1 (Header):    | Part 1 | Part 2 | Part 3 | Part 4 | ... |
-Row 2 (iPhone):    |        |        |        |        | ... |
-Row 3 (iPhone 12): | R1500  | R800   | R200   | R300   | ... |
-Row 4 (iPhone 13): | R1600  | R850   | R220   | R320   | ... |
-Row 5 (Samsung):   |        |        |        |        | ... |
-Row 6 (Galaxy S21):| R1400  | R750   | R180   | R280   | ... |
+Column A: iPhone Model    | Column B: Part Name      | Column D: Insurance | Column E: ETA      | Column M: Replacement Value
+iPhone SE (2020)         | Screen Assembly          | R1,499.00          | Next day          | R5,000.00
+iPhone SE (2020)         | Casing                   | R2,199.00          | Next day          | R5,000.00
+iPhone SE (2020)         | Battery (Generic)        | R899.00            | Next day          | R5,000.00
+iPhone SE (2022)         | Screen Assembly          | R3,999.00          | Next day          | 
+iPhone 6                 | Screen Assembly          | R579.00            | Next day          | R2,000.00
 ```
 
 ### Data Structure Rules
 
-1. **Brand Headers**: 
-   - Row contains only brand name in column A (e.g., "iPhone", "Samsung")
-   - Column B and beyond are empty
-   - Brand name must contain "phone" (case insensitive)
+1. **Column A (Device Model)**: 
+   - Contains iPhone model names (e.g., "iPhone SE (2020)", "iPhone 6")
+   - Used to extract device brand and model information
 
-2. **Model Rows**:
-   - First column contains model name (e.g., "iPhone 12", "Galaxy S21")
-   - Subsequent columns contain pricing with "R" prefix (e.g., "R1500", "R800")
+2. **Column B (Part Name)**:
+   - Contains repair part names (e.g., "Screen Assembly", "Casing", "Battery")
+   - Each row represents a specific part for the device in Column A
 
-3. **Part Names**:
-   - Extracted from header row (Row 1)
-   - Column headers represent part names (e.g., "Screen", "Battery", "Camera")
+3. **Column D (Insurance Price)**:
+   - Contains insurance prices with "R" prefix (e.g., "R1,499.00", "R2,199.00")
+   - This is the primary price used for damage reports
 
-4. **Pricing Format**:
-   - Prices must include "R" prefix
-   - Supports comma separators (e.g., "R1,500")
-   - Empty cells or non-price values are ignored
+4. **Column E (ETA Information)**:
+   - Contains delivery time information (e.g., "Next day", "3-4 weeks", "While stock lasts")
+   - Used to determine stock status
+
+5. **Column G (Retail 1 Year)**: Optional retail pricing for 1-year warranty
+6. **Column H (Retail 2 Year)**: Optional retail pricing for 2-year warranty  
+7. **Column J (Retail Lifetime)**: Optional retail pricing for lifetime warranty
+8. **Column M (Replacement Value)**: Device replacement value (e.g., "R5,000.00")
+
+### Pricing Format
+- Prices include "R" prefix and comma separators (e.g., "R1,499.00")
+- Empty cells are treated as null values
+- Only rows with valid insurance prices are processed
 
 ## 🔧 API Integration
 
-### Google Sheets API Setup
+### Public Google Sheets Access
 
-1. **Create Service Account**:
-   - Go to Google Cloud Console
-   - Create a new project or select existing
-   - Enable Google Sheets API
-   - Create service account credentials
-   - Download JSON key file
+The system uses **public CSV export** to access the Google Sheets data without requiring authentication:
 
-2. **Share Sheet**:
-   - Share the Google Sheet with the service account email
-   - Grant "Viewer" permissions
+1. **Public Sheet Access**:
+   - The Google Sheet must be set to "Anyone with the link can view"
+   - No service account or API credentials required
+   - Uses the public CSV export URL
 
-3. **Environment Variables**:
-   - Extract credentials from JSON key file
-   - Set environment variables in Vercel dashboard
+2. **CSV Export URL**:
+   ```
+   https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0
+   ```
+
+3. **No Environment Variables Required**:
+   - No Google Cloud project setup needed
+   - No service account credentials required
+   - No API quotas or authentication issues
 
 ### API Endpoints
 
@@ -101,15 +111,18 @@ GET /api/parts-pricing?brand=iPhone&model=iPhone 12
 CREATE TABLE parts_pricing (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   part_number TEXT NOT NULL, -- Generated: brand-model-partname
-  part_name TEXT NOT NULL, -- From Google Sheet header row
-  device_brand TEXT NOT NULL, -- From brand header row
-  device_model TEXT NOT NULL, -- From model row
-  device_type TEXT NOT NULL, -- 'phone' or 'laptop'
-  price_zar DECIMAL(10,2) NOT NULL, -- Price in ZAR
-  eta_days INTEGER DEFAULT 1, -- Estimated delivery days
-  stock_status TEXT DEFAULT 'available', -- Stock availability
+  part_name TEXT NOT NULL, -- From Column B (Part Name)
+  device_brand TEXT NOT NULL, -- Extracted from Column A (iPhone, Samsung, etc.)
+  device_model TEXT NOT NULL, -- From Column A (iPhone SE (2020), etc.)
+  device_type TEXT NOT NULL DEFAULT 'phone',
+  insurance_price DECIMAL(10,2) NOT NULL, -- From Column D (Insurance Price)
+  eta_info TEXT DEFAULT 'Next day', -- From Column E (ETA Information)
+  retail_1_year DECIMAL(10,2), -- From Column G (Retail 1 Year)
+  retail_2_year DECIMAL(10,2), -- From Column H (Retail 2 Year)
+  retail_lifetime DECIMAL(10,2), -- From Column J (Retail Lifetime)
+  replacement_value DECIMAL(10,2), -- From Column M (Replacement Value)
+  stock_status TEXT DEFAULT 'available', -- Derived from ETA info
   sheet_row_number INTEGER, -- Original sheet row for tracking
-  sheet_col_number INTEGER, -- Original sheet column for tracking
   last_synced TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -124,61 +137,90 @@ UNIQUE(part_name, device_brand, device_model)
 
 ### Parsing Algorithm
 
-1. **Fetch Data**: Get all rows from Google Sheets
-2. **Find Brand Headers**: Look for rows with only column A populated
-3. **Process Models**: For each brand, find subsequent model rows
-4. **Extract Parts**: For each model, extract pricing from columns
-5. **Generate Part Numbers**: Create unique identifiers
-6. **Store in Database**: Upsert data with conflict resolution
+1. **Fetch Data**: Get CSV data from public Google Sheets export URL
+2. **Parse CSV**: Convert CSV text into structured rows
+3. **Process Each Row**: Extract data from specific columns
+4. **Extract Device Info**: Parse brand and model from Column A
+5. **Extract Part Info**: Get part name from Column B
+6. **Extract Pricing**: Parse insurance price from Column D
+7. **Extract Additional Data**: Get ETA, retail prices, and replacement value
+8. **Generate Part Numbers**: Create unique identifiers
+9. **Store in Database**: Upsert data with conflict resolution
 
 ### Code Implementation
 
 ```typescript
-// Parse the sheet structure: Brand headers, then models, then parts with pricing
-for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+// Parse the sheet structure based on the screenshot:
+// Column A: iPhone model names
+// Column B: Repair part names  
+// Column D: Insurance prices
+// Column E: ETA information
+// Column G: Retail 1 Year prices
+// Column H: Retail 2 Year prices
+// Column J: Retail Lifetime prices
+// Column M: Replacement Value
+
+for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) { // Skip header row
   const row = rows[rowIndex]
   
-  // Look for brand headers (like "iPhone")
-  if (row[0] && !row[1] && row[0].toLowerCase().includes('phone')) {
-    const brand = row[0]
-    
-    // Look ahead for model rows and part pricing
-    let modelRowIndex = rowIndex + 1
-    while (modelRowIndex < rows.length && rows[modelRowIndex][0]) {
-      const modelRow = rows[modelRowIndex]
-      const model = modelRow[0]
-      
-      // Find parts in subsequent columns (Screen, Battery, etc.)
-      for (let colIndex = 1; colIndex < modelRow.length; colIndex++) {
-        const partData = modelRow[colIndex]
-        if (partData && partData.includes('R')) { // Contains price with 'R' prefix
-          // Extract part name from header row
-          const headerRow = rows[0] // Assuming first row has part names
-          const partName = headerRow[colIndex] || `Part ${colIndex}`
-          
-          // Extract price (remove 'R' and parse)
-          const price = parseFloat(partData.replace('R', '').replace(',', '') || '0')
-          
-          if (price > 0) {
-            partsData.push({
-              part_number: `${brand}-${model}-${partName}`.replace(/\s+/g, '-').toLowerCase(),
-              part_name: partName,
-              device_brand: brand,
-              device_model: model,
-              device_type: brand.toLowerCase().includes('iphone') ? 'phone' : 'laptop',
-              price_zar: price,
-              eta_days: 1, // Default ETA
-              stock_status: 'available',
-              sheet_row_number: modelRowIndex + 1,
-              sheet_col_number: colIndex + 1,
-              last_synced: new Date().toISOString()
-            })
-          }
-        }
-      }
-      modelRowIndex++
-    }
+  // Skip empty rows or rows without model name
+  if (!row[0] || !row[1]) continue
+  
+  const deviceModel = row[0].trim()
+  const partName = row[1].trim()
+  
+  // Skip if this looks like a category header (no part name)
+  if (!partName || partName === deviceModel) continue
+  
+  // Extract device brand from model name
+  let deviceBrand = 'iPhone' // Default to iPhone
+  if (deviceModel.toLowerCase().includes('samsung')) {
+    deviceBrand = 'Samsung'
+  } else if (deviceModel.toLowerCase().includes('huawei')) {
+    deviceBrand = 'Huawei'
   }
+  
+  // Parse insurance price (Column D)
+  const insurancePrice = parsePrice(row[3])
+  
+  // Skip if no insurance price
+  if (insurancePrice === 0) continue
+  
+  // Parse ETA info (Column E)
+  const etaInfo = row[4] || 'Next day'
+  
+  // Parse retail prices
+  const retail1Year = parsePrice(row[6])
+  const retail2Year = parsePrice(row[7])
+  const retailLifetime = parsePrice(row[9])
+  
+  // Parse replacement value (Column M)
+  const replacementValue = parsePrice(row[12])
+  
+  // Determine stock status based on ETA
+  let stockStatus = 'available'
+  if (etaInfo.toLowerCase().includes('while stock lasts')) {
+    stockStatus = 'limited'
+  } else if (etaInfo.toLowerCase().includes('weeks')) {
+    stockStatus = 'backorder'
+  }
+  
+  partsData.push({
+    part_number: `${deviceBrand}-${deviceModel}-${partName}`.replace(/\s+/g, '-').toLowerCase(),
+    part_name: partName,
+    device_brand: deviceBrand,
+    device_model: deviceModel,
+    device_type: 'phone',
+    insurance_price: insurancePrice,
+    eta_info: etaInfo,
+    retail_1_year: retail1Year || null,
+    retail_2_year: retail2Year || null,
+    retail_lifetime: retailLifetime || null,
+    replacement_value: replacementValue || null,
+    stock_status: stockStatus,
+    sheet_row_number: rowIndex + 1,
+    last_synced: new Date().toISOString()
+  })
 }
 ```
 

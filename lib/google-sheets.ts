@@ -1,25 +1,65 @@
-import { google } from 'googleapis'
 import { supabase } from './supabase'
 
 // Google Sheets configuration
 const SHEET_ID = '1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE'
-const RANGE = 'Sheet1!A:Z'
+const RANGE = 'Sheet1!A:M' // Only need columns A through M based on screenshot
 
-// Initialize Google Sheets API
-function getGoogleSheetsAuth() {
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      type: 'service_account',
-      project_id: process.env.GOOGLE_PROJECT_ID,
-      private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      client_id: process.env.GOOGLE_CLIENT_ID
-    },
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
-  })
+// Function to fetch data from public Google Sheets
+async function fetchGoogleSheetsData() {
+  try {
+    // Use the public CSV export URL for the sheet
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`
+    
+    const response = await fetch(csvUrl)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Google Sheets data: ${response.status}`)
+    }
+    
+    const csvText = await response.text()
+    return parseCSVData(csvText)
+  } catch (error) {
+    console.error('Error fetching Google Sheets data:', error)
+    throw error
+  }
+}
+
+// Parse CSV data into structured format
+function parseCSVData(csvText: string): any[][] {
+  const lines = csvText.split('\n')
+  const rows: any[][] = []
   
-  return auth
+  for (const line of lines) {
+    if (line.trim()) {
+      // Simple CSV parsing (handles quoted fields)
+      const row = parseCSVLine(line)
+      rows.push(row)
+    }
+  }
+  
+  return rows
+}
+
+// Simple CSV line parser
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  
+  result.push(current.trim())
+  return result
 }
 
 export interface PartsPricing {
@@ -28,11 +68,14 @@ export interface PartsPricing {
   device_brand: string
   device_model: string
   device_type: string
-  price_zar: number
-  eta_days: number
+  insurance_price: number
+  eta_info: string
+  retail_1_year: number | null
+  retail_2_year: number | null
+  retail_lifetime: number | null
+  replacement_value: number | null
   stock_status: string
   sheet_row_number: number
-  sheet_col_number: number
   last_synced: string
 }
 
@@ -40,16 +83,8 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
   try {
     console.log('🔄 Starting Google Sheets sync...')
     
-    const auth = getGoogleSheetsAuth()
-    const sheets = google.sheets({ version: 'v4', auth })
-    
-    // Get all data from the sheet
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: RANGE,
-    })
-    
-    const rows = response.data.values || []
+    // Fetch data from public Google Sheets
+    const rows = await fetchGoogleSheetsData()
     console.log(`📊 Retrieved ${rows.length} rows from Google Sheets`)
     
     if (rows.length === 0) {
@@ -59,52 +94,77 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
     
     const partsData: PartsPricing[] = []
     
-    // Parse the sheet structure: Brand headers, then models, then parts with pricing
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    // Parse the sheet structure based on the screenshot:
+    // Column A: iPhone model names
+    // Column B: Repair part names  
+    // Column D: Insurance prices
+    // Column E: ETA information
+    // Column G: Retail 1 Year prices
+    // Column H: Retail 2 Year prices
+    // Column J: Retail Lifetime prices
+    // Column M: Replacement Value
+    
+    for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) { // Skip header row
       const row = rows[rowIndex]
       
-      // Look for brand headers (like "iPhone")
-      if (row[0] && !row[1] && row[0].toLowerCase().includes('phone')) {
-        const brand = row[0]
-        console.log(`📱 Processing brand: ${brand}`)
-        
-        // Look ahead for model rows and part pricing
-        let modelRowIndex = rowIndex + 1
-        while (modelRowIndex < rows.length && rows[modelRowIndex][0]) {
-          const modelRow = rows[modelRowIndex]
-          const model = modelRow[0]
-          
-          // Find parts in subsequent columns (Screen, Battery, etc.)
-          for (let colIndex = 1; colIndex < modelRow.length; colIndex++) {
-            const partData = modelRow[colIndex]
-            if (partData && partData.includes('R')) { // Contains price with 'R' prefix
-              // Extract part name from header row
-              const headerRow = rows[0] // Assuming first row has part names
-              const partName = headerRow[colIndex] || `Part ${colIndex}`
-              
-              // Extract price (remove 'R' and parse)
-              const price = parseFloat(partData.replace('R', '').replace(',', '') || '0')
-              
-              if (price > 0) {
-                partsData.push({
-                  part_number: `${brand}-${model}-${partName}`.replace(/\s+/g, '-').toLowerCase(),
-                  part_name: partName,
-                  device_brand: brand,
-                  device_model: model,
-                  device_type: brand.toLowerCase().includes('iphone') ? 'phone' : 'laptop',
-                  price_zar: price,
-                  eta_days: 1, // Default ETA
-                  stock_status: 'available',
-                  sheet_row_number: modelRowIndex + 1,
-                  sheet_col_number: colIndex + 1,
-                  last_synced: new Date().toISOString()
-                })
-              }
-            }
-          }
-          modelRowIndex++
-        }
+      // Skip empty rows or rows without model name
+      if (!row[0] || !row[1]) continue
+      
+      const deviceModel = row[0].trim()
+      const partName = row[1].trim()
+      
+      // Skip if this looks like a category header (no part name)
+      if (!partName || partName === deviceModel) continue
+      
+      // Extract device brand from model name
+      let deviceBrand = 'iPhone' // Default to iPhone
+      if (deviceModel.toLowerCase().includes('samsung')) {
+        deviceBrand = 'Samsung'
+      } else if (deviceModel.toLowerCase().includes('huawei')) {
+        deviceBrand = 'Huawei'
       }
+      
+      // Parse insurance price (Column D)
+      const insurancePrice = parsePrice(row[3])
+      
+      // Skip if no insurance price
+      if (insurancePrice === 0) continue
+      
+      // Parse ETA info (Column E)
+      const etaInfo = row[4] || 'Next day'
+      
+      // Parse retail prices
+      const retail1Year = parsePrice(row[6])
+      const retail2Year = parsePrice(row[7])
+      const retailLifetime = parsePrice(row[9])
+      
+      // Parse replacement value (Column M)
+      const replacementValue = parsePrice(row[12])
+      
+      // Determine stock status based on ETA
+      let stockStatus = 'available'
+      if (etaInfo.toLowerCase().includes('while stock lasts')) {
+        stockStatus = 'limited'
+      } else if (etaInfo.toLowerCase().includes('weeks')) {
+        stockStatus = 'backorder'
+      }
+      
+      partsData.push({
+        part_number: `${deviceBrand}-${deviceModel}-${partName}`.replace(/\s+/g, '-').toLowerCase(),
+        part_name: partName,
+        device_brand: deviceBrand,
+        device_model: deviceModel,
+        device_type: 'phone',
+        insurance_price: insurancePrice,
+        eta_info: etaInfo,
+        retail_1_year: retail1Year || null,
+        retail_2_year: retail2Year || null,
+        retail_lifetime: retailLifetime || null,
+        replacement_value: replacementValue || null,
+        stock_status: stockStatus,
+        sheet_row_number: rowIndex + 1,
+        last_synced: new Date().toISOString()
+      })
     }
     
     console.log(`✅ Parsed ${partsData.length} parts from Google Sheets`)
@@ -128,6 +188,17 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
     console.error('❌ Error syncing from Google Sheets:', error)
     throw error
   }
+}
+
+// Helper function to parse price strings
+function parsePrice(priceStr: string | undefined): number {
+  if (!priceStr) return 0
+  
+  // Remove R prefix, commas, and parse
+  const cleanPrice = priceStr.replace(/R/g, '').replace(/,/g, '').trim()
+  const price = parseFloat(cleanPrice)
+  
+  return isNaN(price) ? 0 : price
 }
 
 export async function getPartsPricing(deviceBrand?: string, deviceModel?: string): Promise<PartsPricing[]> {
@@ -185,7 +256,7 @@ export async function searchParts(searchTerm: string): Promise<PartsPricing[]> {
 
 // Helper function to calculate total parts cost
 export function calculatePartsCost(selectedParts: PartsPricing[]): number {
-  return selectedParts.reduce((total, part) => total + part.price_zar, 0)
+  return selectedParts.reduce((total, part) => total + part.insurance_price, 0)
 }
 
 // Helper function to get unique brands
