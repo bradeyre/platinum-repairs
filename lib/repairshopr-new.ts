@@ -234,6 +234,7 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     
     // Define allowed technicians for Device Doctor
     const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians = ['Thasveer', 'Shannon'] // Additional technicians to exclude
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
     
     // Fetch tickets for each status from both APIs (5 statuses × 2 APIs = 10 calls)
@@ -284,6 +285,12 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
         // Only include if assigned to allowed technicians or unassigned
         if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
           console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
+          return false
+        }
+        
+        // Also exclude specific technicians
+        if (assignedTo && excludedTechnicians.includes(assignedTo)) {
+          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to excluded technician: ${assignedTo}`)
           return false
         }
         

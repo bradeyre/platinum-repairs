@@ -27,6 +27,10 @@ For Device Doctor tickets, only tickets assigned to these technicians are includ
 - ✅ **Ben**
 - ✅ **Unassigned** (no technician assigned)
 
+**Excluded Technicians:**
+- ❌ **Thasveer**
+- ❌ **Shannon**
+
 ### 3. Workshop Exclusion (Device Doctor Only)
 Device Doctor tickets assigned to these workshops are **excluded**:
 - ❌ **Durban Workshop**

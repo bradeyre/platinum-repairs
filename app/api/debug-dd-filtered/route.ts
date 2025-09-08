@@ -12,6 +12,7 @@ export async function GET() {
       'In Progress'
     ]
     const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians = ['Thasveer', 'Shannon'] // Additional technicians to exclude
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
 
     if (!token) {
@@ -60,6 +61,12 @@ export async function GET() {
       // Only include if assigned to allowed technicians or unassigned
       if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
         console.log(`🚫 Excluding ticket ${ticket.number} - assigned to non-allowed technician: ${assignedTo}`)
+        return false
+      }
+      
+      // Also exclude specific technicians
+      if (assignedTo && excludedTechnicians.includes(assignedTo)) {
+        console.log(`🚫 Excluding ticket ${ticket.number} - assigned to excluded technician: ${assignedTo}`)
         return false
       }
       
