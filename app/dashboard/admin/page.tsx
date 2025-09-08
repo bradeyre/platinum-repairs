@@ -127,7 +127,7 @@ export default function AdminDashboard() {
       
       // Move to next day
       start.setDate(start.getDate() + 1)
-      start.setHours(businessStart, 0, 0, 0)
+      start.setHours(0, 0, 0, 0)
     }
     
     return businessHours

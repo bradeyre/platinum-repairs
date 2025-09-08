@@ -124,6 +124,60 @@ function extractDeviceInfo(description: string): string {
   return 'Unknown Device'
 }
 
+// Calculate business hours between two dates (8 AM - 6 PM, Monday-Friday)
+function calculateBusinessHours(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  let businessHours = 0
+  
+  // Business hours: 8 AM to 6 PM, Monday to Friday
+  const businessStart = 8 // 8 AM
+  const businessEnd = 18 // 6 PM
+  
+  while (start < end) {
+    const dayOfWeek = start.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    // Only count Monday (1) through Friday (5)
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      const dayStart = new Date(start)
+      dayStart.setHours(businessStart, 0, 0, 0)
+      
+      const dayEnd = new Date(start)
+      dayEnd.setHours(businessEnd, 0, 0, 0)
+      
+      // Calculate overlap with business hours for this day
+      const effectiveStart = start < dayStart ? dayStart : start
+      const effectiveEnd = end < dayEnd ? end : dayEnd
+      
+      if (effectiveStart < effectiveEnd) {
+        businessHours += (effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60)
+      }
+    }
+    
+    // Move to next day
+    start.setDate(start.getDate() + 1)
+    start.setHours(0, 0, 0, 0)
+  }
+  
+  return businessHours
+}
+
+// Format business hours into a readable string
+function formatBusinessHours(hours: number): string {
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60)
+    return `${minutes}m`
+  } else if (hours < 24) {
+    const wholeHours = Math.floor(hours)
+    const minutes = Math.round((hours - wholeHours) * 60)
+    return minutes > 0 ? `${wholeHours}h ${minutes}m` : `${wholeHours}h`
+  } else {
+    const days = Math.floor(hours / 8) // 8 business hours per day
+    const remainingHours = Math.round(hours % 8)
+    return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`
+  }
+}
+
 // Fetch tickets from RepairShopr with specific status filtering
 async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, status: string): Promise<RepairShoprTicket[]> {
   try {
@@ -193,15 +247,21 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
 function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'devicedoctor'): ProcessedTicket {
   const description = ticket.subject || ticket.comment || 'No description available'
   const deviceInfo = extractDeviceInfo(description)
+  
+  // Use status change time (updated_at) instead of creation time for wait time calculation
+  const statusChangeDate = new Date(ticket.updated_at || ticket.created_at)
   const createdDate = new Date(ticket.created_at)
+  
+  // Calculate business hours wait time since status change
+  const businessWaitTime = calculateBusinessHours(statusChangeDate, new Date())
   
   return {
     ticketId: `#${ticket.number || ticket.id}`,
     ticketNumber: ticket.number || ticket.id,
     description,
     status: STATUS_MAPPING[ticket.status] || ticket.status,
-    timeAgo: getTimeAgo(createdDate),
-    timestamp: createdDate,
+    timeAgo: formatBusinessHours(businessWaitTime),
+    timestamp: statusChangeDate, // Use status change time for wait time calculation
     deviceInfo,
     assignedTo: ticket.user?.full_name,
     aiPriority: 'P4', // Default priority
