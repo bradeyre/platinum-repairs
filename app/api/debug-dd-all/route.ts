@@ -50,3 +50,4 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to debug DD API', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }
+

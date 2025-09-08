@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server'
 
+interface RepairShoprTicket {
+  number: string
+  status: string
+  subject?: string
+  user?: {
+    full_name?: string
+  }
+}
+
 export async function GET() {
   try {
     const token = process.env.REPAIRSHOPR_TOKEN_DD
@@ -23,13 +32,13 @@ export async function GET() {
     }
 
     const data = await response.json()
-    const allTickets = data.tickets || []
+    const allTickets: RepairShoprTicket[] = data.tickets || []
     
     // Filter tickets with allowed statuses
-    const filteredTickets = allTickets.filter(ticket => allowedStatuses.includes(ticket.status))
+    const filteredTickets = allTickets.filter((ticket: RepairShoprTicket) => allowedStatuses.includes(ticket.status))
     
     // Get detailed info for each filtered ticket
-    const detailedTickets = filteredTickets.map(ticket => ({
+    const detailedTickets = filteredTickets.map((ticket: RepairShoprTicket) => ({
       ticketNumber: ticket.number,
       status: ticket.status,
       assignedTo: ticket.user?.full_name || 'Unassigned',
@@ -53,3 +62,4 @@ export async function GET() {
     return NextResponse.json({ success: false, error: 'Failed to debug DD API', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }
+

@@ -1,6 +1,5 @@
 export interface RepairShoprTicket {
   id: string
-  number?: string  // Make optional - some APIs might not have this field
   problem_type: string
   status: string
   created_at: string
@@ -10,12 +9,6 @@ export interface RepairShoprTicket {
   user_id: number | null
   subject: string
   comment: string
-  user?: {
-    id: number
-    email: string
-    full_name: string
-    group: string
-  }
   assets: Array<{
     name: string
     asset_type_name: string
@@ -26,7 +19,6 @@ export interface RepairShoprTicket {
 
 export interface ProcessedTicket {
   ticketId: string
-  ticketNumber: string
   description: string
   status: string
   timeAgo: string
@@ -40,7 +32,7 @@ export interface ProcessedTicket {
 
 // RepairShopr API configuration
 const REPAIRSHOPR_BASE_URL = 'https://platinumrepairs.repairshopr.com/api/v1'
-const REPAIRSHOPR_DD_BASE_URL = 'https://devicedoctorsa.repairshopr.com/api/v1'
+const REPAIRSHOPR_DD_BASE_URL = 'https://devicedoctor.repairshopr.com/api/v1'
 
 // Status mappings from RepairShopr to our 5 statuses
 const STATUS_MAPPING: Record<string, string> = {
@@ -57,15 +49,20 @@ const STATUS_MAPPING: Record<string, string> = {
   
   // Awaiting Damage Report
   'Damage Report': 'Awaiting Damage Report',
-  // Note: Removed incorrect Device Doctor status mappings that were causing too many tickets to show
+  'Call For Info/Courier to be Booked': 'Awaiting Damage Report',
+  'Awaiting Courier Arrival': 'Awaiting Damage Report',
+  'Awaiting Biker Collection': 'Awaiting Damage Report',
+  'Awaiting Mobile Booking': 'Awaiting Damage Report',
+  'Awaiting Walk-in': 'Awaiting Damage Report',
   
   // Awaiting Repair
+  'Awaiting Authorization': 'Awaiting Repair',
   'Awaiting Virtual Assessment': 'Awaiting Repair',
   'No Parts': 'Awaiting Repair',
   
   // In Progress
   'In Progress': 'In Progress',
-  // Note: Removed 'Damage Report Completed' mapping as it should not be shown in active tickets
+  'Damage Report Completed': 'In Progress',
   
   // Completed/Other (not shown in main view)
   'Resolved': 'Completed',
@@ -100,15 +97,14 @@ function getTicketType(repairShoprInstance: 'platinum' | 'devicedoctor'): 'PR' |
 // Fetch tickets from RepairShopr instance
 async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<RepairShoprTicket[]> {
   try {
-    // RepairShopr API doesn't support multiple status queries in one request
-    // We need to fetch all tickets and filter client-side
+    // Try fetching all tickets first, then filter
     const url = `${baseUrl}/tickets`
-    console.log(`🔍 Fetching from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
     console.log(`Fetching from RepairShopr: ${url}`)
     console.log(`Using token: ${token.substring(0, 10)}...`)
     
-    const response = await fetch(`${url}?api_key=${token}`, {
+    const response = await fetch(url, {
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
@@ -116,13 +112,10 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
     
     console.log(`RepairShopr response status: ${response.status}`)
     console.log(`RepairShopr response headers:`, Object.fromEntries(response.headers.entries()))
-    console.log(`🔍 Fetching from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`❌ RepairShopr API error: ${response.status} - ${errorText}`)
-      console.error(`❌ URL attempted: ${url}`)
-      console.error(`❌ Token used: ${token.substring(0, 20)}...`)
+      console.error(`RepairShopr API error: ${response.status} - ${errorText}`)
       throw new Error(`RepairShopr API error: ${response.status} - ${errorText}`)
     }
     
@@ -169,8 +162,7 @@ function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'device
   }
     
   return {
-    ticketId: `#${ticket.number || ticket.id}`, // Use ticket number if available, fallback to ID
-    ticketNumber: ticket.number || ticket.id, // Use the actual ticket number from API, fallback to ID
+    ticketId: `#${ticket.id}`,
     description,
     status: STATUS_MAPPING[ticket.status] || ticket.status,
     timeAgo: getTimeAgo(ticket.updated_at),
@@ -238,41 +230,12 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     const processedTickets2 = tickets2.map(ticket => processTicket(ticket, 'devicedoctor'))
     const processedTickets = [...processedTickets1, ...processedTickets2]
     
-    console.log(`🔍 API Debug: PR tickets: ${tickets1.length}, DD tickets: ${tickets2.length}`)
-    console.log(`🔍 Processed: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
-    
-    // Debug: Show raw DD ticket statuses before mapping
-    if (tickets2.length > 0) {
-      const ddStatuses = tickets2.map(t => t.status)
-      const uniqueDDStatuses = [...new Set(ddStatuses)]
-      console.log(`🔍 Raw DD statuses before mapping:`, uniqueDDStatuses)
-    }
-    
-    // Debug: Show all statuses being returned
-    const allStatuses = processedTickets.map(t => t.status)
-    const uniqueStatuses = [...new Set(allStatuses)]
-    console.log(`🔍 All statuses from APIs:`, uniqueStatuses)
-    
-    // Filter to ONLY show the 6 allowed statuses
-    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'Awaiting Authorization', 'In Progress']
-    let activeTickets = processedTickets.filter(ticket => 
-      allowedStatuses.includes(ticket.status)
+    // Filter out completed tickets - only show active workflow tickets
+    const activeTickets = processedTickets.filter(ticket => 
+      ticket.status !== 'Completed' && ticket.status !== 'Cancelled'
     )
     
-    // TEMPORARILY DISABLED: Workshop filtering to see raw DD tickets
-    // const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
-    console.log(`🔍 Raw tickets after status filtering: ${activeTickets.length} tickets`)
-    console.log(`🔍 DD tickets (no workshop filtering):`, activeTickets.filter(t => t.ticketType === 'DD').map(t => ({
-      ticketNumber: t.ticketNumber,
-      status: t.status,
-      description: t.description.substring(0, 100) + '...'
-    })))
-    
     console.log(`Filtered to ${activeTickets.length} active tickets from ${processedTickets.length} total`)
-    console.log(`🔍 Active tickets by type:`, {
-      PR: activeTickets.filter(t => t.ticketType === 'PR').length,
-      DD: activeTickets.filter(t => t.ticketType === 'DD').length
-    })
     
     // Sort by status priority and timestamp
     const statusPriority: Record<string, number> = {
