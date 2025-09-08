@@ -8,18 +8,12 @@ The Platinum Repairs system integrates with Google Sheets to automatically sync 
 
 ### Sheet Details
 - **Sheet ID**: `1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE`
-- **Range**: `Sheet1!A:Z` (all data from column A to Z)
-- **Access**: Read-only via Google Sheets API
+- **Shared Link**: [https://docs.google.com/spreadsheets/d/1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE/edit?usp=sharing)
+- **Range**: `Sheet1!A:M` (columns A through M contain the pricing data)
+- **Access**: Public CSV export (no authentication required)
 
-### Required Environment Variables
-```bash
-# Google Sheets API Credentials
-GOOGLE_PROJECT_ID=your_project_id
-GOOGLE_PRIVATE_KEY_ID=your_private_key_id
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour private key here\n-----END PRIVATE KEY-----"
-GOOGLE_CLIENT_EMAIL=your_service_account_email
-GOOGLE_CLIENT_ID=your_client_id
-```
+### No Environment Variables Required
+The system uses public CSV export, so no Google Cloud credentials or environment variables are needed.
 
 ## 📋 Google Sheets Structure
 

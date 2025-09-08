@@ -59,12 +59,9 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 REPAIRSHOPR_TOKEN=T0c8dba3f0694983f4-764b5c6394a4fbfc181b4aad41f567c8
 REPAIRSHOPR_TOKEN_DD=T1061bd85843359e0e-7b4026074327cf4d3e0e0d018f8ba88f
 
-# Google Sheets API (for parts pricing)
-GOOGLE_PROJECT_ID=your_project_id
-GOOGLE_PRIVATE_KEY_ID=your_private_key_id
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour private key here\n-----END PRIVATE KEY-----"
-GOOGLE_CLIENT_EMAIL=your_service_account_email
-GOOGLE_CLIENT_ID=your_client_id
+# Google Sheets Integration (for parts pricing)
+# No credentials needed - uses public CSV export
+# Sheet: https://docs.google.com/spreadsheets/d/1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE/edit?usp=sharing
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=https://platinumrepairs.co.za
@@ -159,19 +156,23 @@ CREATE TABLE damage_reports (
 - **Purpose**: Fetches tickets from Device Doctor
 - **Tag Color**: Green "DD" tags
 
-### Google Sheets API
+### Google Sheets Integration
 
 #### Sheet Configuration
 - **Sheet ID**: `1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE`
-- **Range**: `Sheet1!A:Z`
+- **Shared Link**: [https://docs.google.com/spreadsheets/d/1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE/edit?usp=sharing)
+- **Range**: `Sheet1!A:M`
 - **Purpose**: Parts pricing data sync
+- **Access**: Public CSV export (no authentication required)
 
 #### Sheet Structure
 ```
-Row 1 (Header):    | Part 1 | Part 2 | Part 3 | Part 4 | ... |
-Row 2 (iPhone):    |        |        |        |        | ... |
-Row 3 (iPhone 12): | R1500  | R800   | R200   | R300   | ... |
-Row 4 (iPhone 13): | R1600  | R850   | R220   | R320   | ... |
+Column A: iPhone Model    | Column B: Part Name      | Column D: Insurance | Column E: ETA      | Column M: Replacement Value
+iPhone SE (2020)         | Screen Assembly          | R1,499.00          | Next day          | R5,000.00
+iPhone SE (2020)         | Casing                   | R2,199.00          | Next day          | R5,000.00
+iPhone SE (2020)         | Battery (Generic)        | R899.00            | Next day          | R5,000.00
+iPhone SE (2022)         | Screen Assembly          | R3,999.00          | Next day          | 
+iPhone 6                 | Screen Assembly          | R579.00            | Next day          | R2,000.00
 ```
 
 ## 🎯 Key Features

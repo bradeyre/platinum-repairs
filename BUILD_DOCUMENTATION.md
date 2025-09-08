@@ -86,6 +86,12 @@ echo "Force redeploy - $(date)" > DEPLOYMENT_TRIGGER.txt
 git add . && git commit -m "Force redeploy" && git push origin main
 ```
 
+### 5. Google Sheets Integration
+- **Shared Link**: [https://docs.google.com/spreadsheets/d/1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE/edit?usp=sharing)
+- **No authentication required** - uses public CSV export
+- **Sheet Structure**: Vertical format with iPhone models in Column A, parts in Column B, insurance prices in Column D
+- **Replacement Values**: Available in Column M for device replacement costs
+
 ## 🐛 Troubleshooting Guide
 
 ### Issue: Only PR Tickets Showing, No DD Tickets
