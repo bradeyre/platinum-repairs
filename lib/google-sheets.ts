@@ -23,11 +23,17 @@ function getGoogleSheetsAuth() {
 }
 
 export interface PartsPricing {
+  part_number: string
   part_name: string
   device_brand: string
   device_model: string
-  price: number
-  availability: string
+  device_type: string
+  price_zar: number
+  eta_days: number
+  stock_status: string
+  sheet_row_number: number
+  sheet_col_number: number
+  last_synced: string
 }
 
 export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
@@ -81,11 +87,17 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
               
               if (price > 0) {
                 partsData.push({
+                  part_number: `${brand}-${model}-${partName}`.replace(/\s+/g, '-').toLowerCase(),
                   part_name: partName,
                   device_brand: brand,
                   device_model: model,
-                  price: price,
-                  availability: 'Available' // Default availability
+                  device_type: brand.toLowerCase().includes('iphone') ? 'phone' : 'laptop',
+                  price_zar: price,
+                  eta_days: 1, // Default ETA
+                  stock_status: 'available',
+                  sheet_row_number: modelRowIndex + 1,
+                  sheet_col_number: colIndex + 1,
+                  last_synced: new Date().toISOString()
                 })
               }
             }
@@ -173,7 +185,7 @@ export async function searchParts(searchTerm: string): Promise<PartsPricing[]> {
 
 // Helper function to calculate total parts cost
 export function calculatePartsCost(selectedParts: PartsPricing[]): number {
-  return selectedParts.reduce((total, part) => total + part.price, 0)
+  return selectedParts.reduce((total, part) => total + part.price_zar, 0)
 }
 
 // Helper function to get unique brands

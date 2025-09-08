@@ -1,0 +1,404 @@
+# Platinum Repairs System - Complete Project Documentation
+
+## 🏗️ System Overview
+
+The Platinum Repairs system is a comprehensive repair management platform that integrates with RepairShopr APIs, Google Sheets, and provides damage report management with PDF generation capabilities.
+
+## 🔧 Technical Stack
+
+- **Framework**: Next.js 15.5.2 with TypeScript
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth with custom user management
+- **External APIs**: RepairShopr API, Google Sheets API
+- **PDF Generation**: Puppeteer
+- **Deployment**: Vercel
+- **Styling**: Tailwind CSS
+
+## 📁 Project Structure
+
+```
+platinum-repairs-clean/
+├── app/
+│   ├── api/
+│   │   ├── damage-reports/          # Damage report CRUD operations
+│   │   ├── google-sheets/sync/      # Google Sheets integration
+│   │   ├── parts-pricing/           # Parts pricing API
+│   │   ├── pdf/generate/            # PDF generation
+│   │   ├── tickets/                 # Ticket management
+│   │   └── ...                      # Other API endpoints
+│   ├── dashboard/
+│   │   ├── admin/                   # Admin dashboard
+│   │   ├── claim-manager/           # Claim manager dashboard
+│   │   └── technician/              # Technician dashboard
+│   └── login/                       # Authentication
+├── components/
+│   ├── DamageReportModal.tsx        # Damage report creation
+│   ├── PartsPricingModal.tsx        # Parts selection with pricing
+│   ├── TicketClaimingModal.tsx      # Ticket assignment
+│   └── ...                          # Other UI components
+├── lib/
+│   ├── auth.ts                      # Authentication utilities
+│   ├── google-sheets.ts             # Google Sheets integration
+│   ├── pdf-generator.ts             # PDF generation
+│   ├── repairshopr-new.ts           # RepairShopr API integration
+│   └── supabase.ts                  # Database client
+└── ...                              # Configuration files
+```
+
+## 🔑 Environment Variables
+
+### Required Environment Variables (Vercel Dashboard)
+
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://hplkxqwaxpoubbmnjulo.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# RepairShopr API Tokens
+REPAIRSHOPR_TOKEN=T0c8dba3f0694983f4-764b5c6394a4fbfc181b4aad41f567c8
+REPAIRSHOPR_TOKEN_DD=T1061bd85843359e0e-7b4026074327cf4d3e0e0d018f8ba88f
+
+# Google Sheets API (for parts pricing)
+GOOGLE_PROJECT_ID=your_project_id
+GOOGLE_PRIVATE_KEY_ID=your_private_key_id
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour private key here\n-----END PRIVATE KEY-----"
+GOOGLE_CLIENT_EMAIL=your_service_account_email
+GOOGLE_CLIENT_ID=your_client_id
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=https://platinumrepairs.co.za
+ENABLE_REALTIME_SYNC=true
+```
+
+## 🗄️ Database Schema
+
+### Core Tables
+
+#### users
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  role TEXT NOT NULL CHECK (role IN ('admin', 'technician', 'claim_manager')),
+  bio TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### parts_pricing
+```sql
+CREATE TABLE parts_pricing (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  part_number TEXT NOT NULL,
+  part_name TEXT NOT NULL,
+  device_brand TEXT NOT NULL,
+  device_model TEXT NOT NULL,
+  device_type TEXT NOT NULL,
+  price_zar DECIMAL(10,2) NOT NULL,
+  eta_days INTEGER DEFAULT 1,
+  stock_status TEXT DEFAULT 'available',
+  sheet_row_number INTEGER,
+  sheet_col_number INTEGER,
+  last_synced TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(part_name, device_brand, device_model)
+);
+```
+
+#### damage_reports
+```sql
+CREATE TABLE damage_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dr_number TEXT UNIQUE NOT NULL,
+  claim_number TEXT,
+  device_brand TEXT NOT NULL,
+  device_model TEXT NOT NULL,
+  device_type TEXT NOT NULL,
+  imei_serial TEXT,
+  storage_capacity TEXT,
+  color TEXT,
+  client_reported_issues TEXT[] DEFAULT '{}',
+  tech_findings TEXT[] DEFAULT '{}',
+  damage_photos TEXT[] DEFAULT '{}',
+  tech_ber_suggestion BOOLEAN,
+  manager_ber_decision BOOLEAN,
+  ber_reason TEXT,
+  selected_parts JSONB DEFAULT '{}',
+  total_parts_cost DECIMAL(10,2) DEFAULT 0,
+  final_eta_days INTEGER,
+  manager_notes TEXT,
+  ai_checklist TEXT[],
+  ai_risk_assessment TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN (
+    'pending', 'assigned', 'in_assessment', 'awaiting_approval', 
+    'in_repair', 'quality_check', 'completed', 'ber_confirmed', 'cancelled'
+  )),
+  priority INTEGER DEFAULT 2 CHECK (priority BETWEEN 1 AND 5),
+  assigned_tech_id UUID REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## 🔌 API Integration
+
+### RepairShopr API
+
+#### Platinum Repairs
+- **URL**: `https://platinumrepairs.repairshopr.com/api/v1/tickets`
+- **Token**: `REPAIRSHOPR_TOKEN`
+- **Purpose**: Fetches tickets from Platinum Repairs
+- **Tag Color**: Blue "PR" tags
+
+#### Device Doctor
+- **URL**: `https://devicedoctorsa.repairshopr.com/api/v1/tickets`
+- **Token**: `REPAIRSHOPR_TOKEN_DD`
+- **Purpose**: Fetches tickets from Device Doctor
+- **Tag Color**: Green "DD" tags
+
+### Google Sheets API
+
+#### Sheet Configuration
+- **Sheet ID**: `1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE`
+- **Range**: `Sheet1!A:Z`
+- **Purpose**: Parts pricing data sync
+
+#### Sheet Structure
+```
+Row 1 (Header):    | Part 1 | Part 2 | Part 3 | Part 4 | ... |
+Row 2 (iPhone):    |        |        |        |        | ... |
+Row 3 (iPhone 12): | R1500  | R800   | R200   | R300   | ... |
+Row 4 (iPhone 13): | R1600  | R850   | R220   | R320   | ... |
+```
+
+## 🎯 Key Features
+
+### 1. Ticket Management
+- **Dual API Integration**: Fetches from both Platinum Repairs and Device Doctor
+- **Status Filtering**: Only shows 5 specific statuses
+- **Workshop Filtering**: Excludes certain workshop assignments
+- **Real-time Updates**: Polls every 1 minute
+- **Technician Assignment**: One-click ticket claiming
+
+### 2. Damage Reports
+- **Creation**: Technicians can create detailed damage reports
+- **Approval Workflow**: Claim managers can approve/reject reports
+- **PDF Generation**: Professional PDFs with company branding
+- **Parts Integration**: Select parts with real-time pricing
+
+### 3. Parts Pricing
+- **Google Sheets Sync**: Automatic sync from live Google Sheet
+- **Search & Filter**: Find parts by brand, model, or search term
+- **Cost Calculation**: Automatic total cost calculation
+- **ETA Tracking**: Delivery time estimates
+
+### 4. User Management
+- **Role-based Access**: Admin, Technician, Claim Manager roles
+- **Authentication**: Supabase-based authentication
+- **User Profiles**: Bio and profile management
+
+## 🚀 Deployment Process
+
+### 1. Prerequisites
+- Vercel account
+- Supabase project
+- Google Cloud project with Sheets API
+- RepairShopr API access
+
+### 2. Setup Steps
+
+1. **Clone Repository**:
+   ```bash
+   git clone https://github.com/bradeyre/platinum-repairs.git
+   cd platinum-repairs
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Set Environment Variables**:
+   - Add all required variables to Vercel dashboard
+   - Test with debug endpoints
+
+4. **Deploy**:
+   ```bash
+   git push origin main
+   ```
+
+### 3. Post-Deployment
+
+1. **Test APIs**:
+   ```bash
+   curl https://your-app.vercel.app/api/test-apis
+   curl -X POST https://your-app.vercel.app/api/google-sheets/sync
+   ```
+
+2. **Setup Users**:
+   ```bash
+   curl -X POST https://your-app.vercel.app/api/setup-users
+   ```
+
+3. **Verify Functionality**:
+   - Test all dashboard routes
+   - Verify ticket filtering
+   - Test damage report creation
+   - Check PDF generation
+
+## 👥 User Accounts
+
+### Admin Users
+| Username | Password | Role | Full Name | Email |
+|----------|----------|------|-----------|-------|
+| brad | b123456 | admin | Brad | brad@platinumrepairs.co.za |
+| andre | a123456 | admin | Andre | andre@platinumrepairs.co.za |
+| celeste | c123456 | admin | Celeste | celeste@platinumrepairs.co.za |
+| braam | b123456 | admin | Braam | braam@platinumrepairs.co.za |
+| melany | m123456 | admin | Melany | melany@platinumrepairs.co.za |
+
+### Claim Managers
+| Username | Password | Role | Full Name | Email |
+|----------|----------|------|-----------|-------|
+| janine | j123456 | claim_manager | Janine | janine@platinumrepairs.co.za |
+| dane | d123456 | claim_manager | Dane | dane@platinumrepairs.co.za |
+| derilise | d123456 | claim_manager | Derilise | derilise@platinumrepairs.co.za |
+
+### Technicians
+| Username | Password | Role | Full Name | Email |
+|----------|----------|------|-----------|-------|
+| ben | b123456 | technician | Ben | ben@platinumrepairs.co.za |
+| marshal | m123456 | technician | Marshal | marshal@platinumrepairs.co.za |
+| malvin | m123456 | technician | Malvin | malvin@platinumrepairs.co.za |
+| francis | f123456 | technician | Francis | francis@platinumrepairs.co.za |
+
+## 🔍 API Endpoints
+
+### Core APIs
+- `GET /api/tickets` - Main tickets endpoint
+- `POST /api/tickets/assign` - Assign tickets to technicians
+- `GET /api/test-apis` - Debug endpoint for API testing
+
+### Damage Reports
+- `GET /api/damage-reports` - Get all damage reports
+- `POST /api/damage-reports` - Create damage report
+- `POST /api/damage-reports/[id]/approve` - Approve report
+- `POST /api/damage-reports/[id]/reject` - Reject report
+
+### Parts Pricing
+- `GET /api/parts-pricing` - Get parts with filtering
+- `POST /api/google-sheets/sync` - Sync from Google Sheets
+
+### PDF Generation
+- `GET /api/pdf/generate?id=[reportId]` - Generate PDF
+- `POST /api/pdf/generate` - Generate PDF (POST method)
+
+### User Management
+- `POST /api/setup-users` - Setup system users
+- `POST /api/cleanup-users` - Remove all users
+
+## 🧪 Testing
+
+### Automated Testing
+```bash
+# Test main application
+curl -s -o /dev/null -w "%{http_code}" "https://platinum-repairs.vercel.app/"
+
+# Test API endpoints
+curl -s -o /dev/null -w "%{http_code}" "https://platinum-repairs.vercel.app/api/tickets"
+curl -s -o /dev/null -w "%{http_code}" "https://platinum-repairs.vercel.app/api/test-apis"
+
+# Test Google Sheets sync
+curl -X POST "https://platinum-repairs.vercel.app/api/google-sheets/sync"
+```
+
+### Manual Testing Checklist
+- [ ] Admin dashboard loads correctly
+- [ ] Technician dashboard shows selector modal
+- [ ] Can select technician and see assigned tickets
+- [ ] Claim tickets functionality works
+- [ ] Both PR (blue) and DD (green) tickets visible
+- [ ] Only 5 allowed statuses displayed
+- [ ] Damage report creation works
+- [ ] PDF generation works
+- [ ] Parts pricing sync works
+- [ ] User authentication works
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **No DD Tickets Showing**:
+   - Check `REPAIRSHOPR_TOKEN_DD` environment variable
+   - Verify Device Doctor URL is correct
+   - Test with `/api/test-apis` endpoint
+
+2. **Google Sheets Sync Failing**:
+   - Verify Google Sheets credentials
+   - Check sheet sharing permissions
+   - Test with `/api/google-sheets/sync` endpoint
+
+3. **PDF Generation Errors**:
+   - Check Puppeteer installation
+   - Verify damage report data exists
+   - Check server logs for errors
+
+4. **Authentication Issues**:
+   - Verify Supabase configuration
+   - Check user setup with `/api/setup-users`
+   - Verify role assignments
+
+### Debug Commands
+```bash
+# Check environment variables
+curl https://your-app.vercel.app/api/debug-env
+
+# Test all APIs
+curl https://your-app.vercel.app/api/test-apis
+
+# Check ticket filtering
+curl https://your-app.vercel.app/api/test-filtered-tickets
+
+# Test Google Sheets
+curl -X POST https://your-app.vercel.app/api/google-sheets/sync
+```
+
+## 📚 Documentation Files
+
+- `BUILD_DOCUMENTATION.md` - Build and deployment guide
+- `GOOGLE_SHEETS_INTEGRATION.md` - Google Sheets integration details
+- `API_DOCUMENTATION.md` - API filtering rules and documentation
+- `PROJECT_DOCUMENTATION.md` - This comprehensive guide
+
+## 🔄 Maintenance
+
+### Regular Tasks
+1. **Monitor API Quotas**: Check RepairShopr and Google Sheets API usage
+2. **Update Dependencies**: Keep npm packages updated
+3. **Backup Data**: Regular exports of critical data
+4. **Performance Monitoring**: Check response times and error rates
+
+### Updates
+1. **Code Changes**: Always test locally before deploying
+2. **Environment Variables**: Document any new variables needed
+3. **Database Changes**: Update schema documentation
+4. **API Changes**: Update integration documentation
+
+## 📞 Support
+
+For technical support:
+1. Check this documentation first
+2. Review error logs in Vercel dashboard
+3. Test with debug endpoints
+4. Check environment variables
+5. Verify external API access
+
+---
+
+**Last Updated**: Current Session
+**Version**: 2.0
+**Status**: ✅ Complete and Production Ready
+**Deployment**: https://platinum-repairs.vercel.app

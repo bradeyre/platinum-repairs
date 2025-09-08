@@ -3,11 +3,17 @@
 import React, { useState, useEffect } from 'react'
 
 interface PartsPricing {
+  part_number: string
   part_name: string
   device_brand: string
   device_model: string
-  price: number
-  availability: string
+  device_type: string
+  price_zar: number
+  eta_days: number
+  stock_status: string
+  sheet_row_number: number
+  sheet_col_number: number
+  last_synced: string
 }
 
 interface PartsPricingModalProps {
@@ -124,7 +130,7 @@ export default function PartsPricingModal({
     onClose()
   }
 
-  const totalCost = localSelectedParts.reduce((sum, part) => sum + part.price, 0)
+  const totalCost = localSelectedParts.reduce((sum, part) => sum + part.price_zar, 0)
 
   if (!isOpen) return null
 
@@ -234,10 +240,10 @@ export default function PartsPricingModal({
                       {part.device_brand} {part.device_model}
                     </p>
                     <p className="text-lg font-semibold text-green-600">
-                      R {part.price.toFixed(2)}
+                      R {part.price_zar.toFixed(2)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {part.availability}
+                      {part.stock_status} • ETA: {part.eta_days} days
                     </p>
                   </div>
                 )
