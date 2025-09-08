@@ -124,7 +124,40 @@ function extractDeviceInfo(description: string): string {
   return 'Unknown Device'
 }
 
-// Fetch tickets from RepairShopr using api_key query parameter (working method)
+// Fetch tickets from RepairShopr with specific status filtering
+async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, status: string): Promise<RepairShoprTicket[]> {
+  try {
+    // Use proper API filtering with status parameter
+    const url = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&api_key=${token}`
+    console.log(`🔍 Fetching ${status} tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
+    console.log(`URL: ${url}`)
+    
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    
+    console.log(`Response status: ${response.status}`)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`❌ API error: ${response.status} - ${errorText}`)
+      throw new Error(`API error: ${response.status} - ${errorText}`)
+    }
+    
+    const data = await response.json()
+    console.log(`✅ Successfully fetched ${data.tickets?.length || 0} tickets with status: ${status}`)
+    
+    return data.tickets || []
+  } catch (error) {
+    console.error(`Error fetching ${status} tickets from RepairShopr:`, error)
+    return []
+  }
+}
+
+// Fetch tickets from RepairShopr using api_key query parameter (fallback method)
 async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<RepairShoprTicket[]> {
   try {
     const url = `${baseUrl}/tickets?api_key=${token}`
@@ -177,7 +210,7 @@ function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'device
   }
 }
 
-// Main function to get all tickets from both APIs
+// Main function to get all tickets from both APIs with proper filtering
 export async function getAllTickets(): Promise<ProcessedTicket[]> {
   const token1 = process.env.REPAIRSHOPR_TOKEN
   const token2 = process.env.REPAIRSHOPR_TOKEN_DD
@@ -188,44 +221,99 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
   }
   
   try {
-    console.log('🚀 Starting to fetch tickets from both APIs...')
+    console.log('🚀 Starting to fetch tickets from both APIs with proper filtering...')
     
-    // Fetch from both instances in parallel
-    const [tickets1, tickets2] = await Promise.all([
-      fetchFromRepairShopr(token1, REPAIRSHOPR_BASE_URL),
-      fetchFromRepairShopr(token2, REPAIRSHOPR_DD_BASE_URL)
-    ])
+    // Define the 5 specific statuses we want to fetch
+    const targetStatuses = [
+      'Awaiting Rework',
+      'Awaiting Workshop Repairs', 
+      'Awaiting Damage Report',
+      'Awaiting Repair',
+      'In Progress'
+    ]
     
-    console.log(`🔍 Raw API results: PR tickets: ${tickets1.length}, DD tickets: ${tickets2.length}`)
+    // Define allowed technicians for Device Doctor
+    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    
+    // Fetch tickets for each status from both APIs (5 statuses × 2 APIs = 10 calls)
+    const allApiCalls: Promise<RepairShoprTicket[]>[] = []
+    
+    // Platinum Repairs API calls
+    for (const status of targetStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, status))
+    }
+    
+    // Device Doctor API calls  
+    for (const status of targetStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, status))
+    }
+    
+    // Execute all API calls in parallel
+    const allResults = await Promise.all(allApiCalls)
+    
+    // Split results back into PR and DD tickets
+    const prTickets = allResults.slice(0, 5).flat()
+    const ddTickets = allResults.slice(5, 10).flat()
+    
+    console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
     
     // Process tickets with instance information
-    const processedTickets1 = tickets1.map(ticket => processTicket(ticket, 'platinum'))
-    const processedTickets2 = tickets2.map(ticket => processTicket(ticket, 'devicedoctor'))
+    const processedTickets1 = prTickets.map(ticket => processTicket(ticket, 'platinum'))
+    const processedTickets2 = ddTickets.map(ticket => processTicket(ticket, 'devicedoctor'))
     const processedTickets = [...processedTickets1, ...processedTickets2]
     
     console.log(`🔍 Processed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
-    // Filter to ONLY show the 6 allowed statuses
-    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'Awaiting Authorization', 'In Progress']
-    let activeTickets = processedTickets.filter(ticket => 
-      allowedStatuses.includes(ticket.status)
-    )
-    
-    console.log(`🔍 After status filtering: ${activeTickets.length} tickets`)
-    console.log(`🔍 Active tickets by type:`, {
-      PR: activeTickets.filter(t => t.ticketType === 'PR').length,
-      DD: activeTickets.filter(t => t.ticketType === 'DD').length
+    // Apply technician filtering for Device Doctor tickets
+    let filteredTickets = processedTickets.filter(ticket => {
+      if (ticket.ticketType === 'DD') {
+        // Find the original ticket from the DD API response
+        const originalTicket = ddTickets.find(t => 
+          String(t.number || t.id) === String(ticket.ticketNumber)
+        )
+        
+        const assignedTo = originalTicket?.user?.full_name
+        
+        // Exclude if assigned to excluded workshops
+        if (assignedTo && excludedWorkshops.includes(assignedTo)) {
+          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to excluded workshop: ${assignedTo}`)
+          return false
+        }
+        
+        // Only include if assigned to allowed technicians or unassigned
+        if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
+          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
+          return false
+        }
+        
+        console.log(`✅ Including DD ticket ${ticket.ticketNumber} - assigned to: ${assignedTo || 'Unassigned'}`)
+      }
+      
+      // Include all Platinum Repairs tickets (no filtering needed)
+      return true
     })
     
-    // TEMPORARILY DISABLED: Workshop filtering to debug ticket counts
-    // const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
-    console.log(`🔍 Workshop filtering temporarily disabled for debugging`)
+    console.log(`🔍 After technician/workshop filtering: ${filteredTickets.length} tickets`)
     console.log(`🔍 Final tickets by type:`, {
-      PR: activeTickets.filter(t => t.ticketType === 'PR').length,
-      DD: activeTickets.filter(t => t.ticketType === 'DD').length
+      PR: filteredTickets.filter(t => t.ticketType === 'PR').length,
+      DD: filteredTickets.filter(t => t.ticketType === 'DD').length
     })
     
-    return activeTickets
+    // Sort by status priority and timestamp
+    const statusPriority: Record<string, number> = {
+      'Awaiting Rework': 1,
+      'Awaiting Workshop Repairs': 2, 
+      'Awaiting Damage Report': 3,
+      'Awaiting Repair': 4,
+      'In Progress': 5
+    }
+    
+    return filteredTickets.sort((a, b) => {
+      const statusDiff = (statusPriority[a.status] || 999) - (statusPriority[b.status] || 999)
+      if (statusDiff !== 0) return statusDiff
+      return b.timestamp.getTime() - a.timestamp.getTime()
+    })
     
   } catch (error) {
     console.error('❌ Error in getAllTickets:', error)
