@@ -42,13 +42,16 @@ export default function TechnicianDashboard() {
   useEffect(() => {
     const checkAuth = async () => {
       const currentUser = await getCurrentUser()
+      console.log('🔍 Current user:', currentUser)
       if (!currentUser || currentUser.role !== 'technician') {
         router.push('/login')
         return
       }
       setUser(currentUser)
-      // Auto-select the logged-in user
-      setSelectedTechnician(currentUser.full_name || currentUser.username)
+      // Auto-select the logged-in user - try both full_name and username
+      const techName = currentUser.full_name || currentUser.username
+      console.log('🔍 Setting selected technician to:', techName)
+      setSelectedTechnician(techName)
       setShowTechSelector(false)
     }
     checkAuth()
@@ -192,7 +195,7 @@ export default function TechnicianDashboard() {
       </div>
 
       {/* Technician Selector Modal */}
-      {showTechSelector && (
+      {showTechSelector && !user && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Your Technician Profile</h3>
