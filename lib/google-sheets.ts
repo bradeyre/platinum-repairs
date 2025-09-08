@@ -128,6 +128,8 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
       // Skip if this looks like a category header (no part name or same as model)
       if (!partName || partName === deviceModel || partName === 'iPhone') continue
       
+      console.log(`🔍 Processing row ${rowIndex}: ${deviceModel} - ${partName}`)
+      
       // Extract device brand from model name
       let deviceBrand = 'iPhone' // Default to iPhone
       if (deviceModel.toLowerCase().includes('samsung')) {
@@ -136,21 +138,21 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
         deviceBrand = 'Huawei'
       }
       
-      // Parse insurance price (Column D - index 3)
+      // Parse insurance price (Column D - index 3, but CSV has empty columns)
       const insurancePrice = parsePrice(row[3])
       
       // Skip if no insurance price
       if (insurancePrice === 0) continue
       
-      // Parse ETA info (Column F - index 5)
+      // Parse ETA info (Column F - index 5, but CSV has empty columns)
       const etaInfo = row[5] || 'Next day'
       
-      // Parse retail prices (Columns G, H, I - indices 6, 7, 8)
+      // Parse retail prices (Columns G, H, I - indices 6, 7, 8, but CSV has empty columns)
       const retail1Year = parsePrice(row[6])
       const retail2Year = parsePrice(row[7])
       const retailLifetime = parsePrice(row[8])
       
-      // Parse replacement value (Column M - index 12)
+      // Parse replacement value (Column M - index 12, but CSV has empty columns)
       const replacementValue = parsePrice(row[12])
       
       // Determine stock status based on ETA
@@ -198,6 +200,8 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
     return partsData
   } catch (error) {
     console.error('❌ Error syncing from Google Sheets:', error)
+    console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     throw error
   }
 }
