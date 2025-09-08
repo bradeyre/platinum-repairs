@@ -266,38 +266,37 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     
     console.log(`🔍 Processed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
-    // Apply technician filtering for Device Doctor tickets
+    // Apply technician filtering for both DD and PR tickets
     let filteredTickets = processedTickets.filter(ticket => {
+      // Find the original ticket from the appropriate API response
+      const originalTicket = ticket.ticketType === 'DD' 
+        ? ddTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+        : prTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+      
+      const assignedTo = originalTicket?.user?.full_name
+      
       if (ticket.ticketType === 'DD') {
-        // Find the original ticket from the DD API response
-        const originalTicket = ddTickets.find(t => 
-          String(t.number || t.id) === String(ticket.ticketNumber)
-        )
-        
-        const assignedTo = originalTicket?.user?.full_name
-        
         // Exclude if assigned to excluded workshops
         if (assignedTo && excludedWorkshops.includes(assignedTo)) {
           console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to excluded workshop: ${assignedTo}`)
           return false
         }
-        
-        // Only include if assigned to allowed technicians or unassigned
-        if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
-          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
-          return false
-        }
-        
-        // Also exclude specific technicians
-        if (assignedTo && excludedTechnicians.includes(assignedTo)) {
-          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to excluded technician: ${assignedTo}`)
-          return false
-        }
-        
-        console.log(`✅ Including DD ticket ${ticket.ticketNumber} - assigned to: ${assignedTo || 'Unassigned'}`)
       }
       
-      // Include all Platinum Repairs tickets (no filtering needed)
+      // Apply same technician filtering to both DD and PR tickets
+      // Only include if assigned to allowed technicians or unassigned
+      if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
+        console.log(`🚫 Excluding ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
+        return false
+      }
+      
+      // Also exclude specific technicians
+      if (assignedTo && excludedTechnicians.includes(assignedTo)) {
+        console.log(`🚫 Excluding ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to excluded technician: ${assignedTo}`)
+        return false
+      }
+      
+      console.log(`✅ Including ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to: ${assignedTo || 'Unassigned'}`)
       return true
     })
     

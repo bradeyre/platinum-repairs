@@ -19,8 +19,8 @@ The system fetches tickets with these **5 specific statuses only**:
 - `Awaiting Repair`
 - `In Progress`
 
-### 2. Technician Filtering (Device Doctor Only)
-For Device Doctor tickets, only tickets assigned to these technicians are included:
+### 2. Technician Filtering (Both PR and DD)
+For both Platinum Repairs and Device Doctor tickets, only tickets assigned to these technicians are included:
 - ✅ **Marshal** (note: single 'l')
 - ✅ **Malvin**
 - ✅ **Francis**
@@ -35,9 +35,6 @@ For Device Doctor tickets, only tickets assigned to these technicians are includ
 Device Doctor tickets assigned to these workshops are **excluded**:
 - ❌ **Durban Workshop**
 - ❌ **Cape Town Workshop**
-
-### 4. Platinum Repairs
-- **No filtering applied** - all tickets with the 5 target statuses are included regardless of technician assignment
 
 ## API Implementation
 
@@ -111,14 +108,14 @@ REPAIRSHOPR_TOKEN_DD=     # Device Doctor API token
 ## Filtering Examples
 
 ### ✅ Included Tickets
-- **Platinum Repairs**: Any ticket with target status (regardless of technician)
-- **Device Doctor**: Tickets assigned to Marshal, Malvin, Francis, Ben, or unassigned
+- **Both PR and DD**: Tickets assigned to Marshal, Malvin, Francis, Ben, or unassigned
 - **Device Doctor**: Tickets with target status not assigned to excluded workshops
 
 ### ❌ Excluded Tickets
 - **Device Doctor**: Tickets assigned to Durban Workshop
 - **Device Doctor**: Tickets assigned to Cape Town Workshop  
-- **Device Doctor**: Tickets assigned to technicians not in the allowed list
+- **Both PR and DD**: Tickets assigned to Thasveer or Shannon
+- **Both PR and DD**: Tickets assigned to technicians not in the allowed list
 - **Both**: Tickets with statuses other than the 5 target statuses
 
 ## Logging and Debugging
