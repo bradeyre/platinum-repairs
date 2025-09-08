@@ -4,8 +4,8 @@ import { supabase } from './supabase'
 const SHEET_ID = '1YV4KkHsgQuGHPxU-x7By7mDRiRshj7cZ4ked4Sh7IvE'
 const RANGE = 'Sheet1!A:M' // Only need columns A through M based on screenshot
 
-// Function to fetch data from public Google Sheets
-async function fetchGoogleSheetsData() {
+// Function to fetch raw CSV data from public Google Sheets
+async function fetchGoogleSheetsCSV(): Promise<string> {
   try {
     // Use the public CSV export URL for the sheet
     const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`
@@ -28,6 +28,17 @@ async function fetchGoogleSheetsData() {
       throw new Error('Google Sheets is not publicly accessible. Please ensure the sheet is set to "Anyone with the link can view"')
     }
     
+    return csvText
+  } catch (error) {
+    console.error('Error fetching Google Sheets data:', error)
+    throw error
+  }
+}
+
+// Function to fetch data from public Google Sheets (returns parsed rows)
+async function fetchGoogleSheetsData() {
+  try {
+    const csvText = await fetchGoogleSheetsCSV()
     return parseCSVData(csvText)
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error)
@@ -96,106 +107,19 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
     console.log('🔄 Starting Google Sheets sync...')
     
     // Fetch data from public Google Sheets
-    const rows = await fetchGoogleSheetsData()
-    console.log(`📊 Retrieved ${rows.length} rows from Google Sheets`)
+    const csvText = await fetchGoogleSheetsCSV()
+    console.log(`📊 Retrieved CSV data, length: ${csvText.length}`)
     
-    if (rows.length === 0) {
+    if (!csvText.trim()) {
       console.log('⚠️ No data found in Google Sheets')
       return []
     }
     
-    const partsData: PartsPricing[] = []
-    
-    // Parse the sheet structure based on actual CSV data:
-    // Column A: iPhone model names
-    // Column B: Repair part names  
-    // Column D: Insurance prices (R1,499.00 format)
-    // Column F: ETA information (Next day, etc.)
-    // Column G: Retail 1 Year prices
-    // Column H: Retail 2 Year prices
-    // Column I: Retail Lifetime prices
-    // Column M: Replacement Value
-    
-    for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) { // Skip header row
-      const row = rows[rowIndex]
-      
-      // Skip empty rows or rows without model name
-      if (!row[0] || !row[1]) continue
-      
-      const deviceModel = row[0].trim()
-      const partName = row[1].trim()
-      
-      // Skip if this looks like a category header (no part name or same as model)
-      if (!partName || partName === deviceModel || partName === 'iPhone') continue
-      
-      console.log(`🔍 Processing row ${rowIndex}: ${deviceModel} - ${partName}`)
-      
-      // Extract device brand from model name
-      let deviceBrand = 'iPhone' // Default to iPhone
-      if (deviceModel.toLowerCase().includes('samsung')) {
-        deviceBrand = 'Samsung'
-      } else if (deviceModel.toLowerCase().includes('huawei')) {
-        deviceBrand = 'Huawei'
-      }
-      
-      // Parse insurance price (Column D - index 3, but CSV has empty columns)
-      const insurancePrice = parsePrice(row[3])
-      
-      // Skip if no insurance price
-      if (insurancePrice === 0) continue
-      
-      // Parse ETA info (Column F - index 5, but CSV has empty columns)
-      const etaInfo = row[5] || 'Next day'
-      
-      // Parse retail prices (Columns G, H, I - indices 6, 7, 8, but CSV has empty columns)
-      const retail1Year = parsePrice(row[6])
-      const retail2Year = parsePrice(row[7])
-      const retailLifetime = parsePrice(row[8])
-      
-      // Parse replacement value (Column M - index 12, but CSV has empty columns)
-      const replacementValue = parsePrice(row[12])
-      
-      // Determine stock status based on ETA
-      let stockStatus = 'available'
-      if (etaInfo.toLowerCase().includes('while stock lasts')) {
-        stockStatus = 'limited'
-      } else if (etaInfo.toLowerCase().includes('weeks')) {
-        stockStatus = 'backorder'
-      }
-      
-      partsData.push({
-        part_number: `${deviceBrand}-${deviceModel}-${partName}`.replace(/\s+/g, '-').toLowerCase(),
-        part_name: partName,
-        device_brand: deviceBrand,
-        device_model: deviceModel,
-        device_type: 'phone',
-        insurance_price: insurancePrice,
-        eta_info: etaInfo,
-        retail_1_year: retail1Year || null,
-        retail_2_year: retail2Year || null,
-        retail_lifetime: retailLifetime || null,
-        replacement_value: replacementValue || null,
-        stock_status: stockStatus,
-        sheet_row_number: rowIndex + 1,
-        last_synced: new Date().toISOString()
-      })
-    }
+    // Parse the CSV data using the shared parsing function
+    const partsData = parseCSVToPartsPricing(csvText)
     
     console.log(`✅ Parsed ${partsData.length} parts from Google Sheets`)
-    
-    // Store in Supabase
-    if (partsData.length > 0) {
-      const { error } = await supabase
-        .from('parts_pricing')
-        .upsert(partsData, { onConflict: 'part_name,device_brand,device_model' })
-      
-      if (error) {
-        console.error('❌ Error storing parts data:', error)
-        throw error
-      }
-      
-      console.log('✅ Successfully synced parts data to database')
-    }
+    console.log('✅ Live data fetched directly from Google Sheets - no database storage needed')
     
     return partsData
   } catch (error) {
@@ -205,6 +129,81 @@ export async function syncPartsFromGoogleSheets(): Promise<PartsPricing[]> {
     throw error
   }
 }
+
+// Helper function to parse CSV data into PartsPricing objects
+function parseCSVToPartsPricing(csvText: string): PartsPricing[] {
+  const lines = csvText.split('\n')
+  const partsData: PartsPricing[] = []
+  
+  for (let rowIndex = 1; rowIndex < lines.length; rowIndex++) { // Skip header row
+    const line = lines[rowIndex].trim()
+    if (!line) continue
+    
+    const row = parseCSVLine(line)
+    
+    // Skip empty rows or rows without model name
+    if (!row[0] || !row[1]) continue
+    
+    const deviceModel = row[0].trim()
+    const partName = row[1].trim()
+    
+    // Skip if this looks like a category header (no part name or same as model)
+    if (!partName || partName === deviceModel || partName === 'iPhone') continue
+    
+    // Extract device brand from model name
+    let deviceBrand = 'iPhone' // Default to iPhone
+    if (deviceModel.toLowerCase().includes('samsung')) {
+      deviceBrand = 'Samsung'
+    } else if (deviceModel.toLowerCase().includes('huawei')) {
+      deviceBrand = 'Huawei'
+    }
+    
+    // Parse insurance price (Column D - index 3)
+    const insurancePrice = parsePrice(row[3])
+    
+    // Skip if no insurance price
+    if (insurancePrice === 0) continue
+    
+    // Parse ETA info (Column F - index 5)
+    const etaInfo = row[5] || 'Next day'
+    
+    // Parse retail prices (Columns G, H, I - indices 6, 7, 8)
+    const retail1Year = parsePrice(row[6])
+    const retail2Year = parsePrice(row[7])
+    const retailLifetime = parsePrice(row[8])
+    
+    // Parse replacement value (Column M - index 12)
+    const replacementValue = parsePrice(row[12])
+    
+    // Determine stock status based on ETA
+    let stockStatus = 'available'
+    if (etaInfo.toLowerCase().includes('while stock lasts')) {
+      stockStatus = 'limited'
+    } else if (etaInfo.toLowerCase().includes('weeks')) {
+      stockStatus = 'backorder'
+    }
+    
+    partsData.push({
+      part_number: `${deviceBrand}-${deviceModel}-${partName}`.replace(/\s+/g, '-').toLowerCase(),
+      part_name: partName,
+      device_brand: deviceBrand,
+      device_model: deviceModel,
+      device_type: 'phone',
+      insurance_price: insurancePrice,
+      eta_info: etaInfo,
+      retail_1_year: retail1Year || null,
+      retail_2_year: retail2Year || null,
+      retail_lifetime: retailLifetime || null,
+      replacement_value: replacementValue || null,
+      stock_status: stockStatus,
+      sheet_row_number: rowIndex + 1,
+      last_synced: new Date().toISOString()
+    })
+  }
+  
+  return partsData
+}
+
 
 // Helper function to parse price strings
 function parsePrice(priceStr: string | undefined): number {
@@ -219,29 +218,24 @@ function parsePrice(priceStr: string | undefined): number {
 
 export async function getPartsPricing(deviceBrand?: string, deviceModel?: string): Promise<PartsPricing[]> {
   try {
-    let query = supabase
-      .from('parts_pricing')
-      .select('*')
-      .order('device_brand', { ascending: true })
-      .order('device_model', { ascending: true })
-      .order('part_name', { ascending: true })
+    const csvText = await fetchGoogleSheetsCSV()
+    const partsData = parseCSVToPartsPricing(csvText)
+    
+    let filteredParts = partsData
     
     if (deviceBrand) {
-      query = query.eq('device_brand', deviceBrand)
+      filteredParts = filteredParts.filter(part => part.device_brand === deviceBrand)
     }
     
     if (deviceModel) {
-      query = query.eq('device_model', deviceModel)
+      filteredParts = filteredParts.filter(part => part.device_model === deviceModel)
     }
     
-    const { data, error } = await query
-    
-    if (error) {
-      console.error('Error fetching parts pricing:', error)
-      throw error
-    }
-    
-    return data || []
+    return filteredParts.sort((a, b) => {
+      if (a.device_brand !== b.device_brand) return a.device_brand.localeCompare(b.device_brand)
+      if (a.device_model !== b.device_model) return a.device_model.localeCompare(b.device_model)
+      return a.part_name.localeCompare(b.part_name)
+    })
   } catch (error) {
     console.error('Error getting parts pricing:', error)
     throw error
@@ -250,20 +244,21 @@ export async function getPartsPricing(deviceBrand?: string, deviceModel?: string
 
 export async function searchParts(searchTerm: string): Promise<PartsPricing[]> {
   try {
-    const { data, error } = await supabase
-      .from('parts_pricing')
-      .select('*')
-      .or(`part_name.ilike.%${searchTerm}%,device_brand.ilike.%${searchTerm}%,device_model.ilike.%${searchTerm}%`)
-      .order('device_brand', { ascending: true })
-      .order('device_model', { ascending: true })
-      .order('part_name', { ascending: true })
+    const csvText = await fetchGoogleSheetsCSV()
+    const partsData = parseCSVToPartsPricing(csvText)
     
-    if (error) {
-      console.error('Error searching parts:', error)
-      throw error
-    }
+    const searchLower = searchTerm.toLowerCase()
+    const filteredParts = partsData.filter(part => 
+      part.part_name.toLowerCase().includes(searchLower) ||
+      part.device_brand.toLowerCase().includes(searchLower) ||
+      part.device_model.toLowerCase().includes(searchLower)
+    )
     
-    return data || []
+    return filteredParts.sort((a, b) => {
+      if (a.device_brand !== b.device_brand) return a.device_brand.localeCompare(b.device_brand)
+      if (a.device_model !== b.device_model) return a.device_model.localeCompare(b.device_model)
+      return a.part_name.localeCompare(b.part_name)
+    })
   } catch (error) {
     console.error('Error searching parts:', error)
     throw error
@@ -278,18 +273,11 @@ export function calculatePartsCost(selectedParts: PartsPricing[]): number {
 // Helper function to get unique brands
 export async function getUniqueBrands(): Promise<string[]> {
   try {
-    const { data, error } = await supabase
-      .from('parts_pricing')
-      .select('device_brand')
-      .order('device_brand', { ascending: true })
+    const csvText = await fetchGoogleSheetsCSV()
+    const partsData = parseCSVToPartsPricing(csvText)
     
-    if (error) {
-      console.error('Error fetching brands:', error)
-      throw error
-    }
-    
-    const brands = [...new Set(data?.map(item => item.device_brand) || [])]
-    return brands
+    const brands = [...new Set(partsData.map(item => item.device_brand))]
+    return brands.sort()
   } catch (error) {
     console.error('Error getting unique brands:', error)
     throw error
@@ -299,19 +287,15 @@ export async function getUniqueBrands(): Promise<string[]> {
 // Helper function to get models for a specific brand
 export async function getModelsForBrand(brand: string): Promise<string[]> {
   try {
-    const { data, error } = await supabase
-      .from('parts_pricing')
-      .select('device_model')
-      .eq('device_brand', brand)
-      .order('device_model', { ascending: true })
+    const csvText = await fetchGoogleSheetsCSV()
+    const partsData = parseCSVToPartsPricing(csvText)
     
-    if (error) {
-      console.error('Error fetching models:', error)
-      throw error
-    }
-    
-    const models = [...new Set(data?.map(item => item.device_model) || [])]
-    return models
+    const models = [...new Set(
+      partsData
+        .filter(item => item.device_brand === brand)
+        .map(item => item.device_model)
+    )]
+    return models.sort()
   } catch (error) {
     console.error('Error getting models for brand:', error)
     throw error
