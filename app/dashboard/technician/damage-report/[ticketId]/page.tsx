@@ -67,7 +67,7 @@ export default function DamageReportPage({ params }: { params: Promise<{ ticketI
       }
       const data = await response.json()
       
-      const foundTicket = data.tickets.find((t: Ticket) => t.ticketId === ticketId)
+      const foundTicket = data.tickets.find((t: Ticket) => t.ticketId === `#${ticketId}`)
       if (!foundTicket) {
         throw new Error('Ticket not found')
       }
