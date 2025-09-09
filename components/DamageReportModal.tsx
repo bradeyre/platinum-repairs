@@ -49,6 +49,13 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     riskFactors: [] as string[]
   })
 
+  const [dynamicCheckboxes, setDynamicCheckboxes] = useState<{
+    id: string
+    label: string
+    checked: boolean
+    notes: string
+  }[]>([])
+
   // Device-specific parts
   const getDeviceParts = (deviceType: string) => {
     switch (deviceType.toLowerCase()) {
@@ -142,9 +149,23 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   }, [])
 
   const populateFromTicket = () => {
-    // Extract claim number from description
-    const claimMatch = ticket.description.match(/(?:CC|Claim|Claim Number)[:\s]*([A-Z0-9]+)/i)
-    const claimNumber = claimMatch ? claimMatch[1] : ''
+    // Extract claim number from description - look for various patterns
+    const claimPatterns = [
+      /(?:CC|Claim|Claim Number)[:\s]*([A-Z0-9]+)/i,
+      /CC(\d+)/i,
+      /Claim[:\s]*([A-Z0-9]+)/i,
+      /([A-Z]{2}\d{6,})/i, // Pattern like CC375514
+      /([A-Z]\d{6,})/i     // Pattern like C101096097
+    ]
+    
+    let claimNumber = ''
+    for (const pattern of claimPatterns) {
+      const match = ticket.description.match(pattern)
+      if (match) {
+        claimNumber = match[1]
+        break
+      }
+    }
 
     setFormData(prev => ({
       ...prev,
@@ -176,13 +197,107 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   }
 
   const extractModel = (deviceInfo: string): string => {
-    // Extract model from device info - simplified
-    const match = deviceInfo.match(/(iPhone\s*\d+|Galaxy\s*S\d+|iPad\s*Pro|MacBook\s*Pro)/i)
-    return match ? match[0] : ''
+    // Extract model from device info - more comprehensive
+    const patterns = [
+      /iPhone\s*(\d+\s*Pro?\s*Max?)/i,
+      /Galaxy\s*S(\d+)/i,
+      /iPad\s*(Pro|Air|Mini)/i,
+      /MacBook\s*(Pro|Air)/i,
+      /HP\s*(\w+)/i,
+      /Dell\s*(\w+)/i,
+      /Lenovo\s*(\w+)/i,
+      /Samsung\s*(\w+)/i,
+      /Huawei\s*(\w+)/i,
+      /(\w+\s*\d+)/i // Generic pattern for model numbers
+    ]
+    
+    for (const pattern of patterns) {
+      const match = deviceInfo.match(pattern)
+      if (match) {
+        return match[0].trim()
+      }
+    }
+    return ''
   }
 
-  const performAiAnalysis = () => {
-    // Simulate AI analysis based on ticket data
+  const performAiAnalysis = async () => {
+    try {
+      // Use OpenAI to analyze the ticket description
+      const response = await fetch('/api/ai-analyze-ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deviceInfo: ticket.deviceInfo,
+          description: ticket.description
+        })
+      })
+
+      if (response.ok) {
+        const analysis = await response.json()
+        setAiAnalysis(analysis.analysis)
+        setDynamicCheckboxes(analysis.checkboxes || [])
+      } else {
+        // Fallback to rule-based analysis
+        performFallbackAnalysis()
+      }
+    } catch (error) {
+      console.error('AI analysis failed:', error)
+      performFallbackAnalysis()
+    }
+  }
+
+  const performFallbackAnalysis = () => {
+    const description = ticket.description.toLowerCase()
+    const checkboxes = []
+    
+    // Analyze description for specific issues
+    if (description.includes('overheat') || description.includes('heating') || description.includes('hot')) {
+      checkboxes.push({
+        id: 'overheating',
+        label: 'Client reported overheating issues',
+        checked: false,
+        notes: ''
+      })
+    }
+    
+    if (description.includes('water') || description.includes('liquid') || description.includes('spill')) {
+      checkboxes.push({
+        id: 'water_damage',
+        label: 'Potential water damage reported',
+        checked: false,
+        notes: ''
+      })
+    }
+    
+    if (description.includes('drop') || description.includes('fell') || description.includes('impact')) {
+      checkboxes.push({
+        id: 'physical_damage',
+        label: 'Physical damage from impact reported',
+        checked: false,
+        notes: ''
+      })
+    }
+    
+    if (description.includes('battery') || description.includes('charging') || description.includes('power')) {
+      checkboxes.push({
+        id: 'battery_issues',
+        label: 'Battery or charging issues reported',
+        checked: false,
+        notes: ''
+      })
+    }
+    
+    if (description.includes('screen') || description.includes('display') || description.includes('crack')) {
+      checkboxes.push({
+        id: 'screen_damage',
+        label: 'Screen damage reported',
+        checked: false,
+        notes: ''
+      })
+    }
+
     const analysis = {
       deviceInfo: `Device: ${ticket.deviceInfo}`,
       repairability: 'Repairable',
@@ -198,7 +313,9 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
         'Parts availability may vary'
       ]
     }
+    
     setAiAnalysis(analysis)
+    setDynamicCheckboxes(checkboxes)
   }
 
   const startTimer = () => {
@@ -252,9 +369,23 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       return isValidType && isValidSize
     })
     
+    const totalPhotos = formData.photos.length + validFiles.length
+    
+    if (totalPhotos > 6) {
+      alert('Maximum 6 photos allowed. Please select fewer photos.')
+      return
+    }
+    
     setFormData(prev => ({
       ...prev,
-      photos: [...prev.photos, ...validFiles].slice(0, 5) // Max 5 photos
+      photos: [...prev.photos, ...validFiles]
+    }))
+  }
+
+  const removePhoto = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index)
     }))
   }
 
@@ -275,6 +406,17 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
         return
       }
       
+      // Validate photos (minimum 2, maximum 6)
+      if (formData.photos.length < 2) {
+        alert('Please upload at least 2 photos')
+        return
+      }
+      
+      if (formData.photos.length > 6) {
+        alert('Maximum 6 photos allowed')
+        return
+      }
+      
       // Stop timer
       stopTimer()
       
@@ -283,16 +425,23 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
         technician: currentUser?.full_name || currentUser?.username,
         timeSpent: timerTime,
         timestamp: new Date().toISOString(),
-        aiAnalysis
+        aiAnalysis,
+        dynamicCheckboxes,
+        status: 'completed'
       }
       
-      // Save to API (no localStorage - data should be server-side only)
-      // const savedReports = JSON.parse(localStorage.getItem('damage_reports') || '[]')
-      // savedReports.push(reportData)
-      // localStorage.setItem('damage_reports', JSON.stringify(savedReports))
+      // Save to database
+      const response = await fetch('/api/damage-reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reportData)
+      })
       
-      // TODO: Send to API endpoint instead of localStorage
-      console.log('📝 Damage report data (should be sent to API):', reportData)
+      if (!response.ok) {
+        throw new Error('Failed to save damage report')
+      }
       
       // Call parent callback
       if (onSave) {
@@ -300,11 +449,11 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       }
       
       // Show success message
-      alert(`Damage Report saved successfully!\nTime spent: ${formatTime(timerTime)}\nTechnician: ${currentUser?.full_name || currentUser?.username}`)
+      alert(`Damage Report completed successfully!\nTime spent: ${formatTime(timerTime)}\nTechnician: ${currentUser?.full_name || currentUser?.username}`)
       
       // Celebration for completion
       if (currentUser) {
-        triggerCelebration(currentUser.full_name || currentUser.username, 'DR saved successfully', { 
+        triggerCelebration(currentUser.full_name || currentUser.username, 'DR completed successfully', { 
           ticketId: ticket.ticketId,
           action: 'damage report completed'
         })
@@ -497,7 +646,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
               </div>
 
               <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Photos</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Photos (2-6 required)</h3>
                 <input
                   type="file"
                   multiple
@@ -506,8 +655,24 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   className="w-full border border-gray-300 rounded px-3 py-2"
                 />
                 {formData.photos.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    {formData.photos.length} photo(s) selected
+                  <div className="mt-2">
+                    <div className={`text-sm ${formData.photos.length >= 2 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formData.photos.length} photo(s) selected (minimum 2 required)
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {formData.photos.map((photo, index) => (
+                        <div key={index} className="flex items-center bg-gray-100 rounded px-2 py-1 text-xs">
+                          <span className="mr-2">{photo.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(index)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -541,6 +706,57 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   </div>
                 </div>
               </div>
+
+              {/* Dynamic Checkboxes based on AI Analysis */}
+              {dynamicCheckboxes.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-yellow-900 mb-4">🔍 Issues to Check</h3>
+                  <div className="space-y-3">
+                    {dynamicCheckboxes.map((checkbox) => (
+                      <div key={checkbox.id} className="bg-white border border-yellow-200 rounded p-3">
+                        <label className="flex items-start">
+                          <input
+                            type="checkbox"
+                            checked={checkbox.checked}
+                            onChange={(e) => {
+                              setDynamicCheckboxes(prev => 
+                                prev.map(cb => 
+                                  cb.id === checkbox.id 
+                                    ? { ...cb, checked: e.target.checked }
+                                    : cb
+                                )
+                              )
+                            }}
+                            className="mr-3 mt-1"
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-700">{checkbox.label}</span>
+                            {checkbox.checked && (
+                              <div className="mt-2">
+                                <textarea
+                                  placeholder="Add your findings and notes..."
+                                  value={checkbox.notes}
+                                  onChange={(e) => {
+                                    setDynamicCheckboxes(prev => 
+                                      prev.map(cb => 
+                                        cb.id === checkbox.id 
+                                          ? { ...cb, notes: e.target.value }
+                                          : cb
+                                      )
+                                    )
+                                  }}
+                                  className="w-full text-xs border border-gray-300 rounded px-2 py-1"
+                                  rows={2}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Assessment</h3>
@@ -598,7 +814,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
               onClick={handleSave}
               className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700"
             >
-              💾 Save Damage Report
+              ✅ Complete Damage Report
             </button>
             <button
               onClick={onClose}
