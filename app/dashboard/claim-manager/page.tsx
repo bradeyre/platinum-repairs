@@ -16,6 +16,22 @@ interface DamageReport {
   created_at: string
   updated_at: string
   completed_at?: string
+  report_data?: {
+    timeSpent?: number
+    aiAnalysis?: any
+    dynamicCheckboxes?: any[]
+    deviceType?: string
+    make?: string
+    model?: string
+    claim?: string
+    lastUsed?: string
+    deviceRepairable?: boolean
+    repairExplanation?: string
+    photosCount?: number
+    technician?: string
+    timestamp?: string
+    additionalNotes?: string
+  }
 }
 
 interface User {
@@ -264,12 +280,89 @@ export default function ClaimManagerDashboard() {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Damage Assessment</h4>
                       <p className="text-sm text-gray-600">{report.damage_assessment}</p>
+                      {report.report_data?.additionalNotes && (
+                        <p className="text-sm text-gray-500 mt-1">{report.report_data.additionalNotes}</p>
+                      )}
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Repair Estimate</h4>
                       <p className="text-lg font-semibold text-green-600">R{report.repair_estimate}</p>
+                      {report.report_data?.timeSpent && (
+                        <p className="text-sm text-gray-500">Time spent: {Math.floor(report.report_data.timeSpent / 60)}m {report.report_data.timeSpent % 60}s</p>
+                      )}
                     </div>
                   </div>
+                  
+                  {/* Enhanced device information */}
+                  {report.report_data && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-1">Device Details</h4>
+                        <p className="text-sm text-gray-600">
+                          {report.report_data.make} {report.report_data.model}
+                        </p>
+                        <p className="text-xs text-gray-500">{report.report_data.deviceType}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-1">Claim Information</h4>
+                        <p className="text-sm text-gray-600">{report.report_data.claim || 'No claim number'}</p>
+                        {report.report_data.lastUsed && (
+                          <p className="text-xs text-gray-500">Last used: {report.report_data.lastUsed}</p>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-1">Assessment</h4>
+                        <p className="text-sm text-gray-600">
+                          {report.report_data.deviceRepairable ? 'Repairable' : 'Not Repairable'}
+                        </p>
+                        {report.report_data.photosCount && (
+                          <p className="text-xs text-gray-500">{report.report_data.photosCount} photos</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* AI Analysis and Dynamic Checkboxes */}
+                  {report.report_data?.aiAnalysis && (
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-900 mb-2">🤖 AI Analysis</h4>
+                      <div className="text-sm text-blue-800">
+                        <p><strong>Device Assessment:</strong> {report.report_data.aiAnalysis.deviceInfo}</p>
+                        {report.report_data.aiAnalysis.recommendedActions?.length > 0 && (
+                          <div className="mt-2">
+                            <strong>Recommended Actions:</strong>
+                            <ul className="list-disc list-inside ml-2">
+                              {report.report_data.aiAnalysis.recommendedActions.map((action: string, index: number) => (
+                                <li key={index}>{action}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Dynamic Checkboxes Results */}
+                  {report.report_data?.dynamicCheckboxes && report.report_data.dynamicCheckboxes.length > 0 && (
+                    <div className="mb-4 p-4 bg-yellow-50 rounded-lg">
+                      <h4 className="font-medium text-yellow-900 mb-2">🔍 Issues Checked</h4>
+                      <div className="space-y-2">
+                        {report.report_data.dynamicCheckboxes.map((checkbox: any, index: number) => (
+                          <div key={index} className="flex items-start">
+                            <span className={`mr-2 ${checkbox.checked ? 'text-green-600' : 'text-gray-400'}`}>
+                              {checkbox.checked ? '✅' : '❌'}
+                            </span>
+                            <div>
+                              <p className="text-sm text-yellow-800">{checkbox.label}</p>
+                              {checkbox.checked && checkbox.notes && (
+                                <p className="text-xs text-yellow-700 ml-4 italic">"{checkbox.notes}"</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {report.parts_needed && report.parts_needed.length > 0 && (
                     <div className="mb-4">
