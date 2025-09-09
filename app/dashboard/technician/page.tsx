@@ -43,16 +43,26 @@ export default function TechnicianDashboard() {
     const checkAuth = async () => {
       const currentUser = await getCurrentUser()
       console.log('🔍 Current user:', currentUser)
-      if (!currentUser || currentUser.role !== 'technician') {
+      
+      // Allow both technicians and admins to access this page
+      if (!currentUser || (currentUser.role !== 'technician' && currentUser.role !== 'admin')) {
         router.push('/login')
         return
       }
+      
       setUser(currentUser)
-      // Auto-select the logged-in user - try both full_name and username
-      const techName = currentUser.full_name || currentUser.username
-      console.log('🔍 Setting selected technician to:', techName)
-      setSelectedTechnician(techName)
-      setShowTechSelector(false)
+      
+      // If user is a technician, auto-select them and hide selector
+      if (currentUser.role === 'technician') {
+        const techName = currentUser.full_name || currentUser.username
+        console.log('🔍 Setting selected technician to:', techName)
+        setSelectedTechnician(techName)
+        setShowTechSelector(false)
+      } else if (currentUser.role === 'admin') {
+        // If user is admin, show technician selector for impersonation
+        console.log('🔍 Admin user - showing technician selector')
+        setShowTechSelector(true)
+      }
     }
     checkAuth()
   }, [router])
@@ -195,11 +205,11 @@ export default function TechnicianDashboard() {
       </div>
 
       {/* Technician Selector Modal */}
-      {showTechSelector && !user && (
+      {showTechSelector && user && user.role === 'admin' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Your Technician Profile</h3>
-            <p className="text-sm text-gray-600 mb-4">Please select which technician you are to access your assigned tickets.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Technician to View</h3>
+            <p className="text-sm text-gray-600 mb-4">Choose a technician to view their assigned tickets and work as them.</p>
             <div className="space-y-2">
               {['ben', 'marshal', 'malvin', 'francis'].map((tech) => (
                 <button
