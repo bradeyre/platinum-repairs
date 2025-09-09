@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { getCurrentUser } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import DamageReportModal from '@/components/DamageReportModal'
 
 interface ProcessedTicket {
   ticketId: string
@@ -36,6 +37,8 @@ export default function TechnicianDashboard() {
   const [selectedTechnician, setSelectedTechnician] = useState<string>('')
   const [showTechSelector, setShowTechSelector] = useState(true)
   const [showClaimModal, setShowClaimModal] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<ProcessedTicket | null>(null)
+  const [showDamageModal, setShowDamageModal] = useState(false)
   const router = useRouter()
 
   // Check authentication
@@ -155,6 +158,23 @@ export default function TechnicianDashboard() {
       console.error('Error claiming ticket:', err)
       setError('Failed to claim ticket')
     }
+  }
+
+  const handleTicketClick = (ticket: ProcessedTicket) => {
+    setSelectedTicket(ticket)
+    setShowDamageModal(true)
+  }
+
+  const handleDamageReportSave = (reportData: any) => {
+    console.log('Damage report saved:', reportData)
+    // Here you would typically save the damage report to the database
+    setShowDamageModal(false)
+    setSelectedTicket(null)
+  }
+
+  const handleDamageReportClose = () => {
+    setShowDamageModal(false)
+    setSelectedTicket(null)
   }
 
   return (
@@ -366,11 +386,18 @@ export default function TechnicianDashboard() {
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                       ⚠️ Time
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {tickets.map((ticket, index) => (
-                    <tr key={ticket.ticketId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <tr 
+                      key={ticket.ticketId} 
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 cursor-pointer transition-colors`}
+                      onClick={() => handleTicketClick(ticket)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         <div className="flex items-center gap-2">
                           <span>{ticket.ticketId}</span>
@@ -404,6 +431,29 @@ export default function TechnicianDashboard() {
                           {ticket.timeAgo}
                         </div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleTicketClick(ticket)
+                            }}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                          >
+                            Start Work
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              // Navigate to damage report page
+                              router.push(`/dashboard/technician/damage-report/${ticket.ticketId}`)
+                            }}
+                            className="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
+                          >
+                            Damage Report
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -412,6 +462,15 @@ export default function TechnicianDashboard() {
           )}
         </div>
       </div>
+
+      {/* Damage Report Modal */}
+      {showDamageModal && selectedTicket && (
+        <DamageReportModal
+          ticket={selectedTicket}
+          onClose={handleDamageReportClose}
+          onSave={handleDamageReportSave}
+        />
+      )}
     </div>
   )
 }

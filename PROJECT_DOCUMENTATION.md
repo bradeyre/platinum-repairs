@@ -8,7 +8,7 @@ The Platinum Repairs system is a comprehensive repair management platform that i
 
 - **Framework**: Next.js 15.5.2 with TypeScript
 - **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth with custom user management
+- **Authentication**: Simple localStorage-based authentication (bypasses Supabase auth conflicts)
 - **External APIs**: RepairShopr API, Google Sheets API
 - **PDF Generation**: Puppeteer
 - **Deployment**: Vercel
@@ -238,10 +238,19 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 
 ### 4. User Management
 - **Role-based Access**: Admin, Technician, Claim Manager roles
-- **Authentication**: Supabase-based authentication
+- **Authentication**: Simple localStorage-based authentication via `/api/simple-auth`
+- **Admin Impersonation**: Admins can select technicians to view their tickets
 - **User Profiles**: Bio and profile management
 
-### 5. Performance Tracking
+### 5. AI-Powered Device Detection
+- **OpenAI Integration**: Uses GPT-3.5-turbo for intelligent device name extraction
+- **Context Analysis**: Analyzes full ticket data (subject, customer, notes) for better detection
+- **Confidence Scoring**: Only uses AI results with >60% confidence
+- **Fallback Patterns**: Regex-based fallback for low-confidence cases
+- **Caching**: LRU cache prevents repeated API calls for same descriptions
+- **Real-time Processing**: Device names updated automatically as tickets are processed
+
+### 6. Performance Tracking
 - **Status-Based Timing**: Measures wait time from when ticket status changes, not ticket creation
 - **Business Hours Only**: Only counts 8 AM - 6 PM, Monday-Friday (excludes weekends and after-hours)
 - **Real-Time Updates**: Time display updates automatically as tickets move through statuses
