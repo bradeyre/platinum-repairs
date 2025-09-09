@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
 
     // Extract claim number from ticket properties
     let claimNumber = ''
+    let serialNumber = ''
     let customFields: Array<{id: number, name: string, value: string}> = []
 
     // Check ticket properties for claim number
@@ -89,6 +90,25 @@ export async function GET(request: NextRequest) {
         if (claimKeys.length > 0) {
           claimNumber = ticket.properties[claimKeys[0]]
           console.log(`✅ Found claim number in properties (${claimKeys[0]}): ${claimNumber}`)
+        }
+      }
+      
+      // Look for serial number in properties
+      if (ticket.properties['IMEI #']) {
+        serialNumber = ticket.properties['IMEI #']
+        console.log(`✅ Found serial number in properties (IMEI #): ${serialNumber}`)
+      } else {
+        // Try other property names for serial number
+        const serialKeys = Object.keys(ticket.properties).filter(key => 
+          key.toLowerCase().includes('imei') ||
+          key.toLowerCase().includes('serial') ||
+          key.toLowerCase().includes('s/n') ||
+          key.toLowerCase().includes('sn')
+        )
+        
+        if (serialKeys.length > 0) {
+          serialNumber = ticket.properties[serialKeys[0]]
+          console.log(`✅ Found serial number in properties (${serialKeys[0]}): ${serialNumber}`)
         }
       }
     }
@@ -123,10 +143,39 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // If no serial number found in properties, check comments
+    if (!serialNumber && ticket.comments) {
+      console.log(`🔍 Searching for serial number in comments...`)
+      
+      for (const comment of ticket.comments) {
+        const commentText = comment.body || comment.comment || ''
+        console.log(`Checking comment for serial: ${commentText.substring(0, 100)}...`)
+        
+        // Look for serial number patterns in comments
+        const serialPatterns = [
+          /(?:IMEI|Serial|S\/N|SN)[:\s#]*([A-Z0-9]{10,})/i,
+          /([A-Z0-9]{10,})/g, // Generic pattern for alphanumeric codes
+          /(?:Device|Model)[:\s]*[^,]*,\s*([A-Z0-9]{10,})/i // Pattern like "Device: Apple MacBook, CO2H4WCZQ6L4"
+        ]
+        
+        for (const pattern of serialPatterns) {
+          const match = commentText.match(pattern)
+          if (match) {
+            serialNumber = match[1]
+            console.log(`✅ Found serial number in comment: ${serialNumber}`)
+            break
+          }
+        }
+        
+        if (serialNumber) break
+      }
+    }
+
     return NextResponse.json({
       ticket: ticket,
       comments: ticket.comments,
       claimNumber,
+      serialNumber,
       customFields
     })
 

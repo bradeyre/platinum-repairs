@@ -180,6 +180,15 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
           console.log(`✅ Updated claim number: ${data.claimNumber}`)
         }
         
+        // Update form data with serial number if found
+        if (data.serialNumber) {
+          setFormData(prev => ({
+            ...prev,
+            imei: data.serialNumber
+          }))
+          console.log(`✅ Updated serial number: ${data.serialNumber}`)
+        }
+        
         // Update ticket data with custom fields if available
         if (data.customFields) {
           console.log(`✅ Got custom fields:`, data.customFields)
