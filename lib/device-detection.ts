@@ -7,7 +7,7 @@ export interface DeviceDetectionResult {
   model: string
 }
 
-export async function detectDeviceFromDescription(description: string): Promise<DeviceDetectionResult> {
+export async function detectDeviceFromDescription(description: string, fullTicketData?: any): Promise<DeviceDetectionResult> {
   try {
     const openaiApiKey = process.env.OPENAI_API_KEY
     if (!openaiApiKey) {
@@ -44,7 +44,9 @@ export async function detectDeviceFromDescription(description: string): Promise<
           },
           {
             role: 'user',
-            content: `Analyze this repair ticket description and extract device information: "${description}"`
+            content: `Analyze this repair ticket and extract device information. 
+            Description: "${description}"
+            ${fullTicketData ? `Additional context: Subject: "${fullTicketData.subject || ''}", Customer: "${fullTicketData.customer_name || ''}", Notes: "${fullTicketData.notes || ''}"` : ''}`
           }
         ],
         max_tokens: 150,
@@ -248,14 +250,14 @@ function fallbackDeviceDetection(description: string): DeviceDetectionResult {
 // Cache for device detection results to avoid repeated API calls
 const deviceCache = new Map<string, DeviceDetectionResult>()
 
-export async function getCachedDeviceDetection(description: string): Promise<DeviceDetectionResult> {
+export async function getCachedDeviceDetection(description: string, fullTicketData?: any): Promise<DeviceDetectionResult> {
   const cacheKey = description.toLowerCase().trim()
   
   if (deviceCache.has(cacheKey)) {
     return deviceCache.get(cacheKey)!
   }
   
-  const result = await detectDeviceFromDescription(description)
+  const result = await detectDeviceFromDescription(description, fullTicketData)
   deviceCache.set(cacheKey, result)
   
   return result

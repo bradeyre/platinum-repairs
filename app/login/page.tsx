@@ -36,20 +36,35 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const user = await signIn(username, password)
-      if (user) {
+      // Use simple auth endpoint
+      const response = await fetch('/api/simple-auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password })
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.user) {
+        // Store user directly in localStorage
+        localStorage.setItem('currentUser', JSON.stringify(data.user))
+        console.log('🔐 User stored directly in localStorage:', data.user.username)
+        
         // Redirect based on role
-        if (user.role === 'admin') {
+        if (data.user.role === 'admin') {
           router.push('/dashboard/admin')
-        } else if (user.role === 'technician') {
+        } else if (data.user.role === 'technician') {
           router.push('/dashboard/technician')
-        } else if (user.role === 'claim_manager') {
+        } else if (data.user.role === 'claim_manager') {
           router.push('/dashboard/claim-manager')
         }
       } else {
-        setError('Invalid username or password')
+        setError(data.error || 'Invalid username or password')
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError('Login failed. Please try again.')
     } finally {
       setLoading(false)
