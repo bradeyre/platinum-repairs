@@ -8,6 +8,11 @@ const openai = new OpenAI({
 export async function POST(request: Request) {
   try {
     const { deviceInfo, description } = await request.json()
+    
+    console.log('🤖 AI Analysis API called with:', {
+      deviceInfo,
+      description: description?.substring(0, 200) + '...'
+    })
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ 
@@ -23,10 +28,11 @@ export async function POST(request: Request) {
           content: `You are an expert repair technician analyzing a device repair ticket. Your task is to:
 
 1. Extract device information (make, model, IMEI if present)
-2. Analyze the device information and description
-3. Identify specific issues mentioned by the client
-4. Create dynamic checkboxes for issues that need to be verified by the technician
-5. Provide assessment and recommendations
+2. Extract claim number if present (look for patterns like CC375514, C101096097, Claim: ABC123, etc.)
+3. Analyze the device information and description
+4. Identify specific issues mentioned by the client
+5. Create dynamic checkboxes for issues that need to be verified by the technician
+6. Provide assessment and recommendations
 
 Return a JSON object with this structure:
 {
@@ -39,7 +45,8 @@ Return a JSON object with this structure:
   "deviceDetails": {
     "make": "Extracted device manufacturer (e.g., Apple, Samsung, Huawei)",
     "model": "Extracted device model (e.g., iPhone 13 Pro, Galaxy S22 Ultra)",
-    "imei": "Extracted IMEI number if present in the text"
+    "imei": "Extracted IMEI number if present in the text",
+    "claim": "Extracted claim number if present in the text"
   },
   "checkboxes": [
     {
@@ -53,7 +60,8 @@ Return a JSON object with this structure:
 
 Focus on:
 - Extracting accurate make and model from device information
-- Looking for IMEI numbers (15-digit numbers starting with 35, 86, or other valid prefixes)
+- Looking for IMEI numbers (15-digit numbers, 14-digit numbers, or serial numbers)
+- Looking for claim numbers (patterns like CC375514, C101096097, Claim: ABC123, Case: XYZ789, etc.)
 - Creating checkboxes for specific issues mentioned in the description that need verification.`
         },
         {
@@ -69,6 +77,7 @@ Focus on:
     const content = response.choices[0].message.content
     if (content) {
       const parsed = JSON.parse(content)
+      console.log('🤖 AI Analysis result:', parsed)
       return NextResponse.json(parsed)
     }
 

@@ -149,8 +149,17 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   }, [])
 
   const populateFromTicket = () => {
+    // Debug logging
+    console.log('🔍 Populating from ticket:', {
+      ticketId: ticket.ticketId,
+      description: ticket.description,
+      deviceInfo: ticket.deviceInfo
+    })
+    
     // Extract claim number from description - look for various patterns
     const fullText = `${ticket.description} ${ticket.deviceInfo}`
+    console.log('🔍 Full text for extraction:', fullText)
+    
     const claimPatterns = [
       /(?:CC|Claim|Claim Number)[:\s]*([A-Z0-9]+)/i,
       /CC(\d+)/i,
@@ -166,8 +175,13 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       const match = fullText.match(pattern)
       if (match) {
         claimNumber = match[1]
+        console.log('✅ Claim number found:', claimNumber, 'with pattern:', pattern)
         break
       }
+    }
+    
+    if (!claimNumber) {
+      console.log('❌ No claim number found with any pattern')
     }
 
     // Extract IMEI from full text using multiple patterns
@@ -184,18 +198,29 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       const match = fullText.match(pattern)
       if (match) {
         extractedImei = match[1]
+        console.log('✅ IMEI found:', extractedImei, 'with pattern:', pattern)
         break
       }
     }
+    
+    if (!extractedImei) {
+      console.log('❌ No IMEI found with any pattern')
+    }
 
-    setFormData(prev => ({
-      ...prev,
+    const formDataUpdate = {
       ticket: ticket.ticketId,
       claim: claimNumber,
       imei: extractedImei,
       deviceType: extractDeviceType(ticket.deviceInfo),
       make: extractMake(ticket.deviceInfo),
       model: extractModel(ticket.deviceInfo)
+    }
+    
+    console.log('🔍 Setting form data:', formDataUpdate)
+    
+    setFormData(prev => ({
+      ...prev,
+      ...formDataUpdate
     }))
   }
 
@@ -244,6 +269,11 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
   const performAiAnalysis = async () => {
     try {
+      console.log('🤖 Starting AI analysis with data:', {
+        deviceInfo: ticket.deviceInfo,
+        description: ticket.description
+      })
+      
       // Use OpenAI to analyze the ticket description
       const response = await fetch('/api/ai-analyze-ticket', {
         method: 'POST',
@@ -258,19 +288,24 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
       if (response.ok) {
         const analysis = await response.json()
+        console.log('🤖 AI analysis result:', analysis)
+        
         setAiAnalysis(analysis.analysis)
         setDynamicCheckboxes(analysis.checkboxes || [])
         
         // Update form data with AI-extracted device details
         if (analysis.deviceDetails) {
+          console.log('🤖 AI extracted device details:', analysis.deviceDetails)
           setFormData(prev => ({
             ...prev,
             make: analysis.deviceDetails.make || prev.make,
             model: analysis.deviceDetails.model || prev.model,
-            imei: analysis.deviceDetails.imei || prev.imei
+            imei: analysis.deviceDetails.imei || prev.imei,
+            claim: analysis.deviceDetails.claim || prev.claim
           }))
         }
       } else {
+        console.log('🤖 AI analysis failed, using fallback')
         // Fallback to rule-based analysis
         performFallbackAnalysis()
       }
