@@ -50,14 +50,25 @@ export async function signIn(username: string, password: string): Promise<AuthUs
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  if (typeof window === 'undefined') return null
+  if (typeof window === 'undefined') {
+    console.log('🔐 getCurrentUser: Server-side, returning null')
+    return null
+  }
   
   const userData = localStorage.getItem('currentUser')
-  if (!userData) return null
+  console.log('🔐 getCurrentUser: localStorage data:', userData ? 'exists' : 'null')
+  
+  if (!userData) {
+    console.log('🔐 getCurrentUser: No user data found')
+    return null
+  }
 
   try {
-    return JSON.parse(userData)
-  } catch {
+    const user = JSON.parse(userData)
+    console.log('🔐 getCurrentUser: Parsed user:', user.username, user.role)
+    return user
+  } catch (error) {
+    console.error('🔐 getCurrentUser: Parse error:', error)
     return null
   }
 }
@@ -65,6 +76,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 export function setCurrentUser(user: AuthUser): void {
   if (typeof window === 'undefined') return
   localStorage.setItem('currentUser', JSON.stringify(user))
+  console.log('🔐 User stored in localStorage:', user.username)
 }
 
 export function signOut(): void {
