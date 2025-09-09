@@ -23,6 +23,11 @@ export interface RepairShoprTicket {
     manufacturer: string
     model: string
   }>
+  custom_fields?: Array<{
+    id: number
+    name: string
+    value: string
+  }>
 }
 
 export interface ProcessedTicket {
@@ -37,6 +42,12 @@ export interface ProcessedTicket {
   aiPriority: string
   estimatedTime: string
   ticketType: 'PR' | 'DD'
+  customFields?: Array<{
+    id: number
+    name: string
+    value: string
+  }>
+  claimNumber?: string
 }
 
 // API Configuration
@@ -201,8 +212,8 @@ function formatBusinessHours(hours: number): string {
 // Fetch tickets from RepairShopr with specific status filtering
 async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, status: string): Promise<RepairShoprTicket[]> {
   try {
-    // Use proper API filtering with status parameter
-    const url = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&api_key=${token}`
+    // Try to get more detailed ticket information including custom fields
+    const url = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&api_key=${token}&include=custom_fields`
     console.log(`🔍 Fetching ${status} tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
     console.log(`URL: ${url}`)
     
@@ -223,6 +234,11 @@ async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, st
     
     const data = await response.json()
     console.log(`✅ Successfully fetched ${data.tickets?.length || 0} tickets with status: ${status}`)
+    
+    // Log the first ticket to see what data we're getting
+    if (data.tickets && data.tickets.length > 0) {
+      console.log('🔍 Sample ticket data:', JSON.stringify(data.tickets[0], null, 2))
+    }
     
     return data.tickets || []
   } catch (error) {
@@ -275,6 +291,30 @@ async function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | '
   // Calculate business hours wait time since status change
   const businessWaitTime = calculateBusinessHours(statusChangeDate, new Date())
   
+  // Extract claim number from custom fields
+  let claimNumber = ''
+  if (ticket.custom_fields && ticket.custom_fields.length > 0) {
+    console.log(`🔍 Processing custom fields for ticket ${ticket.number || ticket.id}:`, ticket.custom_fields)
+    
+    // Look for claim number in custom fields
+    const claimField = ticket.custom_fields.find(field => 
+      field.name && (
+        field.name.toLowerCase().includes('claim') ||
+        field.name.toLowerCase().includes('case') ||
+        field.name.toLowerCase().includes('reference')
+      )
+    )
+    
+    if (claimField && claimField.value) {
+      claimNumber = claimField.value
+      console.log(`✅ Found claim number in custom fields: ${claimNumber}`)
+    } else {
+      console.log(`❌ No claim number found in custom fields`)
+    }
+  } else {
+    console.log(`❌ No custom fields available for ticket ${ticket.number || ticket.id}`)
+  }
+  
   return {
     ticketId: `#${ticket.number || ticket.id}`,
     ticketNumber: ticket.number || ticket.id,
@@ -286,7 +326,9 @@ async function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | '
     assignedTo: ticket.user?.full_name,
     aiPriority: 'P4', // Default priority
     estimatedTime: '2h', // Default estimated time
-    ticketType: instance === 'platinum' ? 'PR' : 'DD'
+    ticketType: instance === 'platinum' ? 'PR' : 'DD',
+    customFields: ticket.custom_fields,
+    claimNumber
   }
 }
 
