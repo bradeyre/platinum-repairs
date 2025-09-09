@@ -45,6 +45,7 @@ Return a JSON object with this structure:
   "deviceDetails": {
     "make": "Extracted device manufacturer (e.g., Apple, Samsung, Huawei)",
     "model": "Extracted device model (e.g., iPhone 13 Pro, Galaxy S22 Ultra)",
+    "deviceType": "Detected device type (Phone, Laptop, Tablet, Watch, Desktop, etc.)",
     "imei": "Extracted IMEI number if present in the text",
     "claim": "Extracted claim number if present in the text"
   },
@@ -60,9 +61,17 @@ Return a JSON object with this structure:
 
 Focus on:
 - Extracting accurate make and model from device information
+- Detecting device type: Phone (iPhone, Galaxy, etc.), Laptop (MacBook, ThinkPad, etc.), Tablet (iPad, etc.), Watch (Apple Watch, etc.), Desktop, etc.
 - Looking for IMEI numbers (15-digit numbers, 14-digit numbers, or serial numbers)
 - Looking for claim numbers (patterns like CC375514, C101096097, Claim: ABC123, Case: XYZ789, etc.)
-- Creating checkboxes for specific issues mentioned in the description that need verification.`
+- Creating checkboxes for specific issues mentioned in the description that need verification.
+
+Device Type Detection Rules:
+- If model contains "MacBook", "ThinkPad", "Inspiron", "Pavilion", "Vostro", "Latitude", "XPS", "Surface Laptop", "ZenBook", "VivoBook", "Aspire", "IdeaPad", "Yoga", "Swift", "Spin", "TravelMate", "Satellite", "ProBook", "EliteBook", "ZBook", "Envy", "Spectre", "Stream", "Chromebook", "Gaming Laptop", "Workstation" → Device Type: "Laptop"
+- If model contains "iPhone", "Galaxy", "Pixel", "OnePlus", "Huawei", "Xiaomi", "Oppo", "Vivo", "Realme", "Motorola", "Nokia", "Sony", "LG", "HTC", "BlackBerry" → Device Type: "Phone"
+- If model contains "iPad", "Surface Pro", "Surface Go", "Galaxy Tab", "Fire Tablet", "Kindle", "Nexus", "Pixel Tablet" → Device Type: "Tablet"
+- If model contains "Apple Watch", "Galaxy Watch", "Fitbit", "Garmin", "Amazfit", "Huawei Watch" → Device Type: "Watch"
+- If model contains "iMac", "Mac Pro", "Mac Studio", "OptiPlex", "Precision", "PowerEdge", "ThinkCentre", "ThinkStation" → Device Type: "Desktop"`
         },
         {
           role: 'user',

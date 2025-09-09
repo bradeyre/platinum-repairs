@@ -328,6 +328,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
             ...prev,
             make: analysis.deviceDetails.make || prev.make,
             model: analysis.deviceDetails.model || prev.model,
+            deviceType: analysis.deviceDetails.deviceType || prev.deviceType,
             imei: analysis.deviceDetails.imei || prev.imei,
             claim: analysis.deviceDetails.claim || prev.claim
           }))
