@@ -81,10 +81,15 @@ export default function TechnicianDashboard() {
         
         // Filter for assigned tickets if technician is selected
         if (selectedTechnician) {
-          const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => 
-            ticket.assignedTo === selectedTechnician || 
-            (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
-          )
+          const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => {
+            // Case-insensitive matching for technician names
+            const selectedTechLower = selectedTechnician.toLowerCase()
+            const assignedToLower = ticket.assignedTo?.toLowerCase() || ''
+            
+            return assignedToLower === selectedTechLower || 
+                   assignedToLower === selectedTechLower.charAt(0).toUpperCase() + selectedTechLower.slice(1) ||
+                   (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
+          })
           setTickets(assignedTickets)
         } else {
           setTickets([])

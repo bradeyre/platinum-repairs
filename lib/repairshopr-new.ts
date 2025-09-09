@@ -93,8 +93,28 @@ function getTimeAgo(date: Date): string {
   }
 }
 
-// Helper function to extract device info from description
-function extractDeviceInfo(description: string): string {
+// Helper function to extract device info from description using AI
+async function extractDeviceInfo(description: string): Promise<string> {
+  try {
+    // Import the device detection function
+    const { getCachedDeviceDetection } = await import('./device-detection')
+    const result = await getCachedDeviceDetection(description)
+    
+    // Only use AI result if confidence is high enough
+    if (result.confidence > 0.6) {
+      return result.deviceName
+    }
+    
+    // Fallback to regex patterns for low confidence
+    return fallbackDeviceExtraction(description)
+  } catch (error) {
+    console.error('AI device detection failed, using fallback:', error)
+    return fallbackDeviceExtraction(description)
+  }
+}
+
+// Fallback device extraction using regex patterns
+function fallbackDeviceExtraction(description: string): string {
   const text = description.toLowerCase()
   
   // Common device patterns
@@ -244,9 +264,9 @@ async function fetchFromRepairShopr(token: string, baseUrl: string): Promise<Rep
 }
 
 // Process a single ticket
-function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'devicedoctor'): ProcessedTicket {
+async function processTicket(ticket: RepairShoprTicket, instance: 'platinum' | 'devicedoctor'): Promise<ProcessedTicket> {
   const description = ticket.subject || ticket.comment || 'No description available'
-  const deviceInfo = extractDeviceInfo(description)
+  const deviceInfo = await extractDeviceInfo(description)
   
   // Use status change time (updated_at) instead of creation time for wait time calculation
   const statusChangeDate = new Date(ticket.updated_at || ticket.created_at)
@@ -319,9 +339,9 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     
     console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
     
-    // Process tickets with instance information
-    const processedTickets1 = prTickets.map(ticket => processTicket(ticket, 'platinum'))
-    const processedTickets2 = ddTickets.map(ticket => processTicket(ticket, 'devicedoctor'))
+    // Process tickets with instance information (async)
+    const processedTickets1 = await Promise.all(prTickets.map(ticket => processTicket(ticket, 'platinum')))
+    const processedTickets2 = await Promise.all(ddTickets.map(ticket => processTicket(ticket, 'devicedoctor')))
     const processedTickets = [...processedTickets1, ...processedTickets2]
     
     console.log(`🔍 Processed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
