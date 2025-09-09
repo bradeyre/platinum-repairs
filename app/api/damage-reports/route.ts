@@ -75,6 +75,12 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Fetching damage reports from Supabase...')
     
+    // For now, return empty array until we confirm the table exists
+    console.log('⚠️ Temporarily returning empty damage reports array')
+    return NextResponse.json({ reports: [] })
+    
+    // TODO: Uncomment this once we confirm the damage_reports table exists
+    /*
     const { data: reports, error } = await supabaseAdmin
       .from('damage_reports')
       .select('*')
@@ -90,6 +96,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Successfully fetched ${reports?.length || 0} damage reports`)
     return NextResponse.json({ reports })
+    */
   } catch (error) {
     console.error('❌ Error fetching damage reports:', error)
     return NextResponse.json(
