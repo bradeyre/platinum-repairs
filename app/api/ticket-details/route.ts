@@ -143,19 +143,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // If no serial number found in properties, check comments
+    // If no serial number found in properties, check comments (prioritize oldest comments first)
     if (!serialNumber && ticket.comments) {
       console.log(`🔍 Searching for serial number in comments...`)
       
-      for (const comment of ticket.comments) {
+      // Sort comments by creation date (oldest first) to prioritize original ticket data
+      const sortedComments = [...ticket.comments].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      )
+      
+      for (const comment of sortedComments) {
         const commentText = comment.body || comment.comment || ''
-        console.log(`Checking comment for serial: ${commentText.substring(0, 100)}...`)
+        console.log(`Checking comment for serial (${comment.created_at}): ${commentText.substring(0, 100)}...`)
         
         // Look for serial number patterns in comments
         const serialPatterns = [
+          /IMEI\s*#:\s*([A-Z0-9]{10,})/i, // Prioritize IMEI # format
           /(?:IMEI\s*#?|Serial|S\/N|SN)[:\s]*([A-Z0-9]{10,})/i,
           /Serial:\s*([A-Z0-9]{10,})/i,
-          /IMEI\s*#:\s*([A-Z0-9]{10,})/i,
           /([A-Z0-9]{10,})/g, // Generic pattern for alphanumeric codes
           /(?:Device|Model)[:\s]*[^,]*,\s*([A-Z0-9]{10,})/i // Pattern like "Device: Apple MacBook, CO2H4WCZQ6L4"
         ]
@@ -164,12 +169,45 @@ export async function GET(request: NextRequest) {
           const match = commentText.match(pattern)
           if (match) {
             serialNumber = match[1]
-            console.log(`✅ Found serial number in comment: ${serialNumber}`)
+            console.log(`✅ Found serial number in comment (${comment.created_at}): ${serialNumber}`)
             break
           }
         }
         
         if (serialNumber) break
+      }
+    }
+
+    // If still no serial number found, try AI extraction as fallback
+    if (!serialNumber) {
+      console.log('🤖 No serial number found with regex, trying AI extraction...')
+      try {
+        const aiResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/extract-serial-ai`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketData: {
+              subject: ticket.subject,
+              properties: ticket.properties,
+              comments: ticket.comments?.map((c: any) => ({
+                body: c.body,
+                created_at: c.created_at
+              }))
+            }
+          })
+        })
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json()
+          if (aiData.serialNumber) {
+            serialNumber = aiData.serialNumber
+            console.log(`✅ AI extracted serial number: ${serialNumber}`)
+          }
+        }
+      } catch (aiError) {
+        console.error('❌ AI serial extraction failed:', aiError)
       }
     }
 
