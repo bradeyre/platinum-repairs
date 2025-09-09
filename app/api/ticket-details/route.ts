@@ -164,14 +164,22 @@ export async function GET(request: NextRequest) {
         const commentText = comment.body || comment.comment || ''
         console.log(`Checking comment for serial (${comment.created_at}): ${commentText.substring(0, 100)}...`)
         
-        // Look for serial number patterns in comments
+        // Look for serial number patterns in comments (prioritize IMEI # format)
         const serialPatterns = [
-          /IMEI\s*#:\s*([A-Z0-9]{10,})/i, // Prioritize IMEI # format
+          /IMEI\s*#:\s*([A-Z0-9]{10,})/i, // Prioritize IMEI # format - this should match first
           /(?:IMEI\s*#?|Serial|S\/N|SN)[:\s]*([A-Z0-9]{10,})/i,
           /Serial:\s*([A-Z0-9]{10,})/i,
           /([A-Z0-9]{10,})/g, // Generic pattern for alphanumeric codes
           /(?:Device|Model)[:\s]*[^,]*,\s*([A-Z0-9]{10,})/i // Pattern like "Device: Apple MacBook, CO2H4WCZQ6L4"
         ]
+        
+        // First, try to find IMEI # format specifically
+        const imeiMatch = commentText.match(/IMEI\s*#:\s*([A-Z0-9]{10,})/i)
+        if (imeiMatch) {
+          serialNumber = imeiMatch[1]
+          console.log(`✅ Found IMEI # serial number in comment (${comment.created_at}): ${serialNumber}`)
+          break
+        }
         
         for (const pattern of serialPatterns) {
           const match = commentText.match(pattern)
