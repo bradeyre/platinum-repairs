@@ -153,7 +153,9 @@ export async function GET(request: NextRequest) {
         
         // Look for serial number patterns in comments
         const serialPatterns = [
-          /(?:IMEI|Serial|S\/N|SN)[:\s#]*([A-Z0-9]{10,})/i,
+          /(?:IMEI\s*#?|Serial|S\/N|SN)[:\s]*([A-Z0-9]{10,})/i,
+          /Serial:\s*([A-Z0-9]{10,})/i,
+          /IMEI\s*#:\s*([A-Z0-9]{10,})/i,
           /([A-Z0-9]{10,})/g, // Generic pattern for alphanumeric codes
           /(?:Device|Model)[:\s]*[^,]*,\s*([A-Z0-9]{10,})/i // Pattern like "Device: Apple MacBook, CO2H4WCZQ6L4"
         ]
