@@ -73,34 +73,25 @@ async function updateRepairShoprTicketStatus(ticketNumber: string, ticketType: '
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Fetching damage reports from Supabase...')
+    
     const { data: reports, error } = await supabaseAdmin
       .from('damage_reports')
-      .select(`
-        *,
-        repair_shopper_tickets (
-          ticket_number,
-          company,
-          customer_name,
-          device_info
-        ),
-        users (
-          username,
-          full_name
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching damage reports:', error)
+      console.error('❌ Supabase error fetching damage reports:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch damage reports' },
+        { error: 'Failed to fetch damage reports', details: error.message },
         { status: 500 }
       )
     }
 
+    console.log(`✅ Successfully fetched ${reports?.length || 0} damage reports`)
     return NextResponse.json({ reports })
   } catch (error) {
-    console.error('Error fetching damage reports:', error)
+    console.error('❌ Error fetching damage reports:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
