@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 5. Create dynamic checkboxes for issues that need to be verified by the technician
 6. Provide assessment and recommendations
 
-Return a JSON object with this structure:
+Return a JSON object with this EXACT structure:
 {
   "analysis": {
     "deviceInfo": "Brief device assessment",
@@ -45,7 +45,7 @@ Return a JSON object with this structure:
   "deviceDetails": {
     "make": "Extracted device manufacturer (e.g., Apple, Samsung, Huawei)",
     "model": "Extracted device model (e.g., iPhone 13 Pro, Galaxy S22 Ultra)",
-    "deviceType": "Detected device type (Phone, Laptop, Tablet, Watch, Desktop, etc.)",
+    "deviceType": "MUST be one of: Phone, Laptop, Tablet, Watch, Desktop",
     "imei": "Extracted IMEI number if present in the text",
     "claim": "Extracted claim number if present in the text"
   },
@@ -58,6 +58,8 @@ Return a JSON object with this structure:
     }
   ]
 }
+
+IMPORTANT: The deviceType field is REQUIRED and must be included in every response.
 
 Focus on:
 - Extracting accurate make and model from device information
