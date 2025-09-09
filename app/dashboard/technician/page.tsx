@@ -448,9 +448,8 @@ export default function TechnicianDashboard() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                // Navigate to damage report page (remove # from ticket ID)
-                                const cleanTicketId = ticket.ticketId.replace('#', '')
-                                router.push(`/dashboard/technician/damage-report/${cleanTicketId}`)
+                                // Open the comprehensive damage report modal
+                                handleTicketClick(ticket)
                               }}
                               className="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
                             >
