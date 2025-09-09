@@ -112,30 +112,22 @@ export async function POST(request: NextRequest) {
         damage_photos: photos?.map((photo: any) => photo.name) || [],
         final_parts_selected: suggestedParts || [],
         total_parts_cost: 0, // Will be calculated from parts pricing
+        final_total_cost: 0, // Final repair cost for Claim Manager
+        excess_amount: 0, // Insurance excess amount
+        replacement_value: 0, // Device replacement value
         status: status === 'completed' ? 'awaiting_approval' : 'in_assessment',
         notes: additionalNotes || '',
         ai_checklist: dynamicCheckboxes?.map((cb: any) => cb.label) || [],
         ai_risk_assessment: aiAnalysis?.riskFactors || '',
+        tech_ber_suggestion: deviceRepairable === false, // BER suggestion from technician
+        manager_ber_decision: null, // Will be set by Claim Manager
+        ber_reason: deviceRepairable === false ? repairExplanation : null,
+        priority: 3, // Default priority (1=high, 5=low)
+        is_overdue: false,
+        is_warning: false,
         assigned_tech_id: null, // Will be set based on technician
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        // Store comprehensive data in report_data JSONB field
-        report_data: {
-          ticketId: finalTicketId,
-          technician: finalTechnician,
-          timeSpent,
-          aiAnalysis,
-          dynamicCheckboxes,
-          deviceType,
-          make,
-          model,
-          claim,
-          lastUsed,
-          deviceRepairable,
-          repairExplanation,
-          photosCount: photos?.length || 0,
-          timestamp: new Date().toISOString()
-        }
+        updated_at: new Date().toISOString()
       })
       .select()
       .single()

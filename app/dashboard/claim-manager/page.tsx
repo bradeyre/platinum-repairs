@@ -6,32 +6,34 @@ import { getCurrentUser, signOut } from '@/lib/auth'
 
 interface DamageReport {
   id: string
-  ticket_id: string
-  technician_id: string
-  device_info: string
-  damage_assessment: string
-  repair_estimate: number
-  parts_needed: string[]
-  status: 'in_progress' | 'completed' | 'awaiting_approval'
+  dr_number: string
+  claim_number: string
+  device_brand: string
+  device_model: string
+  device_type: string
+  imei_serial?: string
+  client_reported_issues: string[]
+  tech_findings: string[]
+  damage_photos: string[]
+  final_parts_selected: string[]
+  total_parts_cost: number
+  final_total_cost: number
+  excess_amount: number
+  replacement_value: number
+  status: 'pending' | 'assigned' | 'in_assessment' | 'awaiting_approval' | 'in_repair' | 'quality_check' | 'completed' | 'ber_confirmed' | 'cancelled'
+  notes?: string
+  ai_checklist: string[]
+  ai_risk_assessment?: string
+  tech_ber_suggestion?: boolean
+  manager_ber_decision?: boolean
+  ber_reason?: string
+  priority: number
+  is_overdue: boolean
+  is_warning: boolean
+  assigned_tech_id?: string
   created_at: string
   updated_at: string
   completed_at?: string
-  report_data?: {
-    timeSpent?: number
-    aiAnalysis?: any
-    dynamicCheckboxes?: any[]
-    deviceType?: string
-    make?: string
-    model?: string
-    claim?: string
-    lastUsed?: string
-    deviceRepairable?: boolean
-    repairExplanation?: string
-    photosCount?: number
-    technician?: string
-    timestamp?: string
-    additionalNotes?: string
-  }
 }
 
 interface User {
@@ -131,7 +133,7 @@ export default function ClaimManagerDashboard() {
       // Update local state
       setDamageReports(prev => prev.map(report => 
         report.id === reportId 
-          ? { ...report, status: 'in_progress' as const }
+          ? { ...report, status: 'in_repair' as const }
           : report
       ))
     } catch (err) {
@@ -226,15 +228,15 @@ export default function ClaimManagerDashboard() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-gray-600">Welcome, {user.full_name || user.username}</span>
-              <button 
+                <button 
                 onClick={handleLogout}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                Logout
-              </button>
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -268,7 +270,7 @@ export default function ClaimManagerDashboard() {
                 <div key={report.id} className="bg-white p-6 rounded-lg shadow">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900">{report.device_info}</h3>
+                      <h3 className="text-lg font-medium text-gray-900">{report.device_brand} {report.device_model}</h3>
                       <p className="text-sm text-gray-600">Report ID: {report.id}</p>
                     </div>
                     <span className="px-3 py-1 text-sm font-medium text-orange-800 bg-orange-100 rounded-full">
@@ -279,96 +281,86 @@ export default function ClaimManagerDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Damage Assessment</h4>
-                      <p className="text-sm text-gray-600">{report.damage_assessment}</p>
-                      {report.report_data?.additionalNotes && (
-                        <p className="text-sm text-gray-500 mt-1">{report.report_data.additionalNotes}</p>
-                      )}
+                      <p className="text-sm text-gray-600">{report.notes || 'No additional notes'}</p>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Repair Estimate</h4>
-                      <p className="text-lg font-semibold text-green-600">R{report.repair_estimate}</p>
-                      {report.report_data?.timeSpent && (
-                        <p className="text-sm text-gray-500">Time spent: {Math.floor(report.report_data.timeSpent / 60)}m {report.report_data.timeSpent % 60}s</p>
+                      <p className="text-lg font-semibold text-green-600">R{report.final_total_cost || report.total_parts_cost}</p>
+        </div>
+      </div>
+
+                  {/* Device information */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Device Details</h4>
+                      <p className="text-sm text-gray-600">
+                        {report.device_brand} {report.device_model}
+                      </p>
+                      <p className="text-xs text-gray-500">{report.device_type}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Claim Information</h4>
+                      <p className="text-sm text-gray-600">{report.claim_number || 'No claim number'}</p>
+                      {report.imei_serial && (
+                        <p className="text-xs text-gray-500">IMEI: {report.imei_serial}</p>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Assessment</h4>
+                      <p className="text-sm text-gray-600">
+                        {report.tech_ber_suggestion ? 'BER Suggested' : 'Repairable'}
+                      </p>
+                      {report.damage_photos.length > 0 && (
+                        <p className="text-xs text-gray-500">{report.damage_photos.length} photos</p>
                       )}
                     </div>
                   </div>
                   
-                  {/* Enhanced device information */}
-                  {report.report_data && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-1">Device Details</h4>
-                        <p className="text-sm text-gray-600">
-                          {report.report_data.make} {report.report_data.model}
-                        </p>
-                        <p className="text-xs text-gray-500">{report.report_data.deviceType}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-1">Claim Information</h4>
-                        <p className="text-sm text-gray-600">{report.report_data.claim || 'No claim number'}</p>
-                        {report.report_data.lastUsed && (
-                          <p className="text-xs text-gray-500">Last used: {report.report_data.lastUsed}</p>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-1">Assessment</h4>
-                        <p className="text-sm text-gray-600">
-                          {report.report_data.deviceRepairable ? 'Repairable' : 'Not Repairable'}
-                        </p>
-                        {report.report_data.photosCount && (
-                          <p className="text-xs text-gray-500">{report.report_data.photosCount} photos</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* AI Analysis and Dynamic Checkboxes */}
-                  {report.report_data?.aiAnalysis && (
+                  {/* AI Analysis and Issues */}
+                  {report.ai_checklist && report.ai_checklist.length > 0 && (
                     <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2">🤖 AI Analysis</h4>
-                      <div className="text-sm text-blue-800">
-                        <p><strong>Device Assessment:</strong> {report.report_data.aiAnalysis.deviceInfo}</p>
-                        {report.report_data.aiAnalysis.recommendedActions?.length > 0 && (
-                          <div className="mt-2">
-                            <strong>Recommended Actions:</strong>
-                            <ul className="list-disc list-inside ml-2">
-                              {report.report_data.aiAnalysis.recommendedActions.map((action: string, index: number) => (
-                                <li key={index}>{action}</li>
-                              ))}
-                            </ul>
+                      <h4 className="font-medium text-blue-900 mb-2">🤖 AI Checklist</h4>
+                      <div className="space-y-1">
+                        {report.ai_checklist.map((item: string, index: number) => (
+                          <div key={index} className="text-sm text-blue-800">
+                            • {item}
                           </div>
-                        )}
+                        ))}
                       </div>
                     </div>
                   )}
-                  
-                  {/* Dynamic Checkboxes Results */}
-                  {report.report_data?.dynamicCheckboxes && report.report_data.dynamicCheckboxes.length > 0 && (
+
+                  {report.client_reported_issues && report.client_reported_issues.length > 0 && (
+                    <div className="mb-4 p-4 bg-green-50 rounded-lg">
+                      <h4 className="font-medium text-green-900 mb-2">✅ Client Reported Issues</h4>
+                      <div className="space-y-1">
+                        {report.client_reported_issues.map((issue: string, index: number) => (
+                          <div key={index} className="text-sm text-green-800">
+                            • {issue}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {report.tech_findings && report.tech_findings.length > 0 && (
                     <div className="mb-4 p-4 bg-yellow-50 rounded-lg">
-                      <h4 className="font-medium text-yellow-900 mb-2">🔍 Issues Checked</h4>
-                      <div className="space-y-2">
-                        {report.report_data.dynamicCheckboxes.map((checkbox: any, index: number) => (
-                          <div key={index} className="flex items-start">
-                            <span className={`mr-2 ${checkbox.checked ? 'text-green-600' : 'text-gray-400'}`}>
-                              {checkbox.checked ? '✅' : '❌'}
-                            </span>
-                            <div>
-                              <p className="text-sm text-yellow-800">{checkbox.label}</p>
-                              {checkbox.checked && checkbox.notes && (
-                                <p className="text-xs text-yellow-700 ml-4 italic">"{checkbox.notes}"</p>
-                              )}
-                            </div>
+                      <h4 className="font-medium text-yellow-900 mb-2">🔧 Technician Findings</h4>
+                      <div className="space-y-1">
+                        {report.tech_findings.map((finding: string, index: number) => (
+                          <div key={index} className="text-sm text-yellow-800">
+                            • {finding}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
                   
-                  {report.parts_needed && report.parts_needed.length > 0 && (
+                  {report.final_parts_selected && report.final_parts_selected.length > 0 && (
                     <div className="mb-4">
                       <h4 className="font-medium text-gray-900 mb-2">Parts Needed</h4>
                       <div className="flex flex-wrap gap-2">
-                        {report.parts_needed.map((part, index) => (
+                        {report.final_parts_selected.map((part, index) => (
                           <span key={index} className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded">
                             {part}
                           </span>
@@ -419,12 +411,12 @@ export default function ClaimManagerDashboard() {
               {completed.slice(0, 5).map((report) => (
                 <div key={report.id} className="bg-white p-6 rounded-lg shadow">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-medium text-gray-900">{report.device_info}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">{report.device_brand} {report.device_model}</h3>
                     <span className="px-3 py-1 text-sm font-medium text-green-800 bg-green-100 rounded-full">
                       Completed
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">Repair Estimate: R{report.repair_estimate}</p>
+                  <p className="text-sm text-gray-600 mb-2">Repair Estimate: R{report.final_total_cost || report.total_parts_cost}</p>
                   <p className="text-xs text-gray-500 mb-3">
                     Completed: {new Date(report.completed_at || report.updated_at).toLocaleString()}
                   </p>
