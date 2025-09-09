@@ -1,6 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+// Function to update RepairShopr ticket status
+async function updateRepairShoprTicketStatus(ticketNumber: string, ticketType: 'PR' | 'DD', newStatus: string) {
+  try {
+    const token = ticketType === 'PR' 
+      ? process.env.REPAIRSHOPR_TOKEN 
+      : process.env.REPAIRSHOPR_TOKEN_DD
+    
+    const baseUrl = ticketType === 'PR'
+      ? 'https://platinumrepairs.repairshopr.com/api/v1'
+      : 'https://devicedoctorsa.repairshopr.com/api/v1'
+    
+    if (!token) {
+      console.error('RepairShopr token not found for ticket type:', ticketType)
+      return false
+    }
+
+    // First, find the ticket by number to get its ID
+    const searchUrl = `${baseUrl}/tickets?number=${ticketNumber}&api_key=${token}`
+    console.log(`🔍 Searching for ticket ${ticketNumber} in ${ticketType} instance`)
+    
+    const searchResponse = await fetch(searchUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!searchResponse.ok) {
+      console.error(`❌ Failed to search for ticket ${ticketNumber}: ${searchResponse.status}`)
+      return false
+    }
+
+    const searchData = await searchResponse.json()
+    const tickets = searchData.tickets || []
+    
+    if (tickets.length === 0) {
+      console.error(`❌ Ticket ${ticketNumber} not found in ${ticketType} instance`)
+      return false
+    }
+
+    const ticket = tickets[0]
+    console.log(`✅ Found ticket ${ticketNumber} with ID ${ticket.id}`)
+
+    // Update the ticket status
+    const updateUrl = `${baseUrl}/tickets/${ticket.id}?api_key=${token}`
+    const updateResponse = await fetch(updateUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        status: newStatus
+      })
+    })
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text()
+      console.error(`❌ Failed to update ticket ${ticketNumber}: ${updateResponse.status} - ${errorText}`)
+      return false
+    }
+
+    console.log(`✅ Successfully updated ticket ${ticketNumber} status to ${newStatus}`)
+    return true
+  } catch (error) {
+    console.error(`❌ Error updating RepairShopr ticket ${ticketNumber}:`, error)
+    return false
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { data: reports, error } = await supabaseAdmin
@@ -138,6 +208,24 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create damage report' },
         { status: 500 }
       )
+    }
+
+    // If damage report is completed, update RepairShopr ticket status
+    if (status === 'completed' && finalTicketId) {
+      console.log(`🔄 Damage report completed, updating RepairShopr ticket status for: ${finalTicketId}`)
+      
+      // Extract ticket number and determine ticket type
+      const ticketNumber = finalTicketId.replace('#', '')
+      const ticketType = finalTicketId.includes('PR') ? 'PR' : 'DD'
+      
+      // Update RepairShopr ticket status to "Damage Report Completed"
+      const updateSuccess = await updateRepairShoprTicketStatus(ticketNumber, ticketType, 'Damage Report Completed')
+      
+      if (updateSuccess) {
+        console.log(`✅ Successfully updated RepairShopr ticket ${ticketNumber} to "Damage Report Completed" status`)
+      } else {
+        console.log(`⚠️ Failed to update RepairShopr ticket ${ticketNumber} status, but damage report was saved`)
+      }
     }
 
     return NextResponse.json({ report })
