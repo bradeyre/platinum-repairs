@@ -213,19 +213,28 @@ export async function POST(request: NextRequest) {
     // If damage report is completed, update RepairShopr ticket status
     if (status === 'completed' && finalTicketId) {
       console.log(`🔄 Damage report completed, updating RepairShopr ticket status for: ${finalTicketId}`)
+      console.log(`🔄 Status: ${status}, FinalTicketId: ${finalTicketId}`)
       
       // Extract ticket number and determine ticket type
       const ticketNumber = finalTicketId.replace('#', '')
       const ticketType = finalTicketId.includes('PR') ? 'PR' : 'DD'
       
-      // Update RepairShopr ticket status to "Damage Report Completed"
-      const updateSuccess = await updateRepairShoprTicketStatus(ticketNumber, ticketType, 'Damage Report Completed')
+      console.log(`🔄 Extracted ticketNumber: ${ticketNumber}, ticketType: ${ticketType}`)
       
-      if (updateSuccess) {
-        console.log(`✅ Successfully updated RepairShopr ticket ${ticketNumber} to "Damage Report Completed" status`)
-      } else {
-        console.log(`⚠️ Failed to update RepairShopr ticket ${ticketNumber} status, but damage report was saved`)
+      // Update RepairShopr ticket status to "Damage Report Completed"
+      try {
+        const updateSuccess = await updateRepairShoprTicketStatus(ticketNumber, ticketType, 'Damage Report Completed')
+        
+        if (updateSuccess) {
+          console.log(`✅ Successfully updated RepairShopr ticket ${ticketNumber} to "Damage Report Completed" status`)
+        } else {
+          console.log(`⚠️ Failed to update RepairShopr ticket ${ticketNumber} status, but damage report was saved`)
+        }
+      } catch (updateError) {
+        console.error(`❌ Error updating RepairShopr ticket ${ticketNumber}:`, updateError)
       }
+    } else {
+      console.log(`⚠️ Not updating RepairShopr status - status: ${status}, finalTicketId: ${finalTicketId}`)
     }
 
     return NextResponse.json({ report })
