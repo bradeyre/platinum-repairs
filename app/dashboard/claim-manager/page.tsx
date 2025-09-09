@@ -52,15 +52,21 @@ export default function ClaimManagerDashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = (attempt = 1) => {
       // Check localStorage for user data
       const userData = localStorage.getItem('user')
-      console.log('🔍 Claim Manager: localStorage data:', userData)
+      console.log(`🔍 Claim Manager: localStorage data (attempt ${attempt}):`, userData)
       
       if (!userData) {
-        console.log('❌ Claim Manager: No user data found, redirecting to login')
-        router.push('/login')
-        return
+        if (attempt < 3) {
+          console.log(`⏳ Claim Manager: No user data found, retrying in 200ms (attempt ${attempt}/3)`)
+          setTimeout(() => checkAuth(attempt + 1), 200)
+          return
+        } else {
+          console.log('❌ Claim Manager: No user data found after 3 attempts, redirecting to login')
+          router.push('/login')
+          return
+        }
       }
       
       try {
