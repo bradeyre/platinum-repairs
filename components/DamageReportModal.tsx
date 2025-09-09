@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getCurrentUser } from '@/lib/auth'
 import { triggerCelebration } from './CelebrationSystem'
 
 interface Ticket {
@@ -18,7 +19,7 @@ interface DamageReportModalProps {
 }
 
 export default function DamageReportModal({ ticket, onClose, onSave }: DamageReportModalProps) {
-  const [currentTech, setCurrentTech] = useState('')
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [timerStarted, setTimerStarted] = useState(false)
   const [timerTime, setTimerTime] = useState(0)
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null)
@@ -43,44 +44,112 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
   const [aiAnalysis, setAiAnalysis] = useState({
     deviceInfo: '',
-    estimatedCost: '',
     repairability: '',
     recommendedActions: [] as string[],
     riskFactors: [] as string[]
   })
 
-  const technicians = ['Ben', 'Alex', 'Sarah', 'Mike']
-  const commonParts = [
-    'Screen Assembly',
-    'Battery',
-    'Charging Port',
-    'Back Glass',
-    'Camera Module',
-    'Speaker',
-    'Vibrator',
-    'Flex Cable',
-    'Home Button',
-    'Volume Buttons'
-  ]
+  // Device-specific parts
+  const getDeviceParts = (deviceType: string) => {
+    switch (deviceType.toLowerCase()) {
+      case 'phone':
+        return [
+          'Screen Assembly',
+          'Battery',
+          'Charging Port',
+          'Back Glass',
+          'Camera Module',
+          'Speaker',
+          'Vibrator',
+          'Flex Cable',
+          'Home Button',
+          'Volume Buttons',
+          'Power Button',
+          'Earpiece Speaker',
+          'Microphone',
+          'Antenna'
+        ]
+      case 'laptop':
+        return [
+          'LCD Screen',
+          'Keyboard',
+          'Trackpad',
+          'Battery',
+          'Charging Port',
+          'Motherboard',
+          'RAM',
+          'Hard Drive/SSD',
+          'Fan Assembly',
+          'Hinges',
+          'Webcam',
+          'Speakers',
+          'Power Button',
+          'USB Ports'
+        ]
+      case 'tablet':
+        return [
+          'Screen Assembly',
+          'Battery',
+          'Charging Port',
+          'Back Cover',
+          'Camera Module',
+          'Speakers',
+          'Home Button',
+          'Volume Buttons',
+          'Power Button',
+          'Flex Cables'
+        ]
+      case 'watch':
+        return [
+          'Screen',
+          'Battery',
+          'Crown',
+          'Band',
+          'Charging Port',
+          'Speaker',
+          'Microphone',
+          'Heart Rate Sensor'
+        ]
+      default:
+        return [
+          'Screen Assembly',
+          'Battery',
+          'Charging Port',
+          'Back Glass',
+          'Camera Module',
+          'Speaker',
+          'Vibrator',
+          'Flex Cable',
+          'Home Button',
+          'Volume Buttons'
+        ]
+    }
+  }
 
   useEffect(() => {
+    // Get current user
+    const getUser = async () => {
+      const user = await getCurrentUser()
+      setCurrentUser(user)
+    }
+    getUser()
+
     // Auto-populate some fields from ticket data
     populateFromTicket()
-    
-    // Get authenticated technician (no localStorage - session only)
-    // const authenticatedTech = localStorage.getItem('authenticatedTech')
-    // if (authenticatedTech) {
-    //   setCurrentTech(authenticatedTech)
-    // }
 
     // Perform AI analysis of the ticket
     performAiAnalysis()
   }, [])
 
   const populateFromTicket = () => {
+    // Extract claim number from description
+    const claimMatch = ticket.description.match(/(?:CC|Claim|Claim Number)[:\s]*([A-Z0-9]+)/i)
+    const claimNumber = claimMatch ? claimMatch[1] : ''
+
     setFormData(prev => ({
       ...prev,
       ticket: ticket.ticketId,
+      claim: claimNumber,
       deviceType: extractDeviceType(ticket.deviceInfo),
       make: extractMake(ticket.deviceInfo),
       model: extractModel(ticket.deviceInfo)
@@ -116,7 +185,6 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     // Simulate AI analysis based on ticket data
     const analysis = {
       deviceInfo: `Device: ${ticket.deviceInfo}`,
-      estimatedCost: 'R1,200 - R2,500',
       repairability: 'Repairable',
       recommendedActions: [
         'Visual inspection for damage',
@@ -134,8 +202,8 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   }
 
   const startTimer = () => {
-    if (!currentTech) {
-      alert('Please select your name first')
+    if (!currentUser) {
+      alert('Please wait for user authentication')
       return
     }
     
@@ -150,7 +218,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     setTimerInterval(interval)
     
     // Show celebration for starting work
-    triggerCelebration(currentTech, 'damage report started', { ticketId: ticket.ticketId })
+    triggerCelebration(currentUser.full_name || currentUser.username, 'damage report started', { ticketId: ticket.ticketId })
   }
 
   const stopTimer = () => {
@@ -160,8 +228,8 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     }
     setTimerStarted(false)
     
-    if (currentTech && timerTime > 0) {
-      triggerCelebration(currentTech, 'damage report completed', { 
+    if (currentUser && timerTime > 0) {
+      triggerCelebration(currentUser.full_name || currentUser.username, 'damage report completed', { 
         ticketId: ticket.ticketId,
         timeSpent: formatTime(timerTime)
       })
@@ -202,7 +270,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   const handleSave = async () => {
     try {
       // Validate required fields
-      if (!formData.ticket || !currentTech) {
+      if (!formData.ticket || !currentUser) {
         alert('Please fill in all required fields')
         return
       }
@@ -212,7 +280,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       
       const reportData = {
         ...formData,
-        technician: currentTech,
+        technician: currentUser?.full_name || currentUser?.username,
         timeSpent: timerTime,
         timestamp: new Date().toISOString(),
         aiAnalysis
@@ -232,11 +300,11 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       }
       
       // Show success message
-      alert(`Damage Report saved successfully!\nTime spent: ${formatTime(timerTime)}\nTechnician: ${currentTech}`)
+      alert(`Damage Report saved successfully!\nTime spent: ${formatTime(timerTime)}\nTechnician: ${currentUser?.full_name || currentUser?.username}`)
       
       // Celebration for completion
-      if (currentTech) {
-        triggerCelebration(currentTech, 'DR saved successfully', { 
+      if (currentUser) {
+        triggerCelebration(currentUser.full_name || currentUser.username, 'DR saved successfully', { 
           ticketId: ticket.ticketId,
           action: 'damage report completed'
         })
@@ -278,7 +346,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
         {/* Content */}
         <div className="p-6">
-          {/* Timer and Technician Section */}
+          {/* Timer Section */}
           <div className="mb-6 bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
@@ -286,17 +354,9 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Technician
                   </label>
-                  <select
-                    value={currentTech}
-                    onChange={(e) => setCurrentTech(e.target.value)}
-                    className="border border-gray-300 rounded px-3 py-2"
-                    disabled={timerStarted}
-                  >
-                    <option value="">Select technician...</option>
-                    {technicians.map(tech => (
-                      <option key={tech} value={tech}>{tech}</option>
-                    ))}
-                  </select>
+                  <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded text-gray-700">
+                    {currentUser ? (currentUser.full_name || currentUser.username) : 'Loading...'}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -304,7 +364,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   </label>
                   <button
                     onClick={timerStarted ? stopTimer : startTimer}
-                    disabled={!currentTech}
+                    disabled={!currentUser}
                     className={`px-4 py-2 rounded font-medium ${
                       timerStarted
                         ? 'bg-red-600 text-white hover:bg-red-700'
@@ -372,6 +432,31 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Used</label>
+                    <input
+                      type="date"
+                      value={formData.lastUsed}
+                      onChange={(e) => setFormData(prev => ({ ...prev, lastUsed: e.target.value }))}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="lastUsedUnknown"
+                      checked={formData.lastUsedUnknown}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        lastUsedUnknown: e.target.checked,
+                        lastUsed: e.target.checked ? '' : prev.lastUsed
+                      }))}
+                      className="mr-2"
+                    />
+                    <label htmlFor="lastUsedUnknown" className="text-sm text-gray-700">
+                      Last used date unknown
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -396,7 +481,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
                 {!formData.noPartsNeeded && (
                   <div className="grid grid-cols-2 gap-2">
-                    {commonParts.map(part => (
+                    {getDeviceParts(formData.deviceType).map(part => (
                       <label key={part} className="flex items-center">
                         <input
                           type="checkbox"
@@ -437,10 +522,6 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   <div>
                     <div className="text-sm font-medium text-blue-800">Device Assessment</div>
                     <div className="text-sm text-blue-700">{aiAnalysis.deviceInfo}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-blue-800">Estimated Cost</div>
-                    <div className="text-sm text-blue-700">{aiAnalysis.estimatedCost}</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-blue-800">Recommended Actions</div>
