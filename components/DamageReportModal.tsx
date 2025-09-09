@@ -455,9 +455,6 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     }, 1000)
     
     setTimerInterval(interval)
-    
-    // Show celebration for starting work
-    triggerCelebration(currentUser.full_name || currentUser.username, 'damage report started', { ticketId: ticket.ticketId })
   }
 
   const stopTimer = () => {
@@ -466,13 +463,6 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       setTimerInterval(null)
     }
     setTimerStarted(false)
-    
-    if (currentUser && timerTime > 0) {
-      triggerCelebration(currentUser.full_name || currentUser.username, 'damage report completed', { 
-        ticketId: ticket.ticketId,
-        timeSpent: formatTime(timerTime)
-      })
-    }
   }
 
   const formatTime = (ms: number): string => {
@@ -546,6 +536,23 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       
       if (formData.photos.length > 6) {
         alert('Maximum 6 photos allowed')
+        return
+      }
+      
+      // Validate that all issues are checked with comments
+      const uncheckedIssues = dynamicCheckboxes.filter(checkbox => 
+        checkbox.checked && (!checkbox.notes || checkbox.notes.trim() === '')
+      )
+      
+      if (uncheckedIssues.length > 0) {
+        alert(`Please add comments for all checked issues:\n${uncheckedIssues.map(issue => `- ${issue.label}`).join('\n')}`)
+        return
+      }
+      
+      // Validate that at least one issue is checked
+      const checkedIssues = dynamicCheckboxes.filter(checkbox => checkbox.checked)
+      if (checkedIssues.length === 0) {
+        alert('Please check at least one issue and add comments')
         return
       }
       

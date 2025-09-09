@@ -253,7 +253,16 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 - **Real-time Processing**: Device names and analysis updated automatically as tickets are processed
 - **IMEI Validation**: Integrated IMEI checker button for device verification
 
-### 6. Comprehensive Damage Report Modal
+### 6. Ticket Details & Claim Number Extraction
+- **API Integration**: `/api/ticket-details` endpoint fetches individual ticket data
+- **Ticket Search**: Searches by ticket number (e.g., 89756) instead of internal RepairShopr ID
+- **Properties Extraction**: Extracts claim numbers from `ticket.properties["Claim #"]`
+- **Comments Fallback**: Searches ticket comments if claim number not found in properties
+- **Real-time Updates**: Automatically populates form fields when data is found
+- **Error Handling**: Graceful fallback if API calls fail
+- **Complete Data Access**: Returns full ticket data including comments and properties
+
+### 7. Comprehensive Damage Report Modal
 - **Timer-Based Workflow**: All form fields disabled until timer starts
 - **Auto-Population**: AI extracts claim number, make, model, and IMEI from ticket data
 - **Device-Specific Parts**: Dynamic parts lists based on device type (phone, laptop, tablet, watch)
@@ -264,7 +273,7 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 - **Complete Button**: Validates all requirements and saves to database
 - **Real-time Validation**: Form validation with user feedback
 
-### 7. Performance Tracking
+### 8. Performance Tracking
 - **Status-Based Timing**: Measures wait time from when ticket status changes, not ticket creation
 - **Business Hours Only**: Only counts 8 AM - 6 PM, Monday-Friday (excludes weekends and after-hours)
 - **Real-Time Updates**: Time display updates automatically as tickets move through statuses

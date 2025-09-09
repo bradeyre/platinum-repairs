@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     
     // Handle both old and new data structures
     const {
-      ticket, // New format
+      ticket, // New format - could be ticket object or ticketId string
       ticketId, // Old format
       technician, // New format
       technicianId, // Old format
@@ -70,16 +70,27 @@ export async function POST(request: NextRequest) {
     } = reportData
 
     // Extract ticket ID and technician info
-    const finalTicketId = ticket || ticketId
+    // Handle case where ticket is an object with ticketId property
+    const finalTicketId = (typeof ticket === 'object' && ticket?.ticketId) ? ticket.ticketId : (ticket || ticketId)
     const finalTechnician = technician || technicianId
-    const finalDeviceInfo = deviceInfo || device_info
+    const finalDeviceInfo = deviceInfo || device_info || `${make} ${model}` || 'Device assessment completed'
     const finalDamageAssessment = damageAssessment || additionalNotes || 'Damage assessment completed'
     const finalPartsNeeded = suggestedParts || partsNeeded || []
     const finalRepairEstimate = repairEstimate || 0
 
-    if (!finalTicketId || !finalTechnician || !finalDeviceInfo) {
+    console.log('🔍 Damage report data received:', {
+      finalTicketId,
+      finalTechnician,
+      finalDeviceInfo,
+      status,
+      hasAiAnalysis: !!aiAnalysis,
+      hasDynamicCheckboxes: !!dynamicCheckboxes,
+      photosCount: photos?.length || 0
+    })
+
+    if (!finalTicketId || !finalTechnician) {
       return NextResponse.json(
-        { error: 'Missing required fields: ticket, technician, deviceInfo' },
+        { error: 'Missing required fields: ticket, technician' },
         { status: 400 }
       )
     }
