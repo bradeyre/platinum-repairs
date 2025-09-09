@@ -19,15 +19,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
-    detectSessionInUrl: false
+    detectSessionInUrl: false,
+    storage: undefined
   }
 })
 
-// Server-side Supabase client with service role
+// Server-side Supabase client with service role (no auth features)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
+    persistSession: false,
     autoRefreshToken: false,
-    persistSession: false
+    detectSessionInUrl: false,
+    storage: undefined
   }
 })
 
