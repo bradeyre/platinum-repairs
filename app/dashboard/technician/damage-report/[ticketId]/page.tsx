@@ -42,7 +42,7 @@ export default function DamageReportPage({ params }: { params: Promise<{ ticketI
   useEffect(() => {
     const checkAuth = async () => {
       const currentUser = await getCurrentUser()
-      if (!currentUser || currentUser.role !== 'technician') {
+      if (!currentUser || (currentUser.role !== 'technician' && currentUser.role !== 'admin')) {
         router.push('/login')
         return
       }

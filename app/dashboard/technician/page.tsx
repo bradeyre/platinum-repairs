@@ -433,15 +433,17 @@ export default function TechnicianDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleTicketClick(ticket)
-                            }}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-                          >
-                            Start Work
-                          </button>
+                          {ticket.status !== 'Awaiting Damage Report' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleTicketClick(ticket)
+                              }}
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                            >
+                              Start Work
+                            </button>
+                          )}
                           {ticket.status === 'Awaiting Damage Report' && (
                             <button
                               onClick={(e) => {
