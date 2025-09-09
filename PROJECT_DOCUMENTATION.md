@@ -245,13 +245,15 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 ### 5. AI-Powered Device Detection & Analysis
 - **OpenAI Integration**: Uses GPT-3.5-turbo for intelligent device name extraction and analysis
 - **Context Analysis**: Analyzes full ticket data (subject, customer, notes) for better detection
-- **Device Details Extraction**: AI extracts make, model, and IMEI numbers from ticket descriptions
+- **Device Details Extraction**: AI extracts make, model, device type, and IMEI numbers from ticket descriptions
+- **Device Type Detection**: Automatically detects device type (Phone, Laptop, Tablet, Watch, Desktop) with comprehensive rules
 - **Dynamic Issue Detection**: Creates checkboxes for specific issues mentioned by clients
 - **Confidence Scoring**: Only uses AI results with >60% confidence
 - **Fallback Patterns**: Regex-based fallback for low-confidence cases
 - **Caching**: LRU cache prevents repeated API calls for same descriptions
 - **Real-time Processing**: Device names and analysis updated automatically as tickets are processed
 - **IMEI Validation**: Integrated IMEI checker button for device verification
+- **Comprehensive Device Rules**: Covers all major device types (MacBook, ThinkPad, iPhone, Galaxy, iPad, etc.)
 
 ### 6. Ticket Details & Claim Number Extraction
 - **API Integration**: `/api/ticket-details` endpoint fetches individual ticket data
@@ -282,6 +284,17 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 - **Performance Grades**: Excellent (<2h), Good (2-4h), Average (4-8h), Needs Improvement (>8h)
 - **Department Metrics**: Overall team performance and trends
 - **Individual Stats**: Per-technician performance tracking
+
+### 9. Recent System Improvements & Fixes
+- **AI Device Type Detection**: Fixed mismatch between AI analysis and form field display
+- **Comprehensive Device Rules**: Added detection rules for all major device types (MacBook, ThinkPad, iPhone, Galaxy, iPad, etc.)
+- **Required Field Validation**: Made deviceType field mandatory in AI responses
+- **Damage Report Validation**: Added validation to ensure all checked issues have comments
+- **Database Schema Alignment**: Fixed API to match actual Supabase damage_reports table schema
+- **Error Handling**: Improved error handling for damage report saving
+- **UI Improvements**: Removed distracting timer pop-ups and improved form validation
+- **Claim Number Extraction**: Enhanced claim number extraction from ticket properties and comments
+- **Real-time Form Updates**: Form fields now update automatically when AI analysis completes
 
 ## 🚀 Deployment Process
 

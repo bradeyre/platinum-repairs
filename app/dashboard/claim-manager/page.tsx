@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, signOut } from '@/lib/auth'
 
 interface DamageReport {
   id: string
@@ -53,13 +52,25 @@ export default function ClaimManagerDashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const currentUser = await getCurrentUser()
-      if (!currentUser || currentUser.role !== 'claim_manager') {
+    const checkAuth = () => {
+      // Check localStorage for user data
+      const userData = localStorage.getItem('user')
+      if (!userData) {
         router.push('/login')
         return
       }
-      setUser(currentUser)
+      
+      try {
+        const parsedUser = JSON.parse(userData)
+        if (parsedUser.role !== 'claim_manager' && parsedUser.role !== 'admin') {
+          router.push('/login')
+          return
+        }
+        setUser(parsedUser)
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+        router.push('/login')
+      }
     }
     checkAuth()
   }, [router])
@@ -172,7 +183,8 @@ export default function ClaimManagerDashboard() {
   }
 
   const handleLogout = () => {
-    signOut()
+    localStorage.removeItem('user')
+    router.push('/login')
   }
 
   if (!user) {
@@ -223,13 +235,30 @@ export default function ClaimManagerDashboard() {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Claim Manager Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-600">Welcome, {user.full_name || user.username}</span>
+              <h1 className="text-2xl font-bold text-gray-900">Platinum Repairs - Claim Manager Dashboard</h1>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Switch to:</span>
+                <select 
+                  className="border border-gray-300 rounded px-3 py-1 text-sm"
+                  onChange={(e) => {
+                    if (e.target.value === 'admin') {
+                      window.location.href = '/dashboard/admin'
+                    } else if (e.target.value === 'technician') {
+                      window.location.href = '/dashboard/technician'
+                    }
+                  }}
+                  value="claim-manager"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="technician">Technician</option>
+                  <option value="claim-manager">Claim Manager</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-gray-600">Welcome, {user.full_name || user.username}</span>
                 <button 
-                onClick={handleLogout}
+                  onClick={handleLogout}
                   className="text-blue-600 hover:text-blue-800"
                 >
                   Logout
@@ -237,6 +266,7 @@ export default function ClaimManagerDashboard() {
               </div>
             </div>
           </div>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -286,8 +316,8 @@ export default function ClaimManagerDashboard() {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Repair Estimate</h4>
                       <p className="text-lg font-semibold text-green-600">R{report.final_total_cost || report.total_parts_cost}</p>
-        </div>
-      </div>
+                    </div>
+                  </div>
 
                   {/* Device information */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
