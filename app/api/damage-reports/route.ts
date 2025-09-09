@@ -110,12 +110,15 @@ export async function POST(request: NextRequest) {
         client_reported_issues: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.label) || [],
         tech_findings: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.notes).filter((note: any) => note) || [],
         damage_photos: photos?.map((photo: any) => photo.name) || [],
-        selected_parts: suggestedParts || [],
+        final_parts_selected: suggestedParts || [],
         total_parts_cost: 0, // Will be calculated from parts pricing
         status: status === 'completed' ? 'awaiting_approval' : 'in_assessment',
-        manager_notes: additionalNotes || '',
+        notes: additionalNotes || '',
         ai_checklist: dynamicCheckboxes?.map((cb: any) => cb.label) || [],
         ai_risk_assessment: aiAnalysis?.riskFactors || '',
+        assigned_tech_id: null, // Will be set based on technician
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         // Store comprehensive data in report_data JSONB field
         report_data: {
           ticketId: finalTicketId,
