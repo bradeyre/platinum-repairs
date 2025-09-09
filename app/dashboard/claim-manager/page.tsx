@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import PartsPricingModal from '@/components/PartsPricingModal'
 
 interface DamageReport {
   id: string
@@ -43,12 +44,47 @@ interface User {
   full_name?: string
 }
 
+interface PartsPricing {
+  part_number: string
+  part_name: string
+  device_brand: string
+  device_model: string
+  device_type: string
+  insurance_price: number
+  eta_info: string
+  retail_1_year: number | null
+  retail_2_year: number | null
+  retail_lifetime: number | null
+  replacement_value: number | null
+  stock_status: string
+  sheet_row_number: number
+  last_synced: string
+}
+
 export default function ClaimManagerDashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [damageReports, setDamageReports] = useState<DamageReport[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [generatingPDF, setGeneratingPDF] = useState<string | null>(null)
+  const [selectedReport, setSelectedReport] = useState<DamageReport | null>(null)
+  const [showPartsModal, setShowPartsModal] = useState(false)
+  const [selectedParts, setSelectedParts] = useState<PartsPricing[]>([])
+  const [managerDecision, setManagerDecision] = useState<{
+    berDecision: boolean | null
+    berReason: string
+    finalTotalCost: number
+    excessAmount: number
+    replacementValue: number
+    managerNotes: string
+  }>({
+    berDecision: null,
+    berReason: '',
+    finalTotalCost: 0,
+    excessAmount: 0,
+    replacementValue: 0,
+    managerNotes: ''
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -168,6 +204,72 @@ export default function ClaimManagerDashboard() {
       alert('Failed to generate PDF')
     } finally {
       setGeneratingPDF(null)
+    }
+  }
+
+  const handleOpenPartsModal = (report: DamageReport) => {
+    setSelectedReport(report)
+    setShowPartsModal(true)
+  }
+
+  const handlePartsSelected = (parts: PartsPricing[]) => {
+    setSelectedParts(parts)
+    const totalCost = parts.reduce((sum, part) => sum + part.insurance_price, 0)
+    const replacementValue = parts[0]?.replacement_value || 0
+    
+    setManagerDecision(prev => ({
+      ...prev,
+      finalTotalCost: totalCost,
+      replacementValue: replacementValue
+    }))
+  }
+
+  const calculateBERRatio = () => {
+    if (managerDecision.finalTotalCost === 0 || managerDecision.replacementValue === 0) {
+      return 0
+    }
+    return (managerDecision.finalTotalCost / managerDecision.replacementValue) * 100
+  }
+
+  const handleManagerDecision = async (reportId: string, decision: 'approve' | 'reject' | 'ber') => {
+    try {
+      const response = await fetch(`/api/damage-reports/${reportId}/manager-decision`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          decision,
+          berDecision: decision === 'ber',
+          berReason: managerDecision.berReason,
+          finalTotalCost: managerDecision.finalTotalCost,
+          excessAmount: managerDecision.excessAmount,
+          replacementValue: managerDecision.replacementValue,
+          managerNotes: managerDecision.managerNotes,
+          selectedParts: selectedParts
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update manager decision')
+      }
+      
+      // Refresh damage reports
+      fetchDamageReports()
+      setSelectedReport(null)
+      setShowPartsModal(false)
+      setSelectedParts([])
+      setManagerDecision({
+        berDecision: null,
+        berReason: '',
+        finalTotalCost: 0,
+        excessAmount: 0,
+        replacementValue: 0,
+        managerNotes: ''
+      })
+    } catch (err) {
+      console.error('Error updating manager decision:', err)
+      alert('Failed to update manager decision')
     }
   }
 
@@ -378,32 +480,139 @@ export default function ClaimManagerDashboard() {
                     </div>
                   )}
                   
-                  {report.final_parts_selected && report.final_parts_selected.length > 0 && (
+                  {/* Parts and Pricing Section */}
+                  <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium text-blue-900">Parts & Pricing</h4>
+                      <button
+                        onClick={() => handleOpenPartsModal(report)}
+                        className="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700 transition-colors"
+                      >
+                        Select Parts
+                      </button>
+                    </div>
+                    
+                    {report.final_parts_selected && report.final_parts_selected.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h5 className="font-medium text-blue-800 mb-2">Selected Parts</h5>
+                          <div className="flex flex-wrap gap-2">
+                            {report.final_parts_selected.map((part, index) => (
+                              <span key={index} className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded">
+                                {part}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-blue-800 mb-2">Cost Breakdown</h5>
+                          <p className="text-sm text-blue-700">Parts Cost: R{report.total_parts_cost}</p>
+                          <p className="text-sm text-blue-700">Final Total: R{report.final_total_cost}</p>
+                          {report.replacement_value > 0 && (
+                            <p className="text-sm text-blue-700">Replacement Value: R{report.replacement_value}</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-blue-700">No parts selected yet. Click "Select Parts" to choose from pricing list.</p>
+                    )}
+                  </div>
+
+                  {/* Manager Decision Section */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">Manager Decision</h4>
+                    
+                    {/* BER Ratio Calculation */}
+                    {report.final_total_cost > 0 && report.replacement_value > 0 && (
+                      <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
+                        <h5 className="font-medium text-yellow-900 mb-2">BER Ratio Analysis</h5>
+                        <p className="text-sm text-yellow-800">
+                          Repair Cost: R{report.final_total_cost} | Replacement Value: R{report.replacement_value}
+                        </p>
+                        <p className="text-sm text-yellow-800">
+                          BER Ratio: {((report.final_total_cost / report.replacement_value) * 100).toFixed(1)}%
+                          {((report.final_total_cost / report.replacement_value) * 100) > 80 && (
+                            <span className="text-red-600 font-medium"> (High BER Risk)</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Manager Notes */}
                     <div className="mb-4">
-                      <h4 className="font-medium text-gray-900 mb-2">Parts Needed</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {report.final_parts_selected.map((part, index) => (
-                          <span key={index} className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded">
-                            {part}
-                          </span>
-                        ))}
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Manager Notes</label>
+                      <textarea
+                        value={managerDecision.managerNotes}
+                        onChange={(e) => setManagerDecision(prev => ({ ...prev, managerNotes: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        rows={3}
+                        placeholder="Add manager notes..."
+                      />
+                    </div>
+
+                    {/* BER Decision */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">BER Decision</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name={`ber-${report.id}`}
+                            value="repair"
+                            checked={managerDecision.berDecision === false}
+                            onChange={() => setManagerDecision(prev => ({ ...prev, berDecision: false }))}
+                            className="mr-2"
+                          />
+                          <span className="text-sm text-green-700">Repairable</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name={`ber-${report.id}`}
+                            value="ber"
+                            checked={managerDecision.berDecision === true}
+                            onChange={() => setManagerDecision(prev => ({ ...prev, berDecision: true }))}
+                            className="mr-2"
+                          />
+                          <span className="text-sm text-red-700">Beyond Economical Repair</span>
+                        </label>
                       </div>
                     </div>
-                  )}
+
+                    {/* BER Reason */}
+                    {managerDecision.berDecision === true && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">BER Reason</label>
+                        <input
+                          type="text"
+                          value={managerDecision.berReason}
+                          onChange={(e) => setManagerDecision(prev => ({ ...prev, berReason: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Reason for BER decision..."
+                        />
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex gap-3">
                     <button
-                      onClick={() => handleApproveReport(report.id)}
+                      onClick={() => handleManagerDecision(report.id, 'approve')}
                       className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
                     >
-                      Approve
+                      Approve Repair
+                    </button>
+                    <button
+                      onClick={() => handleManagerDecision(report.id, 'ber')}
+                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+                    >
+                      Mark as BER
                     </button>
                     <button
                       onClick={() => {
                         const reason = prompt('Reason for rejection:')
                         if (reason) handleRejectReport(report.id, reason)
                       }}
-                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
                     >
                       Reject
                     </button>
@@ -455,6 +664,16 @@ export default function ClaimManagerDashboard() {
           )}
         </div>
       </div>
+
+      {/* Parts Pricing Modal */}
+      <PartsPricingModal
+        isOpen={showPartsModal}
+        onClose={() => setShowPartsModal(false)}
+        onSelectParts={handlePartsSelected}
+        selectedParts={selectedParts}
+        deviceBrand={selectedReport?.device_brand}
+        deviceModel={selectedReport?.device_model}
+      />
     </div>
   )
 }
