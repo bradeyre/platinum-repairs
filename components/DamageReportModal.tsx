@@ -147,12 +147,50 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     }
     getUser()
 
+    // Fetch detailed ticket information including comments
+    fetchTicketDetails()
+
     // Auto-populate some fields from ticket data
     populateFromTicket()
 
     // Perform AI analysis of the ticket
     performAiAnalysis()
   }, [])
+
+  const fetchTicketDetails = async () => {
+    try {
+      // Extract ticket number from ticketId (remove # if present)
+      const ticketNumber = ticket.ticketId.replace('#', '')
+      const instance = ticket.ticketType === 'PR' ? 'platinum' : 'devicedoctor'
+      
+      console.log(`🔍 Fetching ticket details for ${ticketNumber} from ${instance}`)
+      
+      const response = await fetch(`/api/ticket-details?ticketId=${ticketNumber}&instance=${instance}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log(`✅ Got ticket details:`, data)
+        
+        // Update form data with claim number if found
+        if (data.claimNumber) {
+          setFormData(prev => ({
+            ...prev,
+            claim: data.claimNumber
+          }))
+          console.log(`✅ Updated claim number: ${data.claimNumber}`)
+        }
+        
+        // Update ticket data with custom fields if available
+        if (data.customFields) {
+          console.log(`✅ Got custom fields:`, data.customFields)
+        }
+      } else {
+        console.log(`❌ Failed to fetch ticket details: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Error fetching ticket details:', error)
+    }
+  }
 
   const populateFromTicket = () => {
     // Debug logging

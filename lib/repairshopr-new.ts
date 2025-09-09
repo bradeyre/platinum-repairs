@@ -239,10 +239,10 @@ async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, st
     // Now fetch detailed information for each ticket to get custom fields
     const detailedTickets: RepairShoprTicket[] = []
     
-    for (const ticket of tickets.slice(0, 5)) { // Limit to first 5 tickets for testing
+    for (const ticket of tickets.slice(0, 3)) { // Limit to first 3 tickets for testing
       try {
         const detailUrl = `${baseUrl}/tickets/${ticket.id}?api_key=${token}`
-        console.log(`🔍 Fetching details for ticket ${ticket.id}: ${detailUrl}`)
+        console.log(`🔍 Fetching details for ticket ${ticket.id} (${ticket.number || 'no number'}): ${detailUrl}`)
         
         const detailResponse = await fetch(detailUrl, {
           headers: {
@@ -251,13 +251,27 @@ async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, st
           }
         })
         
+        console.log(`Detail response status for ticket ${ticket.id}: ${detailResponse.status}`)
+        
         if (detailResponse.ok) {
           const detailData = await detailResponse.json()
-          const detailedTicket = detailData.ticket || ticket
+          console.log(`Raw detail response for ticket ${ticket.id}:`, detailData)
+          
+          const detailedTicket = detailData.ticket || detailData
           console.log(`✅ Got detailed ticket ${ticket.id}:`, JSON.stringify(detailedTicket, null, 2))
+          
+          // Check specifically for custom fields
+          if (detailedTicket.custom_fields) {
+            console.log(`🎯 Custom fields found for ticket ${ticket.id}:`, detailedTicket.custom_fields)
+          } else {
+            console.log(`❌ No custom_fields property found for ticket ${ticket.id}`)
+            console.log(`Available properties:`, Object.keys(detailedTicket))
+          }
+          
           detailedTickets.push(detailedTicket)
         } else {
-          console.log(`❌ Failed to get details for ticket ${ticket.id}, using basic ticket data`)
+          const errorText = await detailResponse.text()
+          console.log(`❌ Failed to get details for ticket ${ticket.id}: ${detailResponse.status} - ${errorText}`)
           detailedTickets.push(ticket)
         }
       } catch (error) {
