@@ -150,19 +150,40 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
   const populateFromTicket = () => {
     // Extract claim number from description - look for various patterns
+    const fullText = `${ticket.description} ${ticket.deviceInfo}`
     const claimPatterns = [
       /(?:CC|Claim|Claim Number)[:\s]*([A-Z0-9]+)/i,
       /CC(\d+)/i,
       /Claim[:\s]*([A-Z0-9]+)/i,
       /([A-Z]{2}\d{6,})/i, // Pattern like CC375514
-      /([A-Z]\d{6,})/i     // Pattern like C101096097
+      /([A-Z]\d{6,})/i,    // Pattern like C101096097
+      /(?:Case|Reference|Ref)[:\s]*([A-Z0-9]+)/i,
+      /([A-Z]{1,3}\d{4,})/i // General pattern for claim numbers
     ]
     
     let claimNumber = ''
     for (const pattern of claimPatterns) {
-      const match = ticket.description.match(pattern)
+      const match = fullText.match(pattern)
       if (match) {
         claimNumber = match[1]
+        break
+      }
+    }
+
+    // Extract IMEI from full text using multiple patterns
+    const imeiPatterns = [
+      /imei[:\s]*(\d{15})/i,
+      /imei[:\s]*(\d{14})/i,
+      /(\d{15})/g, // 15-digit numbers
+      /(\d{14})/g, // 14-digit numbers
+      /serial[:\s]*([A-Z0-9]{10,})/i
+    ]
+    
+    let extractedImei = ''
+    for (const pattern of imeiPatterns) {
+      const match = fullText.match(pattern)
+      if (match) {
+        extractedImei = match[1]
         break
       }
     }
@@ -171,6 +192,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       ...prev,
       ticket: ticket.ticketId,
       claim: claimNumber,
+      imei: extractedImei,
       deviceType: extractDeviceType(ticket.deviceInfo),
       make: extractMake(ticket.deviceInfo),
       model: extractModel(ticket.deviceInfo)
@@ -260,7 +282,34 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
   const performFallbackAnalysis = () => {
     const description = ticket.description.toLowerCase()
+    const fullText = `${ticket.description} ${ticket.deviceInfo}`.toLowerCase()
     const checkboxes = []
+    
+    // Extract IMEI from full text using multiple patterns
+    const imeiPatterns = [
+      /imei[:\s]*(\d{15})/i,
+      /imei[:\s]*(\d{14})/i,
+      /(\d{15})/g, // 15-digit numbers
+      /(\d{14})/g, // 14-digit numbers
+      /serial[:\s]*([A-Z0-9]{10,})/i
+    ]
+    
+    let extractedImei = ''
+    for (const pattern of imeiPatterns) {
+      const match = fullText.match(pattern)
+      if (match) {
+        extractedImei = match[1]
+        break
+      }
+    }
+    
+    // Update form data with extracted IMEI
+    if (extractedImei) {
+      setFormData(prev => ({
+        ...prev,
+        imei: extractedImei
+      }))
+    }
     
     // Analyze description for specific issues
     if (description.includes('overheat') || description.includes('heating') || description.includes('hot')) {
@@ -605,27 +654,25 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       disabled={!timerStarted}
                     />
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">IMEI/Serial</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.imei}
-                        onChange={(e) => setFormData(prev => ({ ...prev, imei: e.target.value }))}
-                        className="flex-1 border border-gray-300 rounded px-3 py-2"
-                        placeholder="Enter IMEI or Serial number"
-                        disabled={!timerStarted}
-                      />
-                      <button
-                        type="button"
-                        onClick={openImeiChecker}
-                        disabled={!timerStarted || !formData.imei}
-                        className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Check IMEI online"
-                      >
-                        🔍 Check
-                      </button>
-                    </div>
+                    <input
+                      type="text"
+                      value={formData.imei}
+                      onChange={(e) => setFormData(prev => ({ ...prev, imei: e.target.value }))}
+                      className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
+                      placeholder="Enter IMEI or Serial number"
+                      disabled={!timerStarted}
+                    />
+                    <button
+                      type="button"
+                      onClick={openImeiChecker}
+                      disabled={!timerStarted || !formData.imei}
+                      className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Check IMEI online"
+                    >
+                      🔍 Check IMEI Online
+                    </button>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Last Used</label>
@@ -634,6 +681,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       value={formData.lastUsed}
                       onChange={(e) => setFormData(prev => ({ ...prev, lastUsed: e.target.value }))}
                       className="w-full border border-gray-300 rounded px-3 py-2"
+                      disabled={!timerStarted}
                     />
                   </div>
                   <div className="flex items-center">
@@ -647,6 +695,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                         lastUsed: e.target.checked ? '' : prev.lastUsed
                       }))}
                       className="mr-2"
+                      disabled={!timerStarted}
                     />
                     <label htmlFor="lastUsedUnknown" className="text-sm text-gray-700">
                       Last used date unknown
