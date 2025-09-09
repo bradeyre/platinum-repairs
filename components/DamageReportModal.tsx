@@ -125,17 +125,17 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
         ]
       default:
         return [
-          'Screen Assembly',
-          'Battery',
-          'Charging Port',
-          'Back Glass',
-          'Camera Module',
-          'Speaker',
-          'Vibrator',
-          'Flex Cable',
-          'Home Button',
-          'Volume Buttons'
-        ]
+    'Screen Assembly',
+    'Battery',
+    'Charging Port',
+    'Back Glass',
+    'Camera Module',
+    'Speaker',
+    'Vibrator',
+    'Flex Cable',
+    'Home Button',
+    'Volume Buttons'
+  ]
     }
   }
 
@@ -922,6 +922,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                                   }}
                                   className="w-full text-xs border border-gray-300 rounded px-2 py-1"
                                   rows={2}
+                                  disabled={!timerStarted}
                                 />
                               </div>
                             )}
@@ -959,6 +960,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                         onChange={(e) => setFormData(prev => ({ ...prev, repairExplanation: e.target.value }))}
                         rows={3}
                         className="w-full border border-gray-300 rounded px-3 py-2"
+                        disabled={!timerStarted}
                       />
                     </div>
                   )}
@@ -971,6 +973,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       rows={4}
                       className="w-full border border-gray-300 rounded px-3 py-2"
                       placeholder="Any additional observations or notes..."
+                      disabled={!timerStarted}
                     />
                   </div>
                 </div>

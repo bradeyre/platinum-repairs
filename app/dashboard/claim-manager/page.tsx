@@ -246,6 +246,8 @@ export default function ClaimManagerDashboard() {
                       window.location.href = '/dashboard/admin'
                     } else if (e.target.value === 'technician') {
                       window.location.href = '/dashboard/technician'
+                    } else if (e.target.value === 'claim-manager') {
+                      window.location.href = '/dashboard/claim-manager'
                     }
                   }}
                   value="claim-manager"
