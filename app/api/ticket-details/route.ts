@@ -148,9 +148,17 @@ export async function GET(request: NextRequest) {
       console.log(`🔍 Searching for serial number in comments...`)
       
       // Sort comments by creation date (oldest first) to prioritize original ticket data
-      const sortedComments = [...ticket.comments].sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      )
+      const sortedComments = [...ticket.comments].sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime()
+        const dateB = new Date(b.created_at).getTime()
+        console.log(`Sorting: ${a.created_at} (${dateA}) vs ${b.created_at} (${dateB})`)
+        return dateA - dateB
+      })
+      
+      console.log(`📅 Sorted comments by date (oldest first):`)
+      sortedComments.forEach((comment, index) => {
+        console.log(`${index + 1}. ${comment.created_at} - ${(comment.body || comment.comment || '').substring(0, 50)}...`)
+      })
       
       for (const comment of sortedComments) {
         const commentText = comment.body || comment.comment || ''
