@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const ticketId = searchParams.get('ticketId')
+    const ticketNumber = searchParams.get('ticketId') // This is actually the ticket number, not ID
     const instance = searchParams.get('instance') // 'platinum' or 'devicedoctor'
     
-    if (!ticketId || !instance) {
+    if (!ticketNumber || !instance) {
       return NextResponse.json(
         { error: 'Missing ticketId or instance parameter' },
         { status: 400 }
@@ -29,85 +29,75 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log(`🔍 Fetching ticket details for ${ticketId} from ${instance} instance`)
+    console.log(`🔍 Fetching ticket details for number ${ticketNumber} from ${instance} instance`)
 
-    // Fetch ticket details
-    const ticketUrl = `${baseUrl}/tickets/${ticketId}?api_key=${token}`
-    console.log(`Ticket URL: ${ticketUrl}`)
+    // First, search for the ticket by number to get the actual ticket ID
+    const searchUrl = `${baseUrl}/tickets?api_key=${token}&number=${ticketNumber}`
+    console.log(`Search URL: ${searchUrl}`)
     
-    const ticketResponse = await fetch(ticketUrl, {
+    const searchResponse = await fetch(searchUrl, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
     })
 
-    console.log(`Ticket response status: ${ticketResponse.status}`)
+    console.log(`Search response status: ${searchResponse.status}`)
 
-    if (!ticketResponse.ok) {
-      const errorText = await ticketResponse.text()
-      console.error(`❌ Ticket API error: ${ticketResponse.status} - ${errorText}`)
+    if (!searchResponse.ok) {
+      const errorText = await searchResponse.text()
+      console.error(`❌ Search API error: ${searchResponse.status} - ${errorText}`)
       return NextResponse.json(
-        { error: `Failed to fetch ticket: ${ticketResponse.status}` },
-        { status: ticketResponse.status }
+        { error: `Failed to search for ticket: ${searchResponse.status}` },
+        { status: searchResponse.status }
       )
     }
 
-    const ticketData = await ticketResponse.json()
-    console.log(`✅ Got ticket data:`, JSON.stringify(ticketData, null, 2))
+    const searchData = await searchResponse.json()
+    console.log(`✅ Got search data:`, JSON.stringify(searchData, null, 2))
 
-    // Fetch ticket comments
-    const commentsUrl = `${baseUrl}/tickets/${ticketId}/comments?api_key=${token}`
-    console.log(`Comments URL: ${commentsUrl}`)
-    
-    const commentsResponse = await fetch(commentsUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    })
-
-    console.log(`Comments response status: ${commentsResponse.status}`)
-
-    let commentsData = null
-    if (commentsResponse.ok) {
-      commentsData = await commentsResponse.json()
-      console.log(`✅ Got comments data:`, JSON.stringify(commentsData, null, 2))
-    } else {
-      const errorText = await commentsResponse.text()
-      console.log(`❌ Comments API error: ${commentsResponse.status} - ${errorText}`)
+    if (!searchData.tickets || searchData.tickets.length === 0) {
+      return NextResponse.json(
+        { error: 'Ticket not found' },
+        { status: 404 }
+      )
     }
 
-    // Extract claim number from ticket data and comments
+    const ticket = searchData.tickets[0]
+    console.log(`✅ Found ticket:`, JSON.stringify(ticket, null, 2))
+
+    // Extract claim number from ticket properties
     let claimNumber = ''
     let customFields: Array<{id: number, name: string, value: string}> = []
 
-    // Check ticket data for custom fields
-    const ticket = ticketData.ticket || ticketData
-    if (ticket.custom_fields) {
-      customFields = ticket.custom_fields
-      console.log(`🎯 Custom fields in ticket data:`, customFields)
+    // Check ticket properties for claim number
+    if (ticket.properties) {
+      console.log(`🎯 Ticket properties:`, ticket.properties)
       
-      // Look for claim number in custom fields
-      const claimField = customFields.find((field: {id: number, name: string, value: string}) => 
-        field.name && (
-          field.name.toLowerCase().includes('claim') ||
-          field.name.toLowerCase().includes('case') ||
-          field.name.toLowerCase().includes('reference')
+      // Look for claim number in properties
+      if (ticket.properties['Claim #']) {
+        claimNumber = ticket.properties['Claim #']
+        console.log(`✅ Found claim number in properties: ${claimNumber}`)
+      } else {
+        // Try other property names
+        const claimKeys = Object.keys(ticket.properties).filter(key => 
+          key.toLowerCase().includes('claim') ||
+          key.toLowerCase().includes('case') ||
+          key.toLowerCase().includes('reference')
         )
-      )
-      
-      if (claimField && claimField.value) {
-        claimNumber = claimField.value
-        console.log(`✅ Found claim number in custom fields: ${claimNumber}`)
+        
+        if (claimKeys.length > 0) {
+          claimNumber = ticket.properties[claimKeys[0]]
+          console.log(`✅ Found claim number in properties (${claimKeys[0]}): ${claimNumber}`)
+        }
       }
     }
 
-    // If no claim number found in custom fields, check comments
-    if (!claimNumber && commentsData && commentsData.comments) {
+    // If no claim number found in properties, check comments
+    if (!claimNumber && ticket.comments) {
       console.log(`🔍 Searching for claim number in comments...`)
       
-      for (const comment of commentsData.comments) {
+      for (const comment of ticket.comments) {
         const commentText = comment.body || comment.comment || ''
         console.log(`Checking comment: ${commentText.substring(0, 100)}...`)
         
@@ -135,7 +125,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ticket: ticket,
-      comments: commentsData,
+      comments: ticket.comments,
       claimNumber,
       customFields
     })
