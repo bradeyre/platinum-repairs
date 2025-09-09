@@ -442,16 +442,18 @@ export default function TechnicianDashboard() {
                           >
                             Start Work
                           </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              // Navigate to damage report page
-                              router.push(`/dashboard/technician/damage-report/${ticket.ticketId}`)
-                            }}
-                            className="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
-                          >
-                            Damage Report
-                          </button>
+                          {ticket.status === 'Awaiting Damage Report' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                // Navigate to damage report page
+                                router.push(`/dashboard/technician/damage-report/${ticket.ticketId}`)
+                              }}
+                              className="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
+                            >
+                              Damage Report
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
