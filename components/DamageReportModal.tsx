@@ -164,38 +164,13 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       customFields: ticket.customFields
     })
     
-    // Use claim number from processed ticket data first (from custom fields)
-    let claimNumber = ticket.claimNumber || ''
+    // Use claim number from processed ticket data (from custom fields)
+    const claimNumber = ticket.claimNumber || ''
     
-    // If no claim number from custom fields, try extracting from description
-    if (!claimNumber) {
-      const fullText = `${ticket.description} ${ticket.deviceInfo}`
-      console.log('🔍 Full text for extraction:', fullText)
-      
-      const claimPatterns = [
-        /(?:CC|Claim|Claim Number)[:\s]*([A-Z0-9]+)/i,
-        /CC(\d+)/i,
-        /Claim[:\s]*([A-Z0-9]+)/i,
-        /([A-Z]{2}\d{6,})/i, // Pattern like CC375514
-        /([A-Z]\d{6,})/i,    // Pattern like C101096097
-        /(?:Case|Reference|Ref)[:\s]*([A-Z0-9]+)/i,
-        /([A-Z]{1,3}\d{4,})/i // General pattern for claim numbers
-      ]
-      
-      for (const pattern of claimPatterns) {
-        const match = fullText.match(pattern)
-        if (match) {
-          claimNumber = match[1]
-          console.log('✅ Claim number found in description:', claimNumber, 'with pattern:', pattern)
-          break
-        }
-      }
-    } else {
+    if (claimNumber) {
       console.log('✅ Using claim number from custom fields:', claimNumber)
-    }
-    
-    if (!claimNumber) {
-      console.log('❌ No claim number found with any method')
+    } else {
+      console.log('❌ No claim number found in custom fields - this should be retrieved from RepairShopr API')
     }
 
     // Extract IMEI from full text using multiple patterns

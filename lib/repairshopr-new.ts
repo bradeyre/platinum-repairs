@@ -212,35 +212,64 @@ function formatBusinessHours(hours: number): string {
 // Fetch tickets from RepairShopr with specific status filtering
 async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, status: string): Promise<RepairShoprTicket[]> {
   try {
-    // Try to get more detailed ticket information including custom fields
-    const url = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&api_key=${token}&include=custom_fields`
+    // First, get the list of tickets
+    const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&api_key=${token}`
     console.log(`🔍 Fetching ${status} tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
-    console.log(`URL: ${url}`)
+    console.log(`List URL: ${listUrl}`)
     
-    const response = await fetch(url, {
+    const listResponse = await fetch(listUrl, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
     })
     
-    console.log(`Response status: ${response.status}`)
+    console.log(`List response status: ${listResponse.status}`)
     
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`❌ API error: ${response.status} - ${errorText}`)
-      throw new Error(`API error: ${response.status} - ${errorText}`)
+    if (!listResponse.ok) {
+      const errorText = await listResponse.text()
+      console.error(`❌ API error: ${listResponse.status} - ${errorText}`)
+      throw new Error(`API error: ${listResponse.status} - ${errorText}`)
     }
     
-    const data = await response.json()
-    console.log(`✅ Successfully fetched ${data.tickets?.length || 0} tickets with status: ${status}`)
+    const listData = await listResponse.json()
+    const tickets = listData.tickets || []
+    console.log(`✅ Successfully fetched ${tickets.length} tickets with status: ${status}`)
     
-    // Log the first ticket to see what data we're getting
-    if (data.tickets && data.tickets.length > 0) {
-      console.log('🔍 Sample ticket data:', JSON.stringify(data.tickets[0], null, 2))
+    // Now fetch detailed information for each ticket to get custom fields
+    const detailedTickets: RepairShoprTicket[] = []
+    
+    for (const ticket of tickets.slice(0, 5)) { // Limit to first 5 tickets for testing
+      try {
+        const detailUrl = `${baseUrl}/tickets/${ticket.id}?api_key=${token}`
+        console.log(`🔍 Fetching details for ticket ${ticket.id}: ${detailUrl}`)
+        
+        const detailResponse = await fetch(detailUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        })
+        
+        if (detailResponse.ok) {
+          const detailData = await detailResponse.json()
+          const detailedTicket = detailData.ticket || ticket
+          console.log(`✅ Got detailed ticket ${ticket.id}:`, JSON.stringify(detailedTicket, null, 2))
+          detailedTickets.push(detailedTicket)
+        } else {
+          console.log(`❌ Failed to get details for ticket ${ticket.id}, using basic ticket data`)
+          detailedTickets.push(ticket)
+        }
+      } catch (error) {
+        console.error(`Error fetching details for ticket ${ticket.id}:`, error)
+        detailedTickets.push(ticket)
+      }
     }
     
-    return data.tickets || []
+    // Add remaining tickets without detailed fetch for now
+    detailedTickets.push(...tickets.slice(5))
+    
+    return detailedTickets
   } catch (error) {
     console.error(`Error fetching ${status} tickets from RepairShopr:`, error)
     return []
