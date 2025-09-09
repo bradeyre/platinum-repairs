@@ -95,18 +95,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Generate a unique DR number
+    const drNumber = `DR-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+    
     const { data: report, error } = await supabaseAdmin
       .from('damage_reports')
       .insert({
-        ticket_id: finalTicketId,
-        technician_id: finalTechnician,
-        device_info: finalDeviceInfo,
-        damage_assessment: finalDamageAssessment,
-        repair_estimate: finalRepairEstimate,
-        parts_needed: finalPartsNeeded,
-        status: status === 'completed' ? 'awaiting_approval' : 'in_progress',
+        dr_number: drNumber,
+        claim_number: claim || '',
+        device_brand: make || 'Unknown',
+        device_model: model || 'Unknown',
+        device_type: deviceType || 'Unknown',
+        imei_serial: '', // Will be filled from form data
+        client_reported_issues: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.label) || [],
+        tech_findings: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.notes).filter((note: any) => note) || [],
+        damage_photos: photos?.map((photo: any) => photo.name) || [],
+        selected_parts: suggestedParts || [],
+        total_parts_cost: 0, // Will be calculated from parts pricing
+        status: status === 'completed' ? 'awaiting_approval' : 'in_assessment',
+        manager_notes: additionalNotes || '',
+        ai_checklist: dynamicCheckboxes?.map((cb: any) => cb.label) || [],
+        ai_risk_assessment: aiAnalysis?.riskFactors || '',
         // Store comprehensive data in report_data JSONB field
         report_data: {
+          ticketId: finalTicketId,
+          technician: finalTechnician,
           timeSpent,
           aiAnalysis,
           dynamicCheckboxes,
@@ -118,7 +131,6 @@ export async function POST(request: NextRequest) {
           deviceRepairable,
           repairExplanation,
           photosCount: photos?.length || 0,
-          technician: finalTechnician,
           timestamp: new Date().toISOString()
         }
       })
