@@ -62,6 +62,15 @@ export default function LoginPage() {
     }
   }
 
+  const testLocalStorage = () => {
+    const testUser = { id: 'test', username: 'test', role: 'admin' }
+    localStorage.setItem('currentUser', JSON.stringify(testUser))
+    console.log('🧪 Test user stored in localStorage')
+    
+    const retrieved = localStorage.getItem('currentUser')
+    console.log('🧪 Retrieved from localStorage:', retrieved)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#28b2ff' }}>
       <div className="max-w-md w-full space-y-8 p-8">
@@ -134,6 +143,16 @@ export default function LoginPage() {
             <p>Admin: brad / b123456</p>
             <p>Technician: marshal / m123456</p>
             <p>Claim Manager: dane / d123456</p>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={testLocalStorage}
+              className="text-xs text-blue-600 hover:text-blue-800 underline"
+            >
+              Test localStorage
+            </button>
           </div>
         </div>
       </div>

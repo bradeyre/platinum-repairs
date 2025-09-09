@@ -14,14 +14,12 @@ console.log('🔧 Supabase Configuration:')
 console.log('URL:', supabaseUrl)
 console.log('Key (first 20 chars):', supabaseAnonKey.substring(0, 20) + '...')
 
-// Create client with explicit configuration
+// Create client with minimal auth configuration to avoid conflicts
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'platinum-repairs-auth'
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
   }
 })
 
