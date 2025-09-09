@@ -22,10 +22,11 @@ export async function POST(request: Request) {
           role: 'system',
           content: `You are an expert repair technician analyzing a device repair ticket. Your task is to:
 
-1. Analyze the device information and description
-2. Identify specific issues mentioned by the client
-3. Create dynamic checkboxes for issues that need to be verified by the technician
-4. Provide assessment and recommendations
+1. Extract device information (make, model, IMEI if present)
+2. Analyze the device information and description
+3. Identify specific issues mentioned by the client
+4. Create dynamic checkboxes for issues that need to be verified by the technician
+5. Provide assessment and recommendations
 
 Return a JSON object with this structure:
 {
@@ -34,6 +35,11 @@ Return a JSON object with this structure:
     "repairability": "Repairable/Not Repairable/Needs Assessment",
     "recommendedActions": ["action1", "action2", "action3"],
     "riskFactors": ["risk1", "risk2", "risk3"]
+  },
+  "deviceDetails": {
+    "make": "Extracted device manufacturer (e.g., Apple, Samsung, Huawei)",
+    "model": "Extracted device model (e.g., iPhone 13 Pro, Galaxy S22 Ultra)",
+    "imei": "Extracted IMEI number if present in the text"
   },
   "checkboxes": [
     {
@@ -45,7 +51,10 @@ Return a JSON object with this structure:
   ]
 }
 
-Focus on creating checkboxes for specific issues mentioned in the description that need verification.`
+Focus on:
+- Extracting accurate make and model from device information
+- Looking for IMEI numbers (15-digit numbers starting with 35, 86, or other valid prefixes)
+- Creating checkboxes for specific issues mentioned in the description that need verification.`
         },
         {
           role: 'user',

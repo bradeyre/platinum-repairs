@@ -242,15 +242,29 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 - **Admin Impersonation**: Admins can select technicians to view their tickets
 - **User Profiles**: Bio and profile management
 
-### 5. AI-Powered Device Detection
-- **OpenAI Integration**: Uses GPT-3.5-turbo for intelligent device name extraction
+### 5. AI-Powered Device Detection & Analysis
+- **OpenAI Integration**: Uses GPT-3.5-turbo for intelligent device name extraction and analysis
 - **Context Analysis**: Analyzes full ticket data (subject, customer, notes) for better detection
+- **Device Details Extraction**: AI extracts make, model, and IMEI numbers from ticket descriptions
+- **Dynamic Issue Detection**: Creates checkboxes for specific issues mentioned by clients
 - **Confidence Scoring**: Only uses AI results with >60% confidence
 - **Fallback Patterns**: Regex-based fallback for low-confidence cases
 - **Caching**: LRU cache prevents repeated API calls for same descriptions
-- **Real-time Processing**: Device names updated automatically as tickets are processed
+- **Real-time Processing**: Device names and analysis updated automatically as tickets are processed
+- **IMEI Validation**: Integrated IMEI checker button for device verification
 
-### 6. Performance Tracking
+### 6. Comprehensive Damage Report Modal
+- **Timer-Based Workflow**: All form fields disabled until timer starts
+- **Auto-Population**: AI extracts claim number, make, model, and IMEI from ticket data
+- **Device-Specific Parts**: Dynamic parts lists based on device type (phone, laptop, tablet, watch)
+- **Photo Validation**: Requires 2-6 photos with visual feedback
+- **IMEI Checker Integration**: One-click IMEI validation via external service
+- **Dynamic Issue Checkboxes**: AI-generated checkboxes for specific issues to verify
+- **Repairability Assessment**: Checkbox for device repairability with explanation field
+- **Complete Button**: Validates all requirements and saves to database
+- **Real-time Validation**: Form validation with user feedback
+
+### 7. Performance Tracking
 - **Status-Based Timing**: Measures wait time from when ticket status changes, not ticket creation
 - **Business Hours Only**: Only counts 8 AM - 6 PM, Monday-Friday (excludes weekends and after-hours)
 - **Real-Time Updates**: Time display updates automatically as tickets move through statuses
@@ -359,6 +373,9 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 ### User Management
 - `POST /api/setup-users` - Setup system users
 - `POST /api/cleanup-users` - Remove all users
+
+### AI Analysis
+- `POST /api/ai-analyze-ticket` - Analyze ticket descriptions and extract device details
 
 ### Performance Tracking
 - `POST /api/ticket-status-tracking` - Record status changes and wait times
