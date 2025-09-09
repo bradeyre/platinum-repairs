@@ -55,20 +55,29 @@ export default function ClaimManagerDashboard() {
     const checkAuth = () => {
       // Check localStorage for user data
       const userData = localStorage.getItem('user')
+      console.log('🔍 Claim Manager: localStorage data:', userData)
+      
       if (!userData) {
+        console.log('❌ Claim Manager: No user data found, redirecting to login')
         router.push('/login')
         return
       }
       
       try {
         const parsedUser = JSON.parse(userData)
+        console.log('🔍 Claim Manager: Parsed user:', parsedUser)
+        console.log('🔍 Claim Manager: User role:', parsedUser.role)
+        
         if (parsedUser.role !== 'claim_manager' && parsedUser.role !== 'admin') {
+          console.log('❌ Claim Manager: Invalid role, redirecting to login')
           router.push('/login')
           return
         }
+        
+        console.log('✅ Claim Manager: Authentication successful, setting user')
         setUser(parsedUser)
       } catch (error) {
-        console.error('Error parsing user data:', error)
+        console.error('❌ Claim Manager: Error parsing user data:', error)
         router.push('/login')
       }
     }
@@ -188,6 +197,7 @@ export default function ClaimManagerDashboard() {
   }
 
   if (!user) {
+    console.log('🔄 Claim Manager: No user, showing loading screen')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
