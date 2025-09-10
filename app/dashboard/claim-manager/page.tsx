@@ -376,6 +376,8 @@ export default function ClaimManagerPage() {
 
   const handleMarkAsCompleted = async (reportId: string) => {
     try {
+      console.log('Frontend: Attempting to complete report with ID:', reportId)
+      
       const response = await fetch(`/api/damage-reports/${reportId}/complete`, {
         method: 'POST',
         headers: {
@@ -384,9 +386,16 @@ export default function ClaimManagerPage() {
         body: JSON.stringify({ status: 'completed' })
       })
       
+      console.log('Frontend: Response status:', response.status)
+      
       if (!response.ok) {
-        throw new Error('Failed to mark report as completed')
+        const errorData = await response.json()
+        console.error('Frontend: Error response:', errorData)
+        throw new Error(`Failed to mark report as completed: ${errorData.error || 'Unknown error'}`)
       }
+
+      const result = await response.json()
+      console.log('Frontend: Success response:', result)
 
       await fetchDamageReportsSilently()
       handleCloseModal()
