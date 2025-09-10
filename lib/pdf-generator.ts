@@ -336,6 +336,6 @@ function generatePDFHTML(report: DamageReportData): string {
 }
 
 // API endpoint helper function
-export async function generatePDFBuffer(damageReportId: string): Promise<Buffer> {
+export async function generatePDFBuffer(damageReportId: string): Promise<string> {
   return await generateDamageReportPDF(damageReportId)
 }
