@@ -17,6 +17,7 @@ export interface DamageReportData {
   manager_ber_decision?: boolean
   ber_reason?: string
   selected_parts: any
+  final_parts_selected?: string[]
   total_parts_cost: number
   final_eta_days?: number
   manager_notes?: string
