@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS technician_performance (
     tickets_completed INTEGER NOT NULL DEFAULT 0,
     total_work_minutes INTEGER NOT NULL DEFAULT 0,
     average_completion_time_minutes INTEGER,
-    quality_score DECIMAL(3,2), -- 0.00 to 5.00
+    quality_score DECIMAL(3,2) DEFAULT 0.00, -- 0.00 to 5.00
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(technician_id, date)
@@ -166,6 +166,15 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'damage_reports' AND column_name = 'ticket_number') THEN
         ALTER TABLE damage_reports ADD COLUMN ticket_number TEXT;
+    END IF;
+END $$;
+
+-- Add quality_score column to technician_performance if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'technician_performance' AND column_name = 'quality_score') THEN
+        ALTER TABLE technician_performance ADD COLUMN quality_score DECIMAL(3,2) DEFAULT 0.00;
     END IF;
 END $$;
 
