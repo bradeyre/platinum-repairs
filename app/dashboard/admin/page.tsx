@@ -66,6 +66,7 @@ export default function AdminDashboard() {
   const [backgroundLoading, setBackgroundLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedTimeframe, setSelectedTimeframe] = useState<'today' | 'week' | 'month'>('today')
+  const [assigningTicket, setAssigningTicket] = useState<string | null>(null)
 
   // Initial data fetch (with loading screen)
   useEffect(() => {
@@ -180,6 +181,41 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error updating clock status:', error)
+    }
+  }
+
+  // Handle ticket assignment
+  const handleAssignTicket = async (ticketId: string, technician: string) => {
+    if (technician === 'Select technician...' || !technician) return
+    
+    setAssigningTicket(ticketId)
+    try {
+      const response = await fetch('/api/tickets/assign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticketId, technician })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to assign ticket')
+      }
+      
+      // Update the ticket assignment in local state
+      setTickets(prev => prev.map(ticket => 
+        ticket.ticketId === ticketId 
+          ? { ...ticket, assignedTo: technician }
+          : ticket
+      ))
+      
+      alert(`Ticket ${ticketId} assigned to ${technician}`)
+      
+    } catch (err) {
+      console.error('Error assigning ticket:', err)
+      alert('Failed to assign ticket. Please try again.')
+    } finally {
+      setAssigningTicket(null)
     }
   }
 
@@ -547,7 +583,21 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {ticket.assignedTo || 'Unassigned'}
+                            <select
+                              value={ticket.assignedTo || ''}
+                              onChange={(e) => handleAssignTicket(ticket.ticketId, e.target.value)}
+                              disabled={assigningTicket === ticket.ticketId}
+                              className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                            >
+                              <option value="">Unassigned</option>
+                              <option value="Ben">Ben</option>
+                              <option value="Marshal">Marshal</option>
+                              <option value="Malvin">Malvin</option>
+                              <option value="Francis">Francis</option>
+                            </select>
+                            {assigningTicket === ticket.ticketId && (
+                              <span className="ml-2 text-xs text-blue-600">Assigning...</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs rounded-full ${

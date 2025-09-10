@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 // Available technicians
-const TECHNICIANS = ['Ben', 'Alex', 'Sarah', 'Mike']
+const TECHNICIANS = ['Ben', 'Marshal', 'Malvin', 'Francis']
 
 export async function POST(request: Request) {
   try {
