@@ -5,6 +5,7 @@ import PerformanceLeaderboard from '@/components/PerformanceLeaderboard'
 import MonthlyReports from '@/components/MonthlyReports'
 import TicketClaimingModal from '@/components/TicketClaimingModal'
 import UserManagement from '@/components/UserManagement'
+import DashboardNavigation from '@/components/DashboardNavigation'
 
 interface ProcessedTicket {
   ticketId: string
@@ -168,6 +169,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <DashboardNavigation currentSection="admin" userRole="admin" />
+      
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

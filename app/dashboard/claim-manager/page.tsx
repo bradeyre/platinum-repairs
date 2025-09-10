@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import PartsPricingModal from '@/components/PartsPricingModal'
+import DashboardNavigation from '@/components/DashboardNavigation'
 
 interface DamageReport {
   id: string
@@ -372,6 +373,9 @@ export default function ClaimManagerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <DashboardNavigation currentSection="claim-manager" userRole={user?.role} />
+      
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { getCurrentUser } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import DamageReportModal from '@/components/DamageReportModal'
+import DashboardNavigation from '@/components/DashboardNavigation'
 
 interface ProcessedTicket {
   ticketId: string
@@ -179,6 +180,9 @@ export default function TechnicianDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <DashboardNavigation currentSection="technician" userRole={user?.role} />
+      
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
