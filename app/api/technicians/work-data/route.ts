@@ -87,8 +87,8 @@ export async function GET(request: NextRequest) {
           is_clocked_in: isClockedIn,
           clock_in_time: clockInTime,
           total_hours_today: todayHours?.total_minutes ? Math.round(todayHours.total_minutes / 60 * 100) / 100 : 0,
-          total_hours_this_week: weekHours?.reduce((sum, h) => sum + (h.total_minutes || 0), 0) / 60 || 0,
-          total_hours_this_month: monthHours?.reduce((sum, h) => sum + (h.total_minutes || 0), 0) / 60 || 0,
+          total_hours_this_week: weekHours ? weekHours.reduce((sum, h) => sum + (h.total_minutes || 0), 0) / 60 : 0,
+          total_hours_this_month: monthHours ? monthHours.reduce((sum, h) => sum + (h.total_minutes || 0), 0) / 60 : 0,
           tickets_completed_today: todayTickets?.length || 0,
           tickets_completed_this_week: weekTickets?.length || 0,
           tickets_completed_this_month: monthTickets?.length || 0
