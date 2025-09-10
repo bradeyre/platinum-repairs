@@ -32,6 +32,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   const [formData, setFormData] = useState({
     ticket: ticket.ticketId,
     claim: '',
+    clientName: '',
     deviceType: '',
     make: '',
     model: '',
@@ -188,6 +189,15 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
             imei: data.serialNumber
           }))
           console.log(`✅ Updated serial number: ${data.serialNumber}`)
+        }
+        
+        // Update form data with client name if found
+        if (data.clientName) {
+          setFormData(prev => ({
+            ...prev,
+            clientName: data.clientName
+          }))
+          console.log(`✅ Updated client name: ${data.clientName}`)
         }
         
         // Update ticket data with custom fields if available

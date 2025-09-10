@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
       make,
       model,
       claim,
+      clientName,
       lastUsed,
       deviceRepairable,
       repairExplanation,
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest) {
       .insert({
         dr_number: drNumber,
         claim_number: claim || '',
+        client_name: clientName || '',
         device_brand: make || 'Unknown',
         device_model: model || 'Unknown',
         device_type: deviceType || 'Unknown',

@@ -227,11 +227,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Extract client name from ticket
+    const clientName = ticket.customer?.name || ticket.customer_name || ticket.customer?.first_name + ' ' + ticket.customer?.last_name || ''
+
     return NextResponse.json({
       ticket: ticket,
       comments: ticket.comments,
       claimNumber,
       serialNumber,
+      clientName,
       customFields
     })
 
