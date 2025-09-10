@@ -211,6 +211,13 @@ export default function ClaimManagerPage() {
     return selectedPartsCost + customPartsCost
   }
 
+  const calculateBERRatio = () => {
+    const repairCostExclVAT = calculateTotalCost() // Already excluding VAT
+    const replacementValueExclVAT = managerDecision.replacementValue / 1.15 // Remove 15% VAT
+    if (replacementValueExclVAT === 0) return 0
+    return (repairCostExclVAT / replacementValueExclVAT) * 100
+  }
+
   const addCustomPart = () => {
     setCustomParts([...customParts, { name: '', price: 0, eta: 1 }])
   }
@@ -608,10 +615,10 @@ export default function ClaimManagerPage() {
               </div>
 
               {/* 3-Column Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* Column 1: Device Info & Assessment */}
-                <div className="space-y-4">
+                <div className="lg:col-span-3 space-y-4">
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-medium text-gray-900 mb-3">Device Information</h4>
                     <div className="space-y-2 text-sm">
@@ -656,10 +663,33 @@ export default function ClaimManagerPage() {
                     </div>
                   </div>
 
+                  {/* Technician Photos */}
+                  {selectedReport.damage_photos && selectedReport.damage_photos.length > 0 && (
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-3">Technician Photos</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedReport.damage_photos.map((photo, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={photo}
+                              alt={`Damage photo ${index + 1}`}
+                              className="w-full h-24 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => window.open(photo, '_blank')}
+                            />
+                            <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                              {index + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Click to view full size</p>
+                    </div>
+                  )}
+
                 </div>
 
                 {/* Column 2: Combined Issues & Parts */}
-                <div className="space-y-4">
+                <div className="lg:col-span-5 space-y-4">
                   {/* Combined Issues & Findings */}
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-medium text-gray-900 mb-3">Issues & Assessment</h4>
@@ -760,34 +790,44 @@ export default function ClaimManagerPage() {
                       </div>
                       <div className="space-y-2">
                         {customParts.map((part, index) => (
-                          <div key={index} className="flex gap-2 items-center">
-                            <input
-                              type="text"
-                              placeholder="Part name"
-                              value={part.name}
-                              onChange={(e) => updateCustomPart(index, 'name', e.target.value)}
-                              className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                            />
-                            <input
-                              type="number"
-                              placeholder="Price"
-                              value={part.price}
-                              onChange={(e) => updateCustomPart(index, 'price', parseFloat(e.target.value) || 0)}
-                              className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
-                            />
-                            <input
-                              type="number"
-                              placeholder="ETA"
-                              value={part.eta}
-                              onChange={(e) => updateCustomPart(index, 'eta', parseInt(e.target.value) || 1)}
-                              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded"
-                            />
-                            <button
-                              onClick={() => removeCustomPart(index)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              ×
-                            </button>
+                          <div key={index} className="space-y-1">
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="text"
+                                placeholder="Part name"
+                                value={part.name}
+                                onChange={(e) => updateCustomPart(index, 'name', e.target.value)}
+                                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                              <button
+                                onClick={() => removeCustomPart(index)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                ×
+                              </button>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <div className="flex-1">
+                                <label className="block text-xs text-gray-600 mb-1">Price excl. VAT</label>
+                                <input
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={part.price}
+                                  onChange={(e) => updateCustomPart(index, 'price', parseFloat(e.target.value) || 0)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                />
+                              </div>
+                              <div className="w-20">
+                                <label className="block text-xs text-gray-600 mb-1">ETA</label>
+                                <input
+                                  type="number"
+                                  placeholder="1"
+                                  value={part.eta}
+                                  onChange={(e) => updateCustomPart(index, 'eta', parseInt(e.target.value) || 1)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                />
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -809,17 +849,21 @@ export default function ClaimManagerPage() {
                   </div>
 
                   {/* BER Ratio Analysis */}
-                  {managerDecision.finalTotalCost > 0 && managerDecision.replacementValue > 0 && (
+                  {calculateTotalCost() > 0 && managerDecision.replacementValue > 0 && (
                     <div className="p-4 bg-yellow-50 rounded-lg">
                       <h4 className="font-medium text-yellow-900 mb-2">BER Ratio Analysis</h4>
                       <div className="text-sm text-yellow-800 space-y-1">
-                        <div>Repair Cost: R{managerDecision.finalTotalCost}</div>
-                        <div>Replacement Value: R{managerDecision.replacementValue}</div>
+                        <div>Repair Cost (excl. VAT): R{calculateTotalCost().toFixed(2)}</div>
+                        <div>Replacement Value (incl. VAT): R{managerDecision.replacementValue.toFixed(2)}</div>
+                        <div>Replacement Value (excl. VAT): R{(managerDecision.replacementValue / 1.15).toFixed(2)}</div>
                         <div className="font-medium">
-                          BER Ratio: {((managerDecision.finalTotalCost / managerDecision.replacementValue) * 100).toFixed(1)}%
-                          {((managerDecision.finalTotalCost / managerDecision.replacementValue) * 100) > 70 && (
+                          BER Ratio: {calculateBERRatio().toFixed(1)}%
+                          {calculateBERRatio() > 70 && (
                             <span className="text-red-600 ml-1">(High BER Risk)</span>
                           )}
+                        </div>
+                        <div className="text-xs text-yellow-700 mt-2">
+                          {calculateBERRatio() > 70 ? 'Beyond Economical Repair' : 'Economically Repairable'}
                         </div>
                       </div>
                     </div>
@@ -827,7 +871,7 @@ export default function ClaimManagerPage() {
                 </div>
 
                 {/* Column 3: Manager Decision */}
-                <div className="space-y-4">
+                <div className="lg:col-span-4 space-y-4">
 
                   {/* Replacement Value Input */}
                   <div className="p-4 bg-gray-50 rounded-lg">
