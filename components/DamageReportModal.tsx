@@ -42,6 +42,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     lastUsedUnknown: false,
     deviceRepairable: true,
     repairExplanation: '',
+    causeOfDamage: '',
     suggestedParts: [] as string[],
     noPartsNeeded: false,
     photos: [] as File[],
@@ -533,8 +534,8 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   const handleSave = async () => {
     try {
       // Validate required fields
-      if (!formData.ticket || !currentUser) {
-        alert('Please fill in all required fields')
+      if (!formData.ticket || !currentUser || !formData.causeOfDamage) {
+        alert('Please fill in all required fields including cause of damage')
         return
       }
       
@@ -964,6 +965,25 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       />
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cause of Damage *</label>
+                    <select
+                      value={formData.causeOfDamage}
+                      onChange={(e) => setFormData(prev => ({ ...prev, causeOfDamage: e.target.value }))}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      disabled={!timerStarted}
+                      required
+                    >
+                      <option value="">Select cause of damage...</option>
+                      <option value="Impact & Liquid Damage">Impact & Liquid Damage</option>
+                      <option value="Power Surge and/or Dip">Power Surge and/or Dip</option>
+                      <option value="No Damage">No Damage</option>
+                      <option value="Component Failure">Component Failure</option>
+                      <option value="Wear & Tear">Wear & Tear</option>
+                      <option value="Accidental Damage">Accidental Damage</option>
+                    </select>
+                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>

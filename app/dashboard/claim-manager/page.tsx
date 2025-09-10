@@ -70,6 +70,7 @@ export default function ClaimManagerPage() {
     name: string
     price: number
     eta: number
+    etaOption: string
   }>>([])
   
   // Manager decision state
@@ -219,7 +220,7 @@ export default function ClaimManagerPage() {
   }
 
   const addCustomPart = () => {
-    setCustomParts([...customParts, { name: '', price: 0, eta: 1 }])
+    setCustomParts([...customParts, { name: '', price: 0, eta: 1, etaOption: '1-3 days' }])
   }
 
   const updateCustomPart = (index: number, field: string, value: string | number) => {
@@ -817,15 +818,38 @@ export default function ClaimManagerPage() {
                                   className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                                 />
                               </div>
-                              <div className="w-20">
+                              <div className="flex-1">
                                 <label className="block text-xs text-gray-600 mb-1">ETA</label>
-                                <input
-                                  type="number"
-                                  placeholder="1"
-                                  value={part.eta}
-                                  onChange={(e) => updateCustomPart(index, 'eta', parseInt(e.target.value) || 1)}
+                                <select
+                                  value={part.etaOption}
+                                  onChange={(e) => {
+                                    const etaOption = e.target.value
+                                    let etaDays = 1
+                                    if (etaOption === 'No Parts Required') etaDays = 0
+                                    else if (etaOption === 'Parts Are In Stock') etaDays = 1
+                                    else if (etaOption === '1-3 days') etaDays = 2
+                                    else if (etaOption === '3-5 days') etaDays = 4
+                                    else if (etaOption === '5-7 days') etaDays = 6
+                                    else if (etaOption === '1-2 weeks') etaDays = 10
+                                    else if (etaOption === '2-3 weeks') etaDays = 17
+                                    else if (etaOption === '3-4 weeks') etaDays = 24
+                                    else if (etaOption === '4+ weeks') etaDays = 30
+                                    
+                                    updateCustomPart(index, 'etaOption', etaOption)
+                                    updateCustomPart(index, 'eta', etaDays)
+                                  }}
                                   className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                                />
+                                >
+                                  <option value="No Parts Required">No Parts Required</option>
+                                  <option value="Parts Are In Stock">Parts Are In Stock</option>
+                                  <option value="1-3 days">1-3 days</option>
+                                  <option value="3-5 days">3-5 days</option>
+                                  <option value="5-7 days">5-7 days</option>
+                                  <option value="1-2 weeks">1-2 weeks</option>
+                                  <option value="2-3 weeks">2-3 weeks</option>
+                                  <option value="3-4 weeks">3-4 weeks</option>
+                                  <option value="4+ weeks">4+ weeks</option>
+                                </select>
                               </div>
                             </div>
                           </div>
@@ -842,7 +866,25 @@ export default function ClaimManagerPage() {
                         </div>
                         <div className="flex justify-between">
                           <span>Final ETA:</span>
-                          <span>{calculateFinalETA()} days</span>
+                          <span>{(() => {
+                            const allParts = [...selectedParts, ...customParts.map(cp => ({ eta_info: cp.etaOption }))]
+                            if (allParts.length === 0) return 'Not specified'
+                            
+                            const etas = allParts.map(part => {
+                              const etaText = part.eta_info || '1-3 days'
+                              return etaText
+                            })
+                            
+                            // Return the longest ETA option
+                            const etaOptions = ['No Parts Required', 'Parts Are In Stock', '1-3 days', '3-5 days', '5-7 days', '1-2 weeks', '2-3 weeks', '3-4 weeks', '4+ weeks']
+                            let longestIndex = 0
+                            etas.forEach(eta => {
+                              const index = etaOptions.indexOf(eta)
+                              if (index > longestIndex) longestIndex = index
+                            })
+                            
+                            return etaOptions[longestIndex]
+                          })()}</span>
                         </div>
                       </div>
                     </div>
