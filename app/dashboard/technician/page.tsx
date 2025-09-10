@@ -72,8 +72,9 @@ export default function TechnicianDashboard() {
   }, [router])
 
   // Fetch all tickets
+  // Initial data fetch (with loading screen)
   useEffect(() => {
-    const fetchTickets = async () => {
+    const fetchInitialTickets = async () => {
       try {
         setLoading(true)
         const response = await fetch('/api/tickets')
@@ -107,9 +108,55 @@ export default function TechnicianDashboard() {
       }
     }
 
-    fetchTickets()
-    const interval = setInterval(fetchTickets, 1 * 60 * 1000)
-    return () => clearInterval(interval)
+    fetchInitialTickets()
+  }, [selectedTechnician])
+
+  // Background data refresh (no loading screen)
+  useEffect(() => {
+    const fetchBackgroundTickets = async () => {
+      try {
+        const response = await fetch('/api/tickets')
+        if (!response.ok) {
+          throw new Error('Failed to fetch tickets')
+        }
+        const data = await response.json()
+        setAllTickets(data.tickets)
+        
+        // Filter for assigned tickets if technician is selected
+        if (selectedTechnician) {
+          const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => {
+            // Case-insensitive matching for technician names
+            const selectedTechLower = selectedTechnician.toLowerCase()
+            const assignedToLower = ticket.assignedTo?.toLowerCase() || ''
+            
+            return assignedToLower === selectedTechLower || 
+                   assignedToLower === selectedTechLower.charAt(0).toUpperCase() + selectedTechLower.slice(1) ||
+                   (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
+          })
+          setTickets(assignedTickets)
+        } else {
+          setTickets([])
+        }
+        setError(null)
+      } catch (err) {
+        console.error('Error refreshing tickets:', err)
+        // Don't set error for background refreshes
+      }
+    }
+
+    // Start background refresh after initial load
+    let interval: NodeJS.Timeout | null = null
+    const timeout = setTimeout(() => {
+      // Refresh data every minute in background
+      interval = setInterval(fetchBackgroundTickets, 1 * 60 * 1000)
+    }, 5000) // Wait 5 seconds after initial load
+
+    return () => {
+      clearTimeout(timeout)
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
   }, [selectedTechnician])
 
   const handleTechnicianSelect = (techName: string) => {

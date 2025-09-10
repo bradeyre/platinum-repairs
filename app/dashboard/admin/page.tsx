@@ -63,12 +63,13 @@ export default function AdminDashboard() {
     monthlyGrowth: 0
   })
   const [loading, setLoading] = useState(true)
+  const [backgroundLoading, setBackgroundLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedTimeframe, setSelectedTimeframe] = useState<'today' | 'week' | 'month'>('today')
 
-  // Fetch dashboard data
+  // Initial data fetch (with loading screen)
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchInitialData = async () => {
       try {
         setLoading(true)
         
@@ -102,11 +103,58 @@ export default function AdminDashboard() {
       }
     }
 
-    fetchDashboardData()
-    
-    // Refresh data every 30 seconds
-    const interval = setInterval(fetchDashboardData, 30000)
-    return () => clearInterval(interval)
+    fetchInitialData()
+  }, [])
+
+  // Background data refresh (no loading screen)
+  useEffect(() => {
+    const fetchBackgroundData = async () => {
+      try {
+        setBackgroundLoading(true)
+        
+        // Fetch tickets
+        const ticketsResponse = await fetch('/api/tickets')
+        if (ticketsResponse.ok) {
+          const ticketsData = await ticketsResponse.json()
+          setTickets(ticketsData.tickets || [])
+        }
+
+        // Fetch technicians and their work data
+        const techResponse = await fetch('/api/technicians/work-data')
+        if (techResponse.ok) {
+          const techData = await techResponse.json()
+          setTechnicians(techData.technicians || [])
+        }
+
+        // Fetch dashboard stats
+        const statsResponse = await fetch('/api/admin/dashboard-stats')
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json()
+          setStats(statsData)
+        }
+
+        setError(null)
+      } catch (err) {
+        console.error('Error refreshing dashboard data:', err)
+        // Don't set error for background refreshes to avoid disrupting user
+      } finally {
+        setBackgroundLoading(false)
+      }
+    }
+
+    // Start background refresh after initial load
+    let interval: NodeJS.Timeout | null = null
+    const timeout = setTimeout(() => {
+      // Refresh data every 30 seconds in background
+      interval = setInterval(fetchBackgroundData, 30000)
+    }, 5000) // Wait 5 seconds after initial load
+
+    return () => {
+      clearTimeout(timeout)
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
   }, [])
 
   const handleClockInOut = async (technicianId: string, isClockedIn: boolean) => {
@@ -168,8 +216,18 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="mt-2 text-gray-600">Comprehensive overview of repair operations and technician performance</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+              <p className="mt-2 text-gray-600">Comprehensive overview of repair operations and technician performance</p>
+            </div>
+            {backgroundLoading && (
+              <div className="flex items-center text-sm text-gray-500">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                Updating...
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Timeframe Selector */}
