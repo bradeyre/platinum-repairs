@@ -51,15 +51,24 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
     let assignedTech = null
     if (report?.assigned_tech_id) {
       try {
-        const { data: techData } = await supabaseAdmin
+        console.log('PDF Generator: Fetching technician details for ID:', report.assigned_tech_id)
+        const { data: techData, error: techError } = await supabaseAdmin
           .from('users')
           .select('full_name, bio')
           .eq('id', report.assigned_tech_id)
           .single()
-        assignedTech = techData
+        
+        if (techError) {
+          console.log('PDF Generator: Error fetching technician:', techError)
+        } else {
+          console.log('PDF Generator: Found technician data:', techData)
+          assignedTech = techData
+        }
       } catch (techError) {
         console.log('PDF Generator: Could not fetch technician details:', techError)
       }
+    } else {
+      console.log('PDF Generator: No assigned_tech_id found in report')
     }
 
     // Try to get client name from ticket if we have a ticket number

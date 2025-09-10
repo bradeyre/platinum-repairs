@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { getCurrentUser } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import DamageReportModal from '@/components/DamageReportModal'
+import RepairCompletionModal from '@/components/RepairCompletionModal'
 import DashboardNavigation from '@/components/DashboardNavigation'
 
 interface ProcessedTicket {
@@ -40,6 +41,7 @@ export default function TechnicianDashboard() {
   const [showClaimModal, setShowClaimModal] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<ProcessedTicket | null>(null)
   const [showDamageModal, setShowDamageModal] = useState(false)
+  const [showRepairModal, setShowRepairModal] = useState(false)
   const router = useRouter()
 
   // Check authentication
@@ -213,6 +215,11 @@ export default function TechnicianDashboard() {
     setShowDamageModal(true)
   }
 
+  const handleStartWork = (ticket: ProcessedTicket) => {
+    setSelectedTicket(ticket)
+    setShowRepairModal(true)
+  }
+
   const handleDamageReportSave = (reportData: any) => {
     console.log('Damage report saved:', reportData)
     // Here you would typically save the damage report to the database
@@ -220,8 +227,44 @@ export default function TechnicianDashboard() {
     setSelectedTicket(null)
   }
 
+  const handleRepairCompletionSave = async (repairData: any) => {
+    try {
+      console.log('Repair completion saved:', repairData)
+      // Here you would typically save the repair completion to the database
+      // For now, we'll just log it
+      
+      // Update the ticket status in RepairShopr
+      const response = await fetch('/api/tickets/update-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: repairData.ticketId,
+          status: 'Repair Completed'
+        })
+      })
+
+      if (response.ok) {
+        // Refresh the tickets list
+        await fetchTickets()
+      }
+      
+      setShowRepairModal(false)
+      setSelectedTicket(null)
+    } catch (error) {
+      console.error('Error saving repair completion:', error)
+      alert('Failed to save repair completion')
+    }
+  }
+
   const handleDamageReportClose = () => {
     setShowDamageModal(false)
+    setSelectedTicket(null)
+  }
+
+  const handleRepairModalClose = () => {
+    setShowRepairModal(false)
     setSelectedTicket(null)
   }
 
@@ -488,7 +531,7 @@ export default function TechnicianDashboard() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleTicketClick(ticket)
+                                handleStartWork(ticket)
                               }}
                               className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                             >
@@ -524,6 +567,15 @@ export default function TechnicianDashboard() {
           ticket={selectedTicket}
           onClose={handleDamageReportClose}
           onSave={handleDamageReportSave}
+        />
+      )}
+
+      {/* Repair Completion Modal */}
+      {showRepairModal && selectedTicket && (
+        <RepairCompletionModal
+          ticket={selectedTicket}
+          onClose={handleRepairModalClose}
+          onSave={handleRepairCompletionSave}
         />
       )}
     </div>
