@@ -261,7 +261,14 @@ export default function ClaimManagerPage() {
 
       // Refresh the reports list
       await fetchDamageReportsSilently()
-      handleCloseModal()
+      
+      // Update the selected report status to show the new workflow
+      if (selectedReport) {
+        setSelectedReport({
+          ...selectedReport,
+          status: decision === 'ber' ? 'ber_confirmed' : 'in_repair'
+        })
+      }
     } catch (error) {
       console.error('Error updating manager decision:', error)
       alert('Failed to update manager decision')
@@ -1009,6 +1016,22 @@ export default function ClaimManagerPage() {
                         >
                           Save Decision
                         </button>
+                      ) : selectedReport.status === 'in_repair' || selectedReport.status === 'ber_confirmed' ? (
+                        <>
+                          <button
+                            onClick={() => handleGeneratePDF(selectedReport.id)}
+                            disabled={generatingPDF === selectedReport.id}
+                            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors disabled:opacity-50 text-sm"
+                          >
+                            {generatingPDF === selectedReport.id ? 'Generating...' : 'Generate PDF'}
+                          </button>
+                          <button
+                            onClick={() => handleMarkAsCompleted(selectedReport.id)}
+                            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
+                          >
+                            Complete
+                          </button>
+                        </>
                       ) : (
                         <button
                           onClick={() => handleMarkAsCompleted(selectedReport.id)}
@@ -1017,13 +1040,6 @@ export default function ClaimManagerPage() {
                           Mark as Completed
                         </button>
                       )}
-                      <button
-                        onClick={() => handleGeneratePDF(selectedReport.id)}
-                        disabled={generatingPDF === selectedReport.id}
-                        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors disabled:opacity-50 text-sm"
-                      >
-                        {generatingPDF === selectedReport.id ? 'Generating...' : 'Generate PDF'}
-                      </button>
                     </div>
                   </div>
                 </div>

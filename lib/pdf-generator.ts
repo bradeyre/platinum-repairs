@@ -36,6 +36,8 @@ export interface DamageReportData {
 
 export async function generateDamageReportPDF(damageReportId: string): Promise<Buffer> {
   try {
+    console.log('PDF Generator: Starting for damage report ID:', damageReportId)
+    
     // Fetch the damage report with technician bio
     const { data: report, error } = await supabaseAdmin
       .from('damage_reports')
@@ -46,25 +48,37 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<B
       .eq('id', damageReportId)
       .single()
 
+    console.log('PDF Generator: Supabase query result:', { report: !!report, error })
+
     if (error) {
+      console.error('PDF Generator: Supabase error:', error)
       throw new Error(`Failed to fetch damage report: ${error.message}`)
     }
 
     if (!report) {
+      console.error('PDF Generator: No report found for ID:', damageReportId)
       throw new Error('Damage report not found')
     }
 
+    console.log('PDF Generator: Report found, generating HTML...')
+
     // Generate HTML for the PDF
     const html = generatePDFHTML(report)
+    console.log('PDF Generator: HTML generated, length:', html.length)
 
     // Launch Puppeteer and generate PDF
+    console.log('PDF Generator: Launching Puppeteer...')
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     })
+    console.log('PDF Generator: Puppeteer launched successfully')
     
     const page = await browser.newPage()
+    console.log('PDF Generator: New page created')
+    
     await page.setContent(html, { waitUntil: 'networkidle0' })
+    console.log('PDF Generator: Content set, generating PDF...')
     
     const pdf = await page.pdf({ 
       format: 'A4', 
@@ -76,8 +90,10 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<B
         left: '15mm'
       }
     })
+    console.log('PDF Generator: PDF generated, size:', pdf.length)
     
     await browser.close()
+    console.log('PDF Generator: Browser closed, returning PDF')
     
     return pdf
   } catch (error) {

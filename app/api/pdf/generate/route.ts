@@ -4,16 +4,20 @@ import { generateDamageReportPDF } from '@/lib/pdf-generator'
 export async function POST(request: NextRequest) {
   try {
     const { damageReportId } = await request.json()
+    console.log('PDF Generation Request:', { damageReportId })
 
     if (!damageReportId) {
+      console.log('Missing damageReportId')
       return NextResponse.json(
         { error: 'Damage report ID is required' },
         { status: 400 }
       )
     }
 
+    console.log('Starting PDF generation for:', damageReportId)
     // Generate the PDF
     const pdfBuffer = await generateDamageReportPDF(damageReportId)
+    console.log('PDF generated successfully, buffer length:', pdfBuffer.length)
 
     // Return the PDF as a response
     return new Response(pdfBuffer as any, {
