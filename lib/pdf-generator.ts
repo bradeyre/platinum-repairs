@@ -30,6 +30,8 @@ export interface DamageReportData {
     full_name: string
     bio: string
   }
+  client_name?: string
+  ticket_number?: string
   created_at: string
   updated_at: string
 }
@@ -38,17 +40,30 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
   try {
     console.log('PDF Generator: Starting for damage report ID:', damageReportId)
     
-    // Fetch the damage report (simplified query first)
+    // Fetch the damage report with technician details
     const { data: report, error } = await supabaseAdmin
       .from('damage_reports')
-      .select('*')
+      .select(`
+        *,
+        assigned_tech:users!assigned_tech_id(full_name, bio)
+      `)
       .eq('id', damageReportId)
       .single()
 
-    console.log('PDF Generator: Supabase query result:', { report: !!report, error })
+    // Try to get client name from ticket if we have a ticket number
+    let clientName = null
+    if (report?.ticket_number) {
+      try {
+        // This would need to be implemented based on your ticket data structure
+        // For now, we'll leave it as null and add it later when we have the ticket integration
+        console.log('PDF Generator: Ticket number found:', report.ticket_number)
+      } catch (error) {
+        console.log('PDF Generator: Could not fetch client name from ticket:', error)
+      }
+    }
 
     if (error) {
-      console.error('PDF Generator: Supabase error:', error)
+      console.error('PDF Generator: Error fetching report:', error)
       throw new Error(`Failed to fetch damage report: ${error.message}`)
     }
 
@@ -65,7 +80,8 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
       device_model: report.device_model,
       status: report.status,
       final_parts_selected: report.final_parts_selected,
-      total_parts_cost: report.total_parts_cost
+      total_parts_cost: report.total_parts_cost,
+      assigned_tech: report.assigned_tech
     })
 
     // Generate HTML for the PDF
@@ -74,7 +90,7 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
     
     return html
   } catch (error) {
-    console.error('Error generating PDF:', error)
+    console.error('PDF Generator: Error:', error)
     throw error
   }
 }
@@ -90,134 +106,136 @@ function generatePDFHTML(report: DamageReportData): string {
     <!DOCTYPE html>
     <html>
     <head>
-      <meta charset="UTF-8">
+      <meta charset="utf-8">
+      <title>Damage Report - ${report.dr_number}</title>
       <style>
         body { 
-          font-family: Arial, sans-serif; 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
           margin: 0; 
           padding: 20px; 
+          background: white;
           color: #333;
           line-height: 1.6;
+          font-size: 12px;
         }
         .header { 
           text-align: center; 
-          border-bottom: 3px solid #0066cc; 
-          padding-bottom: 20px; 
-          margin-bottom: 30px;
+          margin-bottom: 20px; 
+          padding-bottom: 15px; 
+          border-bottom: 3px solid #0066cc;
         }
-        .logo { 
-          max-width: 200px; 
-          margin-bottom: 10px;
+        .report-title { 
+          font-size: 24px; 
+          font-weight: bold; 
+          color: #0066cc; 
+          margin-bottom: 8px;
         }
-        .report-title {
-          font-size: 24px;
-          font-weight: bold;
-          color: #0066cc;
-          margin: 10px 0;
+        .report-number { 
+          font-size: 16px; 
+          color: #333; 
+          font-weight: 600;
         }
-        .report-number {
-          font-size: 18px;
-          color: #666;
-        }
-        .section { 
-          margin: 25px 0; 
-          page-break-inside: avoid;
-        }
-        .section-title {
-          font-size: 18px;
-          font-weight: bold;
-          color: #0066cc;
-          border-bottom: 2px solid #e0e0e0;
-          padding-bottom: 5px;
-          margin-bottom: 15px;
-        }
-        .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
+        .two-column { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          gap: 20px; 
           margin-bottom: 20px;
         }
-        .info-item {
-          margin-bottom: 10px;
+        .section { 
+          margin-bottom: 15px; 
+          page-break-inside: avoid;
         }
-        .info-label {
-          font-weight: bold;
+        .section-title { 
+          font-size: 14px; 
+          font-weight: bold; 
+          color: #0066cc; 
+          margin-bottom: 8px; 
+          padding-bottom: 3px; 
+          border-bottom: 1px solid #e0e0e0;
+        }
+        .info-item { 
+          margin-bottom: 6px; 
+          display: flex; 
+          justify-content: space-between;
+          font-size: 11px;
+        }
+        .info-label { 
+          font-weight: 600; 
           color: #555;
+          min-width: 120px;
         }
         .info-value {
-          margin-top: 2px;
+          text-align: right;
+          flex: 1;
         }
         .photos { 
           display: grid; 
           grid-template-columns: repeat(2, 1fr); 
-          gap: 15px; 
-          margin-top: 15px;
+          gap: 10px; 
+          margin-top: 10px;
           page-break-before: always;
         }
         .photo { 
           max-width: 100%; 
-          height: 300px; 
+          height: 200px; 
           object-fit: cover;
           border: 2px solid #ddd;
-          border-radius: 8px;
+          border-radius: 6px;
           page-break-inside: avoid;
         }
         .tech-bio { 
           background: #f8f9fa; 
-          padding: 20px; 
-          border-radius: 8px;
-          border-left: 4px solid #0066cc;
+          padding: 12px; 
+          border-radius: 6px;
+          border-left: 3px solid #0066cc;
+          font-size: 11px;
         }
-        .tech-name {
-          font-size: 16px;
-          font-weight: bold;
-          color: #0066cc;
-          margin-bottom: 10px;
+        .tech-name { 
+          font-weight: bold; 
+          color: #0066cc; 
+          margin-bottom: 6px;
         }
-        .tech-bio-text {
+        .tech-bio-text { 
+          color: #666; 
+          line-height: 1.4;
+        }
+        .findings-list { 
+          margin: 6px 0; 
+          padding-left: 15px;
+          font-size: 11px;
+        }
+        .findings-list li { 
+          margin-bottom: 3px; 
           color: #555;
-          font-style: italic;
         }
         .classification {
           background: ${report.manager_ber_decision ? '#ffebee' : '#e8f5e8'};
-          padding: 15px;
-          border-radius: 8px;
-          border-left: 4px solid ${report.manager_ber_decision ? '#f44336' : '#4caf50'};
+          padding: 10px;
+          border-radius: 6px;
+          border-left: 3px solid ${report.manager_ber_decision ? '#f44336' : '#4caf50'};
+          font-size: 11px;
         }
         .classification-title {
           font-weight: bold;
           color: ${report.manager_ber_decision ? '#d32f2f' : '#2e7d32'};
-          margin-bottom: 5px;
+          margin-bottom: 3px;
         }
-        .findings-list {
-          list-style-type: disc;
-          margin-left: 20px;
+        .parts-list {
+          margin: 5px 0; 
+          padding-left: 15px;
+          font-size: 11px;
         }
-        .parts-table { 
-          width: 100%; 
-          border-collapse: collapse; 
-          margin-top: 15px;
+        .parts-list li { 
+          margin-bottom: 2px; 
+          color: #555;
         }
-        .parts-table th, .parts-table td { 
-          border: 1px solid #ddd; 
-          padding: 12px; 
-          text-align: left; 
-        }
-        .parts-table th {
-          background-color: #f5f5f5;
-          font-weight: bold;
-        }
-        .footer {
-          margin-top: 40px;
-          padding-top: 20px;
-          border-top: 2px solid #e0e0e0;
-          text-align: center;
-          color: #666;
-          font-size: 12px;
+        .full-width {
+          grid-column: 1 / -1;
         }
         @media print {
-          body { margin: 0; }
+          body { margin: 0; padding: 10px; }
           .section { page-break-inside: avoid; }
+          .two-column { gap: 15px; }
         }
       </style>
     </head>
@@ -225,54 +243,138 @@ function generatePDFHTML(report: DamageReportData): string {
       <div class="header">
         <div class="report-title">Platinum Repairs</div>
         <div class="report-number">Damage Report: ${report.dr_number || 'DR-' + report.id.substring(0, 8).toUpperCase()}</div>
-        ${report.claim_number ? `<div style="color: #666; margin-top: 5px;">Claim Number: ${report.claim_number}</div>` : ''}
-        <div style="color: #666; margin-top: 10px; font-size: 14px;">Generated on: ${currentDate}</div>
+        <div style="color: #666; margin-top: 8px; font-size: 12px;">Generated on: ${currentDate}</div>
       </div>
-      
-      <div class="section">
-        <div class="section-title">Device Information</div>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Device:</div>
-            <div class="info-value">${report.device_brand} ${report.device_model}</div>
+
+      <!-- Two Column Layout for Main Content -->
+      <div class="two-column">
+        <!-- Left Column -->
+        <div>
+          <div class="section">
+            <div class="section-title">Claim Information</div>
+            ${report.claim_number ? `
+            <div class="info-item">
+              <div class="info-label">Claim Number:</div>
+              <div class="info-value">${report.claim_number}</div>
+            </div>
+            ` : ''}
+            ${report.ticket_number ? `
+            <div class="info-item">
+              <div class="info-label">Ticket Number:</div>
+              <div class="info-value">${report.ticket_number}</div>
+            </div>
+            ` : ''}
+            ${report.client_name ? `
+            <div class="info-item">
+              <div class="info-label">Client Name:</div>
+              <div class="info-value">${report.client_name}</div>
+            </div>
+            ` : ''}
           </div>
-          <div class="info-item">
-            <div class="info-label">Device Type:</div>
-            <div class="info-value">${report.device_type}</div>
+
+          <div class="section">
+            <div class="section-title">Device Information</div>
+            <div class="info-item">
+              <div class="info-label">Device:</div>
+              <div class="info-value">${report.device_brand} ${report.device_model}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Device Type:</div>
+              <div class="info-value">${report.device_type}</div>
+            </div>
+            ${report.imei_serial ? `
+            <div class="info-item">
+              <div class="info-label">IMEI/Serial:</div>
+              <div class="info-value">${report.imei_serial}</div>
+            </div>
+            ` : ''}
+            ${report.storage_capacity ? `
+            <div class="info-item">
+              <div class="info-label">Storage:</div>
+              <div class="info-value">${report.storage_capacity}</div>
+            </div>
+            ` : ''}
+            ${report.color ? `
+            <div class="info-item">
+              <div class="info-label">Color:</div>
+              <div class="info-value">${report.color}</div>
+            </div>
+            ` : ''}
           </div>
-          ${report.imei_serial ? `
-          <div class="info-item">
-            <div class="info-label">IMEI/Serial:</div>
-            <div class="info-value">${report.imei_serial}</div>
+
+          <div class="section">
+            <div class="section-title">Assessment</div>
+            <div class="classification">
+              <div class="classification-title">
+                ${report.manager_ber_decision ? 'Beyond Economical Repair (BER)' : 'Repairable'}
+              </div>
+              ${report.ber_reason ? `<div style="margin-top: 5px;">Reason: ${report.ber_reason}</div>` : ''}
+            </div>
           </div>
-          ` : ''}
-          ${report.storage_capacity ? `
-          <div class="info-item">
-            <div class="info-label">Storage:</div>
-            <div class="info-value">${report.storage_capacity}</div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+          <div class="section">
+            <div class="section-title">Technician Information</div>
+            ${report.assigned_tech ? `
+            <div class="tech-bio">
+              <div class="tech-name">${report.assigned_tech.full_name}</div>
+              <div class="tech-bio-text">${report.assigned_tech.bio || 'Technician details not available'}</div>
+            </div>
+            ` : report.assigned_tech_id ? `
+            <div class="tech-bio">
+              <div class="tech-name">Technician ID: ${report.assigned_tech_id}</div>
+              <div class="tech-bio-text">Technician details not available</div>
+            </div>
+            ` : ''}
           </div>
-          ` : ''}
-          ${report.color ? `
-          <div class="info-item">
-            <div class="info-label">Color:</div>
-            <div class="info-value">${report.color}</div>
+
+          <div class="section">
+            <div class="section-title">Parts & Pricing</div>
+            ${report.final_parts_selected && report.final_parts_selected.length > 0 ? `
+            <div class="info-item">
+              <div class="info-label">Parts Needed:</div>
+              <div class="info-value">
+                <ul class="parts-list">
+                  ${report.final_parts_selected.map((part: string) => `<li>${part}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+            ` : ''}
+            <div class="info-item">
+              <div class="info-label">Parts Cost (excl. VAT):</div>
+              <div class="info-value">R ${(report.total_parts_cost || 0).toFixed(2)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Parts Cost (incl. VAT):</div>
+              <div class="info-value">R ${((report.total_parts_cost || 0) * 1.15).toFixed(2)}</div>
+            </div>
+            ${report.final_eta_days ? `
+            <div class="info-item">
+              <div class="info-label">ETA for Parts:</div>
+              <div class="info-value">${report.final_eta_days} days</div>
+            </div>
+            ` : ''}
+          </div>
+
+          ${report.manager_notes ? `
+          <div class="section">
+            <div class="section-title">Manager Notes</div>
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; border-left: 3px solid #0066cc; font-size: 11px;">
+              ${report.manager_notes}
+            </div>
           </div>
           ` : ''}
         </div>
       </div>
-      
-      <div class="section">
-        <div class="section-title">Assessment & Classification</div>
-        <div class="classification">
-          <div class="classification-title">
-            ${report.manager_ber_decision ? 'Beyond Economical Repair (BER)' : 'Repairable'}
-          </div>
-          ${report.ber_reason ? `<div style="margin-top: 8px;">Reason: ${report.ber_reason}</div>` : ''}
-        </div>
-        
+
+      <!-- Full Width Sections -->
+      <div class="section full-width">
+        <div class="section-title">Issues & Findings</div>
         ${report.tech_findings && report.tech_findings.length > 0 ? `
-        <div style="margin-top: 20px;">
-          <div class="info-label">Technical Findings:</div>
+        <div style="margin-bottom: 10px;">
+          <div style="font-weight: 600; color: #0066cc; margin-bottom: 5px;">Technician Findings:</div>
           <ul class="findings-list">
             ${report.tech_findings.map(finding => `<li>${finding}</li>`).join('')}
           </ul>
@@ -280,8 +382,8 @@ function generatePDFHTML(report: DamageReportData): string {
         ` : ''}
         
         ${report.client_reported_issues && report.client_reported_issues.length > 0 ? `
-        <div style="margin-top: 20px;">
-          <div class="info-label">Client Reported Issues:</div>
+        <div>
+          <div style="font-weight: 600; color: #0066cc; margin-bottom: 5px;">Client Reported Issues:</div>
           <ul class="findings-list">
             ${report.client_reported_issues.map(issue => `<li>${issue}</li>`).join('')}
           </ul>
@@ -290,70 +392,18 @@ function generatePDFHTML(report: DamageReportData): string {
       </div>
       
       ${report.damage_photos && report.damage_photos.length > 0 ? `
-      <div class="section" style="page-break-before: always;">
+      <div class="section full-width" style="page-break-before: always;">
         <div class="section-title">Damage Photos</div>
         <div class="photos">
           ${report.damage_photos.map((photo, index) => `
-            <div style="text-align: center; margin-bottom: 10px;">
+            <div style="text-align: center; margin-bottom: 8px;">
               <img src="${photo}" class="photo" alt="Damage Photo ${index + 1}" />
-              <div style="margin-top: 5px; font-size: 12px; color: #666;">Damage Photo ${index + 1}</div>
+              <div style="margin-top: 3px; font-size: 10px; color: #666;">Damage Photo ${index + 1}</div>
             </div>
           `).join('')}
         </div>
       </div>
       ` : ''}
-      
-      ${report.assigned_tech_id ? `
-      <div class="section">
-        <div class="section-title">Assigned Technician</div>
-        <div class="tech-bio">
-          <div class="tech-name">Technician ID: ${report.assigned_tech_id}</div>
-          <div class="tech-bio-text">Technician details not available</div>
-        </div>
-      </div>
-      ` : ''}
-      
-      ${report.final_parts_selected && report.final_parts_selected.length > 0 ? `
-      <div class="section">
-        <div class="section-title">Parts & Pricing</div>
-        <div class="info-item">
-          <div class="info-label">Selected Parts:</div>
-          <div class="info-value">
-            <ul style="margin: 5px 0; padding-left: 20px;">
-              ${report.final_parts_selected.map((part: string) => `<li>${part}</li>`).join('')}
-            </ul>
-          </div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Total Parts Cost (excl. VAT):</div>
-          <div class="info-value">R ${(report.total_parts_cost || 0).toFixed(2)}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Total Parts Cost (incl. VAT):</div>
-          <div class="info-value">R ${((report.total_parts_cost || 0) * 1.15).toFixed(2)}</div>
-        </div>
-        ${report.final_eta_days ? `
-        <div class="info-item">
-          <div class="info-label">ETA for Parts:</div>
-          <div class="info-value">${report.final_eta_days} days</div>
-        </div>
-        ` : ''}
-      </div>
-      ` : ''}
-      
-      ${report.manager_notes ? `
-      <div class="section">
-        <div class="section-title">Manager Notes</div>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #0066cc;">
-          ${report.manager_notes}
-        </div>
-      </div>
-      ` : ''}
-      
-      <div class="footer">
-        <div>Platinum Repairs - Professional Device Repair Services</div>
-        <div>This report was generated automatically by the Platinum Repairs Management System</div>
-      </div>
     </body>
     </html>
   `
