@@ -17,6 +17,10 @@ interface DamageReport {
   tech_findings: string[]
   damage_photos: string[]
   final_parts_selected: string[]
+  final_parts_details?: {
+    selectedParts: any[]
+    customParts: any[]
+  }
   total_parts_cost: number
   final_total_cost: number
   excess_amount: number
@@ -167,6 +171,36 @@ export default function ClaimManagerPage() {
       replacementValue: report.replacement_value || 0,
       managerNotes: report.notes || ''
     })
+    
+    // Load saved parts data
+    if (report.final_parts_details) {
+      setSelectedParts(report.final_parts_details.selectedParts || [])
+      setCustomParts(report.final_parts_details.customParts || [])
+    } else if (report.final_parts_selected && report.final_parts_selected.length > 0) {
+      // Fallback: reconstruct from basic data
+      const savedParts: PartsPricing[] = report.final_parts_selected.map((partName: string, index: number) => ({
+        part_number: `saved-${index}`,
+        part_name: partName,
+        device_brand: report.device_brand,
+        device_model: report.device_model,
+        device_type: report.device_type,
+        insurance_price: 0,
+        eta_info: 'Unknown',
+        retail_1_year: null,
+        retail_2_year: null,
+        retail_lifetime: null,
+        replacement_value: null,
+        stock_status: 'unknown',
+        sheet_row_number: 0,
+        last_synced: new Date().toISOString()
+      }))
+      setSelectedParts(savedParts)
+      setCustomParts([])
+    } else {
+      setSelectedParts([])
+      setCustomParts([])
+    }
+    
     setShowModal(true)
   }
 

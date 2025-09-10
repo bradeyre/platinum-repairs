@@ -149,13 +149,15 @@ function generatePDFHTML(report: DamageReportData): string {
           grid-template-columns: repeat(2, 1fr); 
           gap: 15px; 
           margin-top: 15px;
+          page-break-before: always;
         }
         .photo { 
           max-width: 100%; 
-          height: 200px; 
+          height: 300px; 
           object-fit: cover;
           border: 2px solid #ddd;
           border-radius: 8px;
+          page-break-inside: avoid;
         }
         .tech-bio { 
           background: #f8f9fa; 
@@ -285,11 +287,14 @@ function generatePDFHTML(report: DamageReportData): string {
       </div>
       
       ${report.damage_photos && report.damage_photos.length > 0 ? `
-      <div class="section">
+      <div class="section" style="page-break-before: always;">
         <div class="section-title">Damage Photos</div>
         <div class="photos">
-          ${report.damage_photos.map(photo => `
-            <img src="${photo}" class="photo" alt="Damage Photo" />
+          ${report.damage_photos.map((photo, index) => `
+            <div style="text-align: center; margin-bottom: 10px;">
+              <img src="${photo}" class="photo" alt="Damage Photo ${index + 1}" />
+              <div style="margin-top: 5px; font-size: 12px; color: #666;">Damage Photo ${index + 1}</div>
+            </div>
           `).join('')}
         </div>
       </div>
@@ -305,16 +310,28 @@ function generatePDFHTML(report: DamageReportData): string {
       </div>
       ` : ''}
       
-      ${report.total_parts_cost > 0 ? `
+      ${report.final_parts_selected && report.final_parts_selected.length > 0 ? `
       <div class="section">
         <div class="section-title">Parts & Pricing</div>
         <div class="info-item">
-          <div class="info-label">Total Parts Cost:</div>
-          <div class="info-value">R ${report.total_parts_cost.toFixed(2)}</div>
+          <div class="info-label">Selected Parts:</div>
+          <div class="info-value">
+            <ul style="margin: 5px 0; padding-left: 20px;">
+              ${report.final_parts_selected.map((part: string) => `<li>${part}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Total Parts Cost (excl. VAT):</div>
+          <div class="info-value">R ${(report.total_parts_cost || 0).toFixed(2)}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Total Parts Cost (incl. VAT):</div>
+          <div class="info-value">R ${((report.total_parts_cost || 0) * 1.15).toFixed(2)}</div>
         </div>
         ${report.final_eta_days ? `
         <div class="info-item">
-          <div class="info-label">Estimated Delivery:</div>
+          <div class="info-label">ETA for Parts:</div>
           <div class="info-value">${report.final_eta_days} days</div>
         </div>
         ` : ''}

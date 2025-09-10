@@ -36,6 +36,10 @@ export async function POST(
           ...(selectedParts?.map((part: any) => part.part_name) || []),
           ...(customParts?.map((part: any) => part.name) || [])
         ],
+        final_parts_details: {
+          selectedParts: selectedParts || [],
+          customParts: customParts || []
+        },
         total_parts_cost: finalTotalCost || 0,
         final_eta_days: finalETA || 1,
         status: decision === 'approve' ? 'in_repair' : decision === 'ber' ? 'ber_confirmed' : 'awaiting_approval',
