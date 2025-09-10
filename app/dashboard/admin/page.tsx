@@ -21,6 +21,7 @@ interface Technician {
   id: string
   full_name: string
   username: string
+  email?: string
   role: string
   bio?: string
   is_clocked_in: boolean
