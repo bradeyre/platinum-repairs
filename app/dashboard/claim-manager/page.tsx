@@ -351,15 +351,15 @@ export default function ClaimManagerPage() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-gray-600">Welcome, {user?.full_name || user?.username}</span>
-              <button 
+                <button 
                 onClick={handleLogout}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                Logout
-              </button>
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -488,9 +488,9 @@ export default function ClaimManagerPage() {
                       }`}>
                         {report.manager_ber_decision ? 'BER' : 'Repair'}
                       </span>
-                    </div>
-                  </div>
-                  
+        </div>
+      </div>
+
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <p className="text-xs text-gray-500">Click to view details</p>
                   </div>
@@ -569,71 +569,70 @@ export default function ClaimManagerPage() {
                     </div>
                   </div>
 
-                  {/* AI Checklist */}
-                  {selectedReport.ai_checklist && selectedReport.ai_checklist.length > 0 && (
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2 flex items-center">
-                        🤖 AI Checklist
-                      </h4>
-                      <ul className="text-sm text-blue-800 space-y-1">
-                        {selectedReport.ai_checklist.map((item, index) => (
-                          <li key={index}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
 
-                {/* Column 2: Issues & Findings */}
+                {/* Column 2: Combined Issues & Parts */}
                 <div className="space-y-4">
-                  {/* Client Reported Issues */}
-                  {selectedReport.client_reported_issues && selectedReport.client_reported_issues.length > 0 && (
-                    <div className="p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-2 flex items-center">
-                        ✅ Client Reported Issues
-                      </h4>
-                      <ul className="text-sm text-green-800 space-y-1">
-                        {selectedReport.client_reported_issues.map((issue, index) => (
-                          <li key={index}>• {issue}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Technician Findings */}
-                  {selectedReport.tech_findings && selectedReport.tech_findings.length > 0 && (
-                    <div className="p-4 bg-yellow-50 rounded-lg">
-                      <h4 className="font-medium text-yellow-900 mb-2 flex items-center">
-                        🔧 Technician Findings
-                      </h4>
-                      <ul className="text-sm text-yellow-800 space-y-1">
-                        {selectedReport.tech_findings.map((finding, index) => (
-                          <li key={index}>• {finding}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* BER Ratio Analysis */}
-                  {managerDecision.finalTotalCost > 0 && managerDecision.replacementValue > 0 && (
-                    <div className="p-4 bg-yellow-50 rounded-lg">
-                      <h4 className="font-medium text-yellow-900 mb-2">BER Ratio Analysis</h4>
-                      <div className="text-sm text-yellow-800 space-y-1">
-                        <div>Repair Cost: R{managerDecision.finalTotalCost}</div>
-                        <div>Replacement Value: R{managerDecision.replacementValue}</div>
-                        <div className="font-medium">
-                          BER Ratio: {((managerDecision.finalTotalCost / managerDecision.replacementValue) * 100).toFixed(1)}%
-                          {((managerDecision.finalTotalCost / managerDecision.replacementValue) * 100) > 70 && (
-                            <span className="text-red-600 ml-1">(High BER Risk)</span>
-                          )}
+                  {/* Combined Issues & Findings */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">Issues & Assessment</h4>
+                    
+                    {/* AI Checklist */}
+                    {selectedReport.ai_checklist && selectedReport.ai_checklist.length > 0 && (
+                      <div className="mb-4">
+                        <h5 className="font-medium text-blue-900 mb-2 flex items-center text-sm">
+                          🤖 AI Checklist
+                        </h5>
+                        <div className="space-y-2">
+                          {selectedReport.ai_checklist.map((item, index) => {
+                            const clientIssue = selectedReport.client_reported_issues?.[index]
+                            const techFinding = selectedReport.tech_findings?.[index]
+                            
+                            return (
+                              <div key={index} className="bg-white p-3 rounded border">
+                                <div className="text-sm font-medium text-gray-900 mb-2">{item}</div>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <span className="font-medium text-green-700">Client:</span>
+                                    <div className="text-green-600">{clientIssue || 'Not reported'}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-yellow-700">Technician:</span>
+                                    <div className="text-yellow-600">{techFinding || 'Not assessed'}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
 
-                {/* Column 3: Parts & Manager Decision */}
-                <div className="space-y-4">
+                    {/* Additional Client Issues (if more than AI checklist) */}
+                    {selectedReport.client_reported_issues && selectedReport.client_reported_issues.length > (selectedReport.ai_checklist?.length || 0) && (
+                      <div className="mb-4">
+                        <h5 className="font-medium text-green-900 mb-2 text-sm">Additional Client Issues</h5>
+                        <ul className="text-sm text-green-800 space-y-1">
+                          {selectedReport.client_reported_issues.slice(selectedReport.ai_checklist?.length || 0).map((issue, index) => (
+                            <li key={index}>• {issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Additional Technician Findings (if more than AI checklist) */}
+                    {selectedReport.tech_findings && selectedReport.tech_findings.length > (selectedReport.ai_checklist?.length || 0) && (
+                      <div className="mb-4">
+                        <h5 className="font-medium text-yellow-900 mb-2 text-sm">Additional Technician Findings</h5>
+                        <ul className="text-sm text-yellow-800 space-y-1">
+                          {selectedReport.tech_findings.slice(selectedReport.ai_checklist?.length || 0).map((finding, index) => (
+                            <li key={index}>• {finding}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Parts Selection */}
                   <div className="p-4 bg-blue-50 rounded-lg">
                     <div className="flex justify-between items-center mb-3">
@@ -722,6 +721,27 @@ export default function ClaimManagerPage() {
                     </div>
                   </div>
 
+                  {/* BER Ratio Analysis */}
+                  {managerDecision.finalTotalCost > 0 && managerDecision.replacementValue > 0 && (
+                    <div className="p-4 bg-yellow-50 rounded-lg">
+                      <h4 className="font-medium text-yellow-900 mb-2">BER Ratio Analysis</h4>
+                      <div className="text-sm text-yellow-800 space-y-1">
+                        <div>Repair Cost: R{managerDecision.finalTotalCost}</div>
+                        <div>Replacement Value: R{managerDecision.replacementValue}</div>
+                        <div className="font-medium">
+                          BER Ratio: {((managerDecision.finalTotalCost / managerDecision.replacementValue) * 100).toFixed(1)}%
+                          {((managerDecision.finalTotalCost / managerDecision.replacementValue) * 100) > 70 && (
+                            <span className="text-red-600 ml-1">(High BER Risk)</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Column 3: Manager Decision */}
+                <div className="space-y-4">
+
                   {/* Replacement Value Input */}
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-medium text-gray-900 mb-3">Replacement Value</h4>
@@ -803,30 +823,18 @@ export default function ClaimManagerPage() {
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => handleManagerDecision(selectedReport.id, 'approve')}
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
-                      >
-                        Approve Repair
-                      </button>
-                      <button
-                        onClick={() => handleManagerDecision(selectedReport.id, 'ber')}
-                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors text-sm"
-                      >
-                        Mark as BER
-                      </button>
-                      <button
                         onClick={() => {
-                          const reason = prompt('Reason for rejection:')
-                          if (reason) handleRejectReport(selectedReport.id, reason)
+                          const decision = managerDecision.berDecision ? 'ber' : 'approve'
+                          handleManagerDecision(selectedReport.id, decision)
                         }}
-                        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors text-sm"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
                       >
-                        Reject
+                        Save Decision
                       </button>
                       <button
                         onClick={() => handleGeneratePDF(selectedReport.id)}
                         disabled={generatingPDF === selectedReport.id}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
+                        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors disabled:opacity-50 text-sm"
                       >
                         {generatingPDF === selectedReport.id ? 'Generating...' : 'Generate PDF'}
                       </button>
