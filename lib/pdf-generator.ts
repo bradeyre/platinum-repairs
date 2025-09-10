@@ -37,13 +37,10 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
   try {
     console.log('PDF Generator: Starting for damage report ID:', damageReportId)
     
-    // Fetch the damage report with technician bio
+    // Fetch the damage report (simplified query first)
     const { data: report, error } = await supabaseAdmin
       .from('damage_reports')
-      .select(`
-        *,
-        assigned_tech:users!assigned_tech_id(full_name, bio)
-      `)
+      .select('*')
       .eq('id', damageReportId)
       .single()
 
@@ -60,6 +57,13 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
     }
 
     console.log('PDF Generator: Report found, generating HTML...')
+    console.log('PDF Generator: Report data:', {
+      id: report.id,
+      dr_number: report.dr_number,
+      device_brand: report.device_brand,
+      device_model: report.device_model,
+      status: report.status
+    })
 
     // Generate HTML for the PDF
     const html = generatePDFHTML(report)
@@ -291,12 +295,12 @@ function generatePDFHTML(report: DamageReportData): string {
       </div>
       ` : ''}
       
-      ${report.assigned_tech ? `
+      ${report.assigned_tech_id ? `
       <div class="section">
         <div class="section-title">Assigned Technician</div>
         <div class="tech-bio">
-          <div class="tech-name">${report.assigned_tech.full_name || 'Technician'}</div>
-          <div class="tech-bio-text">${report.assigned_tech.bio || 'No bio available'}</div>
+          <div class="tech-name">Technician ID: ${report.assigned_tech_id}</div>
+          <div class="tech-bio-text">Technician details not available</div>
         </div>
       </div>
       ` : ''}
