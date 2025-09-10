@@ -73,8 +73,40 @@ export async function GET(request: NextRequest) {
       averageCompletionTime = Math.floor(totalTime / completedReports.length / (1000 * 60)) // Convert to minutes
     }
 
-    // Calculate total revenue (sum of all parts costs)
-    const totalRevenue = allReports?.reduce((sum, report) => sum + (report.total_parts_cost || 0), 0) || 0
+    // Get wait time statistics
+    const { data: waitTimes } = await supabaseAdmin
+      .from('ticket_wait_times')
+      .select('*')
+      .gte('completed_at', startOfMonth.toISOString())
+
+    // Calculate average wait time by technician
+    const waitTimeByTech = waitTimes?.reduce((acc: any, wait: any) => {
+      if (!acc[wait.technician_id]) {
+        acc[wait.technician_id] = { total: 0, count: 0 }
+      }
+      acc[wait.technician_id].total += wait.wait_time_hours
+      acc[wait.technician_id].count += 1
+      return acc
+    }, {}) || {}
+
+    // Calculate average wait time by status
+    const waitTimeByStatus = waitTimes?.reduce((acc: any, wait: any) => {
+      if (!acc[wait.new_status]) {
+        acc[wait.new_status] = { total: 0, count: 0 }
+      }
+      acc[wait.new_status].total += wait.wait_time_hours
+      acc[wait.new_status].count += 1
+      return acc
+    }, {}) || {}
+
+    // Get active work time from technician_work_hours
+    const { data: workHours } = await supabaseAdmin
+      .from('technician_work_hours')
+      .select('*')
+      .gte('date', startOfMonth.toISOString().split('T')[0])
+
+    const totalActiveWorkHours = workHours?.reduce((sum, work) => sum + (work.total_minutes || 0), 0) || 0
+    const averageActiveWorkHours = workHours?.length ? totalActiveWorkHours / workHours.length : 0
 
     // Calculate monthly growth (compare this month vs last month)
     const lastMonth = new Date()
@@ -107,8 +139,13 @@ export async function GET(request: NextRequest) {
       clockedInTechnicians: clockedInTechs?.length || 0,
       totalTechnicians: allTechnicians?.length || 0,
       averageCompletionTime,
-      totalRevenue,
-      monthlyGrowth
+      monthlyGrowth,
+      // New performance metrics
+      averageWaitTimeHours: waitTimes?.length ? waitTimes.reduce((sum, w) => sum + w.wait_time_hours, 0) / waitTimes.length : 0,
+      totalActiveWorkHours: totalActiveWorkHours / 60, // Convert minutes to hours
+      averageActiveWorkHours: averageActiveWorkHours / 60, // Convert minutes to hours
+      waitTimeByTech,
+      waitTimeByStatus
     }
 
     return NextResponse.json(stats)

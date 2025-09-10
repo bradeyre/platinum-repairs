@@ -42,8 +42,13 @@ interface DashboardStats {
   clockedInTechnicians: number
   totalTechnicians: number
   averageCompletionTime: number
-  totalRevenue: number
   monthlyGrowth: number
+  // New performance metrics
+  averageWaitTimeHours: number
+  totalActiveWorkHours: number
+  averageActiveWorkHours: number
+  waitTimeByTech: Record<string, { total: number; count: number }>
+  waitTimeByStatus: Record<string, { total: number; count: number }>
 }
 
 export default function AdminDashboard() {
@@ -59,8 +64,13 @@ export default function AdminDashboard() {
     clockedInTechnicians: 0,
     totalTechnicians: 0,
     averageCompletionTime: 0,
-    totalRevenue: 0,
-    monthlyGrowth: 0
+    monthlyGrowth: 0,
+    // New performance metrics
+    averageWaitTimeHours: 0,
+    totalActiveWorkHours: 0,
+    averageActiveWorkHours: 0,
+    waitTimeByTech: {},
+    waitTimeByStatus: {}
   })
   const [loading, setLoading] = useState(true)
   const [backgroundLoading, setBackgroundLoading] = useState(false)
@@ -286,7 +296,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -353,6 +363,20 @@ export default function AdminDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Clocked In</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.clockedInTechnicians}/{stats.totalTechnicians}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Avg Wait Time</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.averageWaitTimeHours.toFixed(1)}h</p>
               </div>
             </div>
           </div>
@@ -439,6 +463,54 @@ export default function AdminDashboard() {
                           <p className="text-sm font-medium">Settings</p>
                         </div>
                       </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Wait Time Analytics */}
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Wait Time by Technician */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h4 className="font-medium text-gray-900 mb-4">Average Wait Time by Technician</h4>
+                    <div className="space-y-3">
+                      {Object.entries(stats.waitTimeByTech).map(([techId, data]) => {
+                        const tech = technicians.find(t => t.id === techId)
+                        const avgWaitTime = data.count > 0 ? data.total / data.count : 0
+                        return (
+                          <div key={techId} className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">{tech?.full_name || techId}</span>
+                            <div className="text-right">
+                              <span className="text-sm font-medium">{avgWaitTime.toFixed(1)}h</span>
+                              <div className="text-xs text-gray-500">{data.count} tickets</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {Object.keys(stats.waitTimeByTech).length === 0 && (
+                        <div className="text-sm text-gray-500 text-center py-4">No wait time data available</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Wait Time by Status */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h4 className="font-medium text-gray-900 mb-4">Average Wait Time by Status</h4>
+                    <div className="space-y-3">
+                      {Object.entries(stats.waitTimeByStatus).map(([status, data]) => {
+                        const avgWaitTime = data.count > 0 ? data.total / data.count : 0
+                        return (
+                          <div key={status} className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">{status}</span>
+                            <div className="text-right">
+                              <span className="text-sm font-medium">{avgWaitTime.toFixed(1)}h</span>
+                              <div className="text-xs text-gray-500">{data.count} tickets</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {Object.keys(stats.waitTimeByStatus).length === 0 && (
+                        <div className="text-sm text-gray-500 text-center py-4">No wait time data available</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -634,8 +706,12 @@ export default function AdminDashboard() {
                         <span className="font-medium">{formatTime(stats.averageCompletionTime)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Total Revenue:</span>
-                        <span className="font-medium">R{stats.totalRevenue.toLocaleString()}</span>
+                        <span className="text-gray-600">Average Wait Time:</span>
+                        <span className="font-medium">{stats.averageWaitTimeHours.toFixed(1)}h</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total Active Work Time:</span>
+                        <span className="font-medium">{stats.totalActiveWorkHours.toFixed(1)}h</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Monthly Growth:</span>
@@ -665,13 +741,19 @@ export default function AdminDashboard() {
                           const tickets = selectedTimeframe === 'today' ? tech.tickets_completed_today :
                                         selectedTimeframe === 'week' ? tech.tickets_completed_this_week :
                                         tech.tickets_completed_this_month
+                          const workHours = selectedTimeframe === 'today' ? tech.total_hours_today :
+                                          selectedTimeframe === 'week' ? tech.total_hours_this_week :
+                                          tech.total_hours_this_month
                           return (
                             <div key={tech.id} className="flex items-center justify-between">
                               <div className="flex items-center">
                                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600">
                                   {index + 1}
                                 </div>
-                                <span className="ml-3 text-sm font-medium">{tech.full_name}</span>
+                                <div className="ml-3">
+                                  <div className="text-sm font-medium">{tech.full_name}</div>
+                                  <div className="text-xs text-gray-500">{workHours.toFixed(1)}h active</div>
+                                </div>
                               </div>
                               <span className="text-sm text-gray-600">{tickets} tickets</span>
                             </div>
