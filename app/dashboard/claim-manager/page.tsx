@@ -224,6 +224,7 @@ export default function ClaimManagerPage() {
   }
 
   const handlePartsSelected = (parts: PartsPricing[]) => {
+    console.log('Parts selected:', parts)
     setSelectedParts(parts)
     setShowPartsModal(false)
   }
@@ -270,23 +271,28 @@ export default function ClaimManagerPage() {
 
   const handleManagerDecision = async (reportId: string, decision: 'approve' | 'reject' | 'ber') => {
     try {
+      const saveData = {
+        decision,
+        berDecision: decision === 'ber',
+        berReason: managerDecision.berReason,
+        finalTotalCost: calculateTotalCost(),
+        excessAmount: managerDecision.excessAmount,
+        replacementValue: managerDecision.replacementValue,
+        managerNotes: managerDecision.managerNotes,
+        selectedParts: selectedParts,
+        customParts: customParts,
+        finalETA: calculateFinalETA()
+      }
+      
+      console.log('Saving manager decision with data:', saveData)
+      console.log('Selected parts being saved:', selectedParts)
+      
       const response = await fetch(`/api/damage-reports/${reportId}/manager-decision`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          decision,
-          berDecision: decision === 'ber',
-          berReason: managerDecision.berReason,
-          finalTotalCost: calculateTotalCost(),
-          excessAmount: managerDecision.excessAmount,
-          replacementValue: managerDecision.replacementValue,
-          managerNotes: managerDecision.managerNotes,
-          selectedParts: selectedParts,
-          customParts: customParts,
-          finalETA: calculateFinalETA()
-        })
+        body: JSON.stringify(saveData)
       })
       
       if (!response.ok) {

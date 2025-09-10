@@ -63,7 +63,9 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
       dr_number: report.dr_number,
       device_brand: report.device_brand,
       device_model: report.device_model,
-      status: report.status
+      status: report.status,
+      final_parts_selected: report.final_parts_selected,
+      total_parts_cost: report.total_parts_cost
     })
 
     // Generate HTML for the PDF

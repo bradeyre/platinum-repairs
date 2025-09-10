@@ -9,6 +9,9 @@ export async function POST(
     const { id } = await params
     const body = await request.json()
     
+    console.log('Manager decision API received data:', body)
+    console.log('Selected parts received:', body.selectedParts)
+    
     const {
       decision,
       berDecision,
