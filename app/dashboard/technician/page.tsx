@@ -73,44 +73,45 @@ export default function TechnicianDashboard() {
     checkAuth()
   }, [router])
 
+  // Fetch all tickets function
+  const fetchTickets = async (showLoading = false) => {
+    try {
+      if (showLoading) setLoading(true)
+      const response = await fetch('/api/tickets')
+      if (!response.ok) {
+        throw new Error('Failed to fetch tickets')
+      }
+      const data = await response.json()
+      setAllTickets(data.tickets)
+      
+      // Filter for assigned tickets if technician is selected
+      if (selectedTechnician) {
+        const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => {
+          // Case-insensitive matching for technician names
+          const selectedTechLower = selectedTechnician.toLowerCase()
+          const assignedToLower = ticket.assignedTo?.toLowerCase() || ''
+          
+          return assignedToLower === selectedTechLower || 
+                 assignedToLower === selectedTechLower.charAt(0).toUpperCase() + selectedTechLower.slice(1) ||
+                 (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
+        })
+        setTickets(assignedTickets)
+      } else {
+        setTickets([])
+      }
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching tickets:', err)
+      setError('Failed to load tickets from RepairShopr')
+    } finally {
+      if (showLoading) setLoading(false)
+    }
+  }
+
   // Fetch all tickets
   // Initial data fetch (with loading screen)
   useEffect(() => {
-    const fetchInitialTickets = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/tickets')
-        if (!response.ok) {
-          throw new Error('Failed to fetch tickets')
-        }
-        const data = await response.json()
-        setAllTickets(data.tickets)
-        
-        // Filter for assigned tickets if technician is selected
-        if (selectedTechnician) {
-          const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => {
-            // Case-insensitive matching for technician names
-            const selectedTechLower = selectedTechnician.toLowerCase()
-            const assignedToLower = ticket.assignedTo?.toLowerCase() || ''
-            
-            return assignedToLower === selectedTechLower || 
-                   assignedToLower === selectedTechLower.charAt(0).toUpperCase() + selectedTechLower.slice(1) ||
-                   (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
-          })
-          setTickets(assignedTickets)
-        } else {
-          setTickets([])
-        }
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching tickets:', err)
-        setError('Failed to load tickets from RepairShopr')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchInitialTickets()
+    fetchTickets(true)
   }, [selectedTechnician])
 
   // Background data refresh (no loading screen)
@@ -247,7 +248,7 @@ export default function TechnicianDashboard() {
 
       if (response.ok) {
         // Refresh the tickets list
-        await fetchInitialTickets()
+        await fetchTickets(false)
       }
       
       setShowRepairModal(false)
