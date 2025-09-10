@@ -1,5 +1,4 @@
 import { supabaseAdmin } from '@/lib/supabase'
-import puppeteer from 'puppeteer'
 
 export interface DamageReportData {
   id: string
@@ -34,7 +33,7 @@ export interface DamageReportData {
   updated_at: string
 }
 
-export async function generateDamageReportPDF(damageReportId: string): Promise<Buffer> {
+export async function generateDamageReportPDF(damageReportId: string): Promise<string> {
   try {
     console.log('PDF Generator: Starting for damage report ID:', damageReportId)
     
@@ -65,37 +64,8 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<B
     // Generate HTML for the PDF
     const html = generatePDFHTML(report)
     console.log('PDF Generator: HTML generated, length:', html.length)
-
-    // Launch Puppeteer and generate PDF
-    console.log('PDF Generator: Launching Puppeteer...')
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    })
-    console.log('PDF Generator: Puppeteer launched successfully')
     
-    const page = await browser.newPage()
-    console.log('PDF Generator: New page created')
-    
-    await page.setContent(html, { waitUntil: 'networkidle0' })
-    console.log('PDF Generator: Content set, generating PDF...')
-    
-    const pdf = await page.pdf({ 
-      format: 'A4', 
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '15mm',
-        bottom: '20mm',
-        left: '15mm'
-      }
-    })
-    console.log('PDF Generator: PDF generated, size:', pdf.length)
-    
-    await browser.close()
-    console.log('PDF Generator: Browser closed, returning PDF')
-    
-    return pdf
+    return html
   } catch (error) {
     console.error('Error generating PDF:', error)
     throw error

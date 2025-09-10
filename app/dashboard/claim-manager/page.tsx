@@ -334,15 +334,30 @@ export default function ClaimManagerPage() {
         throw new Error('Failed to generate PDF')
       }
 
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `damage-report-${reportId}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const html = await response.text()
+      
+      // Open HTML in new window for printing
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(html)
+        printWindow.document.close()
+        
+        // Wait for content to load, then trigger print
+        printWindow.onload = () => {
+          printWindow.print()
+        }
+      } else {
+        // Fallback: create a blob and download
+        const blob = new Blob([html], { type: 'text/html' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `damage-report-${reportId}.html`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
     } catch (error) {
       console.error('Error generating PDF:', error)
       alert('Failed to generate PDF')

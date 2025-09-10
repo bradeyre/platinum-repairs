@@ -15,17 +15,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Starting PDF generation for:', damageReportId)
-    // Generate the PDF
-    const pdfBuffer = await generateDamageReportPDF(damageReportId)
-    console.log('PDF generated successfully, buffer length:', pdfBuffer.length)
+    // Generate the HTML for PDF
+    const html = await generateDamageReportPDF(damageReportId)
+    console.log('HTML generated successfully, length:', html.length)
 
-    // Return the PDF as a response
-    return new Response(pdfBuffer as any, {
+    // Return the HTML as a response
+    return new Response(html, {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="damage-report-${damageReportId}.pdf"`,
-        'Content-Length': pdfBuffer.length.toString(),
+        'Content-Type': 'text/html',
+        'Content-Disposition': `inline; filename="damage-report-${damageReportId}.html"`,
       },
     })
   } catch (error) {
