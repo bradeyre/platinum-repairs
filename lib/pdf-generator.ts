@@ -40,15 +40,27 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
   try {
     console.log('PDF Generator: Starting for damage report ID:', damageReportId)
     
-    // Fetch the damage report with technician details
+    // Fetch the damage report
     const { data: report, error } = await supabaseAdmin
       .from('damage_reports')
-      .select(`
-        *,
-        assigned_tech:users!assigned_tech_id(full_name, bio)
-      `)
+      .select('*')
       .eq('id', damageReportId)
       .single()
+
+    // Fetch technician details separately
+    let assignedTech = null
+    if (report?.assigned_tech_id) {
+      try {
+        const { data: techData } = await supabaseAdmin
+          .from('users')
+          .select('full_name, bio')
+          .eq('id', report.assigned_tech_id)
+          .single()
+        assignedTech = techData
+      } catch (techError) {
+        console.log('PDF Generator: Could not fetch technician details:', techError)
+      }
+    }
 
     // Try to get client name from ticket if we have a ticket number
     let clientName = null
@@ -81,11 +93,11 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
       status: report.status,
       final_parts_selected: report.final_parts_selected,
       total_parts_cost: report.total_parts_cost,
-      assigned_tech: report.assigned_tech
+      assigned_tech: assignedTech
     })
 
     // Generate HTML for the PDF
-    const html = generatePDFHTML(report)
+    const html = generatePDFHTML({ ...report, assigned_tech: assignedTech })
     console.log('PDF Generator: HTML generated, length:', html.length)
     
     return html
