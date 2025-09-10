@@ -320,7 +320,7 @@ export default function ClaimManagerPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ reportId })
+        body: JSON.stringify({ damageReportId: reportId })
       })
       
       if (!response.ok) {

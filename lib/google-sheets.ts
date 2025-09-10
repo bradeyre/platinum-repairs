@@ -151,11 +151,65 @@ function parseCSVToPartsPricing(csvText: string): PartsPricing[] {
     if (!partName || partName === deviceModel || partName === 'iPhone') continue
     
     // Extract device brand from model name
-    let deviceBrand = 'iPhone' // Default to iPhone
-    if (deviceModel.toLowerCase().includes('samsung')) {
+    let deviceBrand = 'Unknown'
+    let deviceType = 'phone'
+    
+    // Parse brand from model name
+    if (deviceModel.toLowerCase().includes('iphone')) {
+      deviceBrand = 'iPhone'
+      deviceType = 'phone'
+    } else if (deviceModel.toLowerCase().includes('samsung')) {
       deviceBrand = 'Samsung'
+      deviceType = 'phone'
     } else if (deviceModel.toLowerCase().includes('huawei')) {
       deviceBrand = 'Huawei'
+      deviceType = 'phone'
+    } else if (deviceModel.toLowerCase().includes('galaxy')) {
+      deviceBrand = 'Samsung'
+      deviceType = 'phone'
+    } else if (deviceModel.toLowerCase().includes('find x') || deviceModel.toLowerCase().includes('reno')) {
+      deviceBrand = 'Oppo'
+      deviceType = 'phone'
+    } else if (deviceModel.toLowerCase().includes('macbook') || deviceModel.toLowerCase().includes('imac')) {
+      deviceBrand = 'Apple'
+      deviceType = 'laptop'
+    } else if (deviceModel.toLowerCase().includes('hp') || deviceModel.toLowerCase().includes('pavilion') || deviceModel.toLowerCase().includes('elitebook')) {
+      deviceBrand = 'HP'
+      deviceType = 'laptop'
+    } else if (deviceModel.toLowerCase().includes('dell') || deviceModel.toLowerCase().includes('inspiron') || deviceModel.toLowerCase().includes('latitude')) {
+      deviceBrand = 'Dell'
+      deviceType = 'laptop'
+    } else if (deviceModel.toLowerCase().includes('lenovo') || deviceModel.toLowerCase().includes('thinkpad') || deviceModel.toLowerCase().includes('ideapad')) {
+      deviceBrand = 'Lenovo'
+      deviceType = 'laptop'
+    } else if (deviceModel.toLowerCase().includes('asus') || deviceModel.toLowerCase().includes('zenbook') || deviceModel.toLowerCase().includes('vivobook')) {
+      deviceBrand = 'ASUS'
+      deviceType = 'laptop'
+    } else if (deviceModel.toLowerCase().includes('acer') || deviceModel.toLowerCase().includes('aspire') || deviceModel.toLowerCase().includes('swift')) {
+      deviceBrand = 'Acer'
+      deviceType = 'laptop'
+    } else if (deviceModel.toLowerCase().includes('surface')) {
+      deviceBrand = 'Microsoft'
+      deviceType = 'laptop'
+    } else if (deviceModel.toLowerCase().includes('ipad')) {
+      deviceBrand = 'Apple'
+      deviceType = 'tablet'
+    } else if (deviceModel.toLowerCase().includes('watch')) {
+      deviceBrand = 'Apple'
+      deviceType = 'watch'
+    } else {
+      // Try to extract brand from the beginning of the model name
+      const words = deviceModel.split(' ')
+      if (words.length > 0) {
+        const firstWord = words[0].toLowerCase()
+        if (firstWord === 'iphone' || firstWord === 'samsung' || firstWord === 'huawei' || 
+            firstWord === 'galaxy' || firstWord === 'macbook' || firstWord === 'imac' ||
+            firstWord === 'hp' || firstWord === 'dell' || firstWord === 'lenovo' ||
+            firstWord === 'asus' || firstWord === 'acer' || firstWord === 'surface' ||
+            firstWord === 'ipad' || firstWord === 'watch') {
+          deviceBrand = words[0].charAt(0).toUpperCase() + words[0].slice(1)
+        }
+      }
     }
     
     // Parse insurance price (Column D - index 3)
@@ -188,7 +242,7 @@ function parseCSVToPartsPricing(csvText: string): PartsPricing[] {
       part_name: partName,
       device_brand: deviceBrand,
       device_model: deviceModel,
-      device_type: 'phone',
+      device_type: deviceType,
       insurance_price: insurancePrice,
       eta_info: etaInfo,
       retail_1_year: retail1Year || null,

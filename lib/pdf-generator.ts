@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import puppeteer from 'puppeteer'
 
 export interface DamageReportData {
@@ -37,7 +37,7 @@ export interface DamageReportData {
 export async function generateDamageReportPDF(damageReportId: string): Promise<Buffer> {
   try {
     // Fetch the damage report with technician bio
-    const { data: report, error } = await supabase
+    const { data: report, error } = await supabaseAdmin
       .from('damage_reports')
       .select(`
         *,
