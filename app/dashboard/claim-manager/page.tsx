@@ -152,7 +152,8 @@ export default function ClaimManagerPage() {
   }
 
   const awaitingApproval = damageReports.filter(report => report.status === 'awaiting_approval')
-  const completed = damageReports.filter(report => report.status === 'completed' || report.status === 'in_repair')
+  const inProgress = damageReports.filter(report => report.status === 'in_repair' || report.status === 'ber_confirmed')
+  const completed = damageReports.filter(report => report.status === 'completed')
 
   const handleOpenModal = (report: DamageReport) => {
     setSelectedReport(report)
@@ -365,18 +366,22 @@ export default function ClaimManagerPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900">Awaiting Approval</h3>
             <p className="text-3xl font-bold text-orange-600">{awaitingApproval.length}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-900">Completed Today</h3>
+            <h3 className="text-lg font-medium text-gray-900">In Progress</h3>
+            <p className="text-3xl font-bold text-blue-600">{inProgress.length}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900">Completed</h3>
             <p className="text-3xl font-bold text-green-600">{completed.length}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900">Total Reports</h3>
-            <p className="text-3xl font-bold text-blue-600">{damageReports.length}</p>
+            <p className="text-3xl font-bold text-gray-600">{damageReports.length}</p>
           </div>
         </div>
 
@@ -433,6 +438,66 @@ export default function ClaimManagerPage() {
                   
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <p className="text-xs text-gray-500">Click to review and make decision</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* In Progress Reports - Card Layout */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Reports In Progress</h2>
+          {inProgress.length === 0 ? (
+            <div className="bg-white p-8 rounded-lg shadow text-center">
+              <p className="text-gray-500">No reports in progress.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {inProgress.map((report) => (
+                <div 
+                  key={report.id} 
+                  className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleOpenModal(report)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 text-sm">{report.device_brand} {report.device_model}</h3>
+                      <p className="text-xs text-gray-600">DR: {report.dr_number}</p>
+                      <p className="text-xs text-gray-600">Claim: {report.claim_number}</p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      report.status === 'in_repair' 
+                        ? 'text-blue-800 bg-blue-100' 
+                        : 'text-red-800 bg-red-100'
+                    }`}>
+                      {report.status === 'in_repair' ? 'In Repair' : 'BER Confirmed'}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2 text-xs text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Type:</span>
+                      <span>{report.device_type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Cost:</span>
+                      <span>R{report.final_total_cost || report.total_parts_cost}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Decision:</span>
+                      <span className={`px-1 py-0.5 rounded text-xs ${
+                        report.manager_ber_decision 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {report.manager_ber_decision ? 'BER' : 'Repair'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">Click to view details</p>
                   </div>
                 </div>
               ))}
