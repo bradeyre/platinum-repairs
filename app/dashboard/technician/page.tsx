@@ -247,7 +247,7 @@ export default function TechnicianDashboard() {
 
       if (response.ok) {
         // Refresh the tickets list
-        await fetchTickets()
+        await fetchInitialTickets()
       }
       
       setShowRepairModal(false)
