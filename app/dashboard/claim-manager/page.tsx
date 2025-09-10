@@ -281,6 +281,28 @@ export default function ClaimManagerPage() {
     }
   }
 
+  const handleMarkAsCompleted = async (reportId: string) => {
+    try {
+      const response = await fetch(`/api/damage-reports/${reportId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'completed' })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark report as completed')
+      }
+
+      await fetchDamageReportsSilently()
+      handleCloseModal()
+    } catch (error) {
+      console.error('Error marking report as completed:', error)
+      alert('Failed to mark report as completed')
+    }
+  }
+
   const handleGeneratePDF = async (reportId: string) => {
     try {
       setGeneratingPDF(reportId)
@@ -887,15 +909,24 @@ export default function ClaimManagerPage() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => {
-                          const decision = managerDecision.berDecision ? 'ber' : 'approve'
-                          handleManagerDecision(selectedReport.id, decision)
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
-                      >
-                        Save Decision
-                      </button>
+                      {selectedReport.status === 'awaiting_approval' ? (
+                        <button
+                          onClick={() => {
+                            const decision = managerDecision.berDecision ? 'ber' : 'approve'
+                            handleManagerDecision(selectedReport.id, decision)
+                          }}
+                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          Save Decision
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleMarkAsCompleted(selectedReport.id)}
+                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
+                        >
+                          Mark as Completed
+                        </button>
+                      )}
                       <button
                         onClick={() => handleGeneratePDF(selectedReport.id)}
                         disabled={generatingPDF === selectedReport.id}
