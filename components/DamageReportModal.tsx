@@ -66,7 +66,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     checked: boolean
     notes: string
   }[]>([])
-  const [ticketComments, setTicketComments] = useState<string[]>([])
+  const [ticketComments, setTicketComments] = useState<(string | { text?: string; body?: string; comment?: string; date: string; author: string })[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
 
   // Device-specific parts
@@ -1020,7 +1020,19 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {ticketComments.map((comment, index) => (
                       <div key={index} className="bg-white border border-green-200 rounded p-3">
-                        <div className="text-sm text-green-800">{comment}</div>
+                        <div className="text-sm text-green-800">
+                          {typeof comment === 'string' ? comment : comment.text || comment.body || comment.comment || 'No comment text'}
+                        </div>
+                        {typeof comment === 'object' && comment.date && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {new Date(comment.date).toLocaleString()}
+                          </div>
+                        )}
+                        {typeof comment === 'object' && comment.author && (
+                          <div className="text-xs text-gray-500">
+                            - {comment.author}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
