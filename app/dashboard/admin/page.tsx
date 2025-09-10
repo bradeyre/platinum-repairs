@@ -77,6 +77,18 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [selectedTimeframe, setSelectedTimeframe] = useState<'today' | 'week' | 'month'>('today')
   const [assigningTicket, setAssigningTicket] = useState<string | null>(null)
+  
+  // Technician management state
+  const [showAddTechnicianModal, setShowAddTechnicianModal] = useState(false)
+  const [showEditTechnicianModal, setShowEditTechnicianModal] = useState(false)
+  const [editingTechnician, setEditingTechnician] = useState<Technician | null>(null)
+  const [technicianForm, setTechnicianForm] = useState({
+    full_name: '',
+    username: '',
+    email: '',
+    bio: '',
+    role: 'technician'
+  })
 
   // Initial data fetch (with loading screen)
   useEffect(() => {
@@ -194,6 +206,95 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleAddTechnician = async () => {
+    try {
+      const response = await fetch('/api/technicians', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(technicianForm)
+      })
+
+      if (response.ok) {
+        // Refresh technician data
+        const techResponse = await fetch('/api/technicians/work-data')
+        if (techResponse.ok) {
+          const techData = await techResponse.json()
+          setTechnicians(techData.technicians || [])
+        }
+        
+        // Reset form and close modal
+        setTechnicianForm({
+          full_name: '',
+          username: '',
+          email: '',
+          bio: '',
+          role: 'technician'
+        })
+        setShowAddTechnicianModal(false)
+        alert('Technician added successfully!')
+      } else {
+        alert('Failed to add technician')
+      }
+    } catch (error) {
+      console.error('Error adding technician:', error)
+      alert('Failed to add technician')
+    }
+  }
+
+  const handleEditTechnician = async () => {
+    if (!editingTechnician) return
+
+    try {
+      const response = await fetch(`/api/technicians/${editingTechnician.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(technicianForm)
+      })
+
+      if (response.ok) {
+        // Refresh technician data
+        const techResponse = await fetch('/api/technicians/work-data')
+        if (techResponse.ok) {
+          const techData = await techResponse.json()
+          setTechnicians(techData.technicians || [])
+        }
+        
+        // Reset form and close modal
+        setTechnicianForm({
+          full_name: '',
+          username: '',
+          email: '',
+          bio: '',
+          role: 'technician'
+        })
+        setEditingTechnician(null)
+        setShowEditTechnicianModal(false)
+        alert('Technician updated successfully!')
+      } else {
+        alert('Failed to update technician')
+      }
+    } catch (error) {
+      console.error('Error updating technician:', error)
+      alert('Failed to update technician')
+    }
+  }
+
+  const openEditTechnician = (technician: Technician) => {
+    setEditingTechnician(technician)
+    setTechnicianForm({
+      full_name: technician.full_name,
+      username: technician.username,
+      email: technician.email || '',
+      bio: technician.bio || '',
+      role: technician.role || 'technician'
+    })
+    setShowEditTechnicianModal(true)
+  }
+
   // Handle ticket assignment
   const handleAssignTicket = async (ticketId: string, technician: string) => {
     if (technician === 'Select technician...' || !technician) return
@@ -298,27 +399,27 @@ export default function AdminDashboard() {
       <DashboardNavigation currentSection="admin" userRole="admin" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
+      {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
               <p className="mt-2 text-gray-600">Comprehensive overview of repair operations and technician performance</p>
-            </div>
+              </div>
             {backgroundLoading && (
               <div className="flex items-center text-sm text-gray-500">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
                 Updating...
               </div>
             )}
-          </div>
         </div>
+      </div>
 
         {/* Timeframe Selector */}
         <div className="mb-6">
           <div className="flex space-x-2">
             {(['today', 'week', 'month'] as const).map((timeframe) => (
-              <button
+            <button 
                 key={timeframe}
                 onClick={() => setSelectedTimeframe(timeframe)}
                 className={`px-4 py-2 rounded-lg font-medium ${
@@ -328,7 +429,7 @@ export default function AdminDashboard() {
                 }`}
               >
                 {timeframe === 'today' ? 'Today' : timeframe === 'week' ? 'This Week' : 'This Month'}
-              </button>
+            </button>
             ))}
           </div>
         </div>
@@ -336,74 +437,74 @@ export default function AdminDashboard() {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div className="ml-4">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Tickets</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalTickets}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
+                <div className="flex items-center">
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Waiting</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.waitingTickets}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Completed {getTimeframeLabel()}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.completedToday}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <div className="ml-4">
+                    </svg>
+                  </div>
+                  <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.overdueTickets}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-              </div>
-              <div className="ml-4">
+                  </div>
+                  <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Clocked In</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.clockedInTechnicians}/{stats.totalTechnicians}</p>
+                </div>
               </div>
             </div>
-          </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
@@ -418,7 +519,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </div>
+              </div>
 
         {/* Main Content Tabs */}
         <div className="bg-white rounded-lg shadow">
@@ -430,7 +531,7 @@ export default function AdminDashboard() {
                 { id: 'overview', name: 'Overview & Stats', icon: '📊' },
                 { id: 'technicians', name: 'Technician Management', icon: '👥' }
               ].map((tab) => (
-                <button
+                <button 
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -538,10 +639,13 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">Technician Management</h3>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                <button 
+                    onClick={() => setShowAddTechnicianModal(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
                     Add Technician
-                  </button>
-                </div>
+                </button>
+              </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {technicians.map((tech) => (
@@ -589,22 +693,30 @@ export default function AdminDashboard() {
                              selectedTimeframe === 'week' ? tech.tickets_completed_this_week :
                              tech.tickets_completed_this_month}
                           </span>
-                        </div>
+              </div>
 
-                        <button
-                          onClick={() => handleClockInOut(tech.id, tech.is_clocked_in)}
-                          className={`w-full py-2 px-4 rounded-lg font-medium ${
-                            tech.is_clocked_in
-                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        >
-                          {tech.is_clocked_in ? 'Clock Out' : 'Clock In'}
-                        </button>
-                      </div>
-                    </div>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => handleClockInOut(tech.id, tech.is_clocked_in)}
+                            className={`w-full py-2 px-4 rounded-lg font-medium ${
+                              tech.is_clocked_in
+                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            }`}
+                          >
+                            {tech.is_clocked_in ? 'Clock Out' : 'Clock In'}
+                          </button>
+                <button 
+                            onClick={() => openEditTechnician(tech)}
+                            className="w-full py-2 px-4 rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                >
+                            Edit Technician
+                </button>
+                        </div>
+              </div>
+            </div>
                   ))}
-                </div>
+          </div>
               </div>
             )}
 
@@ -620,47 +732,47 @@ export default function AdminDashboard() {
                     <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
                       Get Ticket
                     </button>
-                  </div>
-                </div>
+              </div>
+            </div>
 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Ticket
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Device
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Assigned To
-                        </th>
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Assigned To
+                      </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Priority
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Time Ago
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
                       {tickets.map((ticket) => (
                         <tr key={ticket.ticketId} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               #{ticket.ticketNumber}
-                            </div>
+                          </div>
                             <div className="text-sm text-gray-500">
                               {ticket.ticketType}
-                            </div>
-                          </td>
+                          </div>
+                        </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">{ticket.deviceInfo}</div>
-                          </td>
+                        </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs rounded-full ${
                               ticket.status === 'completed' ? 'bg-green-100 text-green-800' :
@@ -669,7 +781,7 @@ export default function AdminDashboard() {
                             }`}>
                               {ticket.status}
                             </span>
-                          </td>
+                        </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <select
                               value={ticket.assignedTo || ''}
@@ -686,42 +798,42 @@ export default function AdminDashboard() {
                             {assigningTicket === ticket.ticketId && (
                               <span className="ml-2 text-xs text-blue-600">Assigning...</span>
                             )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs rounded-full ${
                               ticket.aiPriority === 'High' ? 'bg-red-100 text-red-800' :
                               ticket.aiPriority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-green-100 text-green-800'
-                            }`}>
+                            'bg-green-100 text-green-800'
+                          }`}>
                               {ticket.aiPriority}
-                            </span>
-                          </td>
+                          </span>
+                        </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${
-                              (() => {
-                                // Ensure timestamp is a Date object
-                                const ticketDate = ticket.timestamp instanceof Date ? ticket.timestamp : new Date(ticket.timestamp)
-                                const businessHoursWaiting = getBusinessHours(ticketDate, new Date())
-                                if (businessHoursWaiting > 4) {
-                                  return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >4 business hours - RED
-                                } else if (businessHoursWaiting > 2) {
-                                  return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 2-4 business hours - ORANGE
-                                } else {
-                                  return 'bg-green-100 text-green-800' // <2 business hours - GREEN
-                                }
-                              })()
-                            }`}>
-                              {ticket.timeAgo}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
+                          <div className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${
+                            (() => {
+                              // Ensure timestamp is a Date object
+                              const ticketDate = ticket.timestamp instanceof Date ? ticket.timestamp : new Date(ticket.timestamp)
+                              const businessHoursWaiting = getBusinessHours(ticketDate, new Date())
+                              if (businessHoursWaiting > 4) {
+                                return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >4 business hours - RED
+                              } else if (businessHoursWaiting > 2) {
+                                return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 2-4 business hours - ORANGE
+                              } else {
+                                return 'bg-green-100 text-green-800' // <2 business hours - GREEN
+                              }
+                            })()
+                          }`}>
+                            {ticket.timeAgo}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+            </div>
+          </div>
+        )}
+        
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (
               <div className="space-y-6">
@@ -798,6 +910,149 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Add Technician Modal */}
+      {showAddTechnicianModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Technician</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={technicianForm.full_name}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, full_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter full name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                  type="text"
+                  value={technicianForm.username}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, username: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter username"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={technicianForm.email}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter email"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                <textarea
+                  value={technicianForm.bio}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, bio: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="Enter technician bio (for PDF reports)"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowAddTechnicianModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddTechnician}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Add Technician
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Technician Modal */}
+      {showEditTechnicianModal && editingTechnician && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Technician</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={technicianForm.full_name}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, full_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter full name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                  type="text"
+                  value={technicianForm.username}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, username: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter username"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={technicianForm.email}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter email"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                <textarea
+                  value={technicianForm.bio}
+                  onChange={(e) => setTechnicianForm(prev => ({ ...prev, bio: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="Enter technician bio (for PDF reports)"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditTechnicianModal(false)
+                  setEditingTechnician(null)
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditTechnician}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Update Technician
+              </button>
+            </div>
+          </div>
+      </div>
+      )}
     </div>
   )
 }

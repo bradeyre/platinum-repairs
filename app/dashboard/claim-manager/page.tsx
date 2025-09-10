@@ -36,6 +36,7 @@ interface DamageReport {
   ai_checklist: string[]
   ai_risk_assessment: string
   assigned_tech_id: string
+  assigned_tech_name?: string
   created_at: string
   updated_at: string
 }
@@ -129,7 +130,14 @@ export default function ClaimManagerPage() {
         throw new Error('Failed to fetch damage reports')
       }
       const data = await response.json()
-      setDamageReports(data.reports)
+      
+      // Map technician data to reports
+      const reportsWithTech = data.reports.map((report: any) => ({
+        ...report,
+        assigned_tech_name: report.assigned_tech?.full_name || 'Unknown Technician'
+      }))
+      
+      setDamageReports(reportsWithTech)
       setError(null)
     } catch (err) {
       console.error('Error fetching damage reports:', err)
@@ -146,7 +154,14 @@ export default function ClaimManagerPage() {
         throw new Error('Failed to fetch damage reports')
       }
       const data = await response.json()
-      setDamageReports(data.reports)
+      
+      // Map technician data to reports
+      const reportsWithTech = data.reports.map((report: any) => ({
+        ...report,
+        assigned_tech_name: report.assigned_tech?.full_name || 'Unknown Technician'
+      }))
+      
+      setDamageReports(reportsWithTech)
     } catch (err) {
       console.error('Error silently fetching damage reports:', err)
     }
@@ -672,6 +687,9 @@ export default function ClaimManagerPage() {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">{selectedReport.device_brand} {selectedReport.device_model}</h2>
                   <p className="text-sm text-gray-600">DR: {selectedReport.dr_number} | Claim: {selectedReport.claim_number}</p>
+                  {selectedReport.assigned_tech_name && (
+                    <p className="text-sm text-blue-600 font-medium">Technician: {selectedReport.assigned_tech_name}</p>
+                  )}
                 </div>
                 <button
                   onClick={handleCloseModal}
