@@ -549,6 +549,17 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
         alert('Maximum 6 photos allowed')
         return
       }
+
+      // Convert photos to base64
+      const photoPromises = formData.photos.map(async (photo) => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(photo)
+        })
+      })
+      
+      const photoBase64s = await Promise.all(photoPromises)
       
       // Validate that all issues are checked with comments
       const uncheckedIssues = dynamicCheckboxes.filter(checkbox => 
@@ -572,6 +583,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       
       const reportData = {
         ...formData,
+        photos: photoBase64s,
         technician: currentUser?.full_name || currentUser?.username,
         timeSpent: timerTime,
         timestamp: new Date().toISOString(),

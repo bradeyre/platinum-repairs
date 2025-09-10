@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         imei_serial: '', // Will be filled from form data
         client_reported_issues: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.label) || [],
         tech_findings: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.notes).filter((note: any) => note) || [],
-        damage_photos: photos?.map((photo: any) => photo.name) || [],
+        damage_photos: photos || [],
         final_parts_selected: suggestedParts || [],
         total_parts_cost: 0, // Will be calculated from parts pricing
         final_total_cost: 0, // Final repair cost for Claim Manager
