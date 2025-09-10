@@ -235,6 +235,44 @@ export default function AdminDashboard() {
     return `${hours}h ${mins}m`
   }
 
+  // Function to calculate business hours between two dates
+  const getBusinessHours = (startDate: Date, endDate: Date) => {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    let businessHours = 0
+    
+    // Business hours: 8 AM to 6 PM, Monday to Friday
+    const businessStart = 8 // 8 AM
+    const businessEnd = 18 // 6 PM
+    
+    while (start < end) {
+      const dayOfWeek = start.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      
+      // Only count Monday (1) through Friday (5)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        const dayStart = new Date(start)
+        dayStart.setHours(businessStart, 0, 0, 0)
+        
+        const dayEnd = new Date(start)
+        dayEnd.setHours(businessEnd, 0, 0, 0)
+        
+        // Calculate overlap with business hours for this day
+        const overlapStart = new Date(Math.max(start.getTime(), dayStart.getTime()))
+        const overlapEnd = new Date(Math.min(end.getTime(), dayEnd.getTime()))
+        
+        if (overlapStart < overlapEnd) {
+          businessHours += (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60)
+        }
+      }
+      
+      // Move to next day
+      start.setDate(start.getDate() + 1)
+      start.setHours(0, 0, 0, 0)
+    }
+    
+    return businessHours
+  }
+
   const getTimeframeLabel = () => {
     switch (selectedTimeframe) {
       case 'today': return 'Today'
@@ -658,8 +696,23 @@ export default function AdminDashboard() {
                               {ticket.aiPriority}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {ticket.timeAgo}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${
+                              (() => {
+                                // Ensure timestamp is a Date object
+                                const ticketDate = ticket.timestamp instanceof Date ? ticket.timestamp : new Date(ticket.timestamp)
+                                const businessHoursWaiting = getBusinessHours(ticketDate, new Date())
+                                if (businessHoursWaiting > 4) {
+                                  return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >4 business hours - RED
+                                } else if (businessHoursWaiting > 2) {
+                                  return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 2-4 business hours - ORANGE
+                                } else {
+                                  return 'bg-green-100 text-green-800' // <2 business hours - GREEN
+                                }
+                              })()
+                            }`}>
+                              {ticket.timeAgo}
+                            </div>
                           </td>
                         </tr>
                       ))}
