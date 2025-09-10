@@ -752,11 +752,8 @@ export default function AdminDashboard() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Assigned To
                       </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Priority
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Time Ago
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Time Ago
                       </th>
                     </tr>
                   </thead>
@@ -801,15 +798,6 @@ export default function AdminDashboard() {
                             )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              ticket.aiPriority === 'High' ? 'bg-red-100 text-red-800' :
-                              ticket.aiPriority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                              {ticket.aiPriority}
-                          </span>
-                        </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${
                             (() => {
                               // Ensure timestamp is a Date object
