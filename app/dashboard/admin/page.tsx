@@ -52,7 +52,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('tickets')
   const [tickets, setTickets] = useState<ProcessedTicket[]>([])
   const [technicians, setTechnicians] = useState<Technician[]>([])
   const [stats, setStats] = useState<DashboardStats>({
@@ -387,10 +387,10 @@ export default function AdminDashboard() {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
               {[
-                { id: 'overview', name: 'Overview & Stats', icon: '📊' },
-                { id: 'technicians', name: 'Technician Management', icon: '👥' },
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
-                { id: 'analytics', name: 'Performance Analytics', icon: '📈' }
+                { id: 'analytics', name: 'Performance Analytics', icon: '📈' },
+                { id: 'overview', name: 'Overview & Stats', icon: '📊' },
+                { id: 'technicians', name: 'Technician Management', icon: '👥' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -438,31 +438,9 @@ export default function AdminDashboard() {
                   {/* Quick Actions */}
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">🔄</div>
-                          <p className="text-sm font-medium">Sync RepairShopr</p>
-                        </div>
-                      </button>
-                      <button className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">📊</div>
-                          <p className="text-sm font-medium">View Reports</p>
-                        </div>
-                      </button>
-                      <button className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">👥</div>
-                          <p className="text-sm font-medium">Manage Users</p>
-                        </div>
-                      </button>
-                      <button className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
-                        <div className="text-center">
-                          <div className="text-2xl mb-2">⚙️</div>
-                          <p className="text-sm font-medium">Settings</p>
-                        </div>
-                      </button>
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 text-4xl mb-2">🚀</div>
+                      <p className="text-gray-500 text-sm">Quick actions will be added here as needed</p>
                     </div>
                   </div>
                 </div>
