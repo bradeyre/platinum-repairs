@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import AIRepairAssistantComponent from './AIRepairAssistant'
 
 interface ProcessedTicket {
   ticketId: string
@@ -37,6 +38,15 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
   const [timerStartTime, setTimerStartTime] = useState<Date | null>(null)
   const [pausedTime, setPausedTime] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
+
+  // Photo upload state
+  const [repairPhotos, setRepairPhotos] = useState<File[]>([])
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+
+  // AI Assistant state
+  const [showAIAssistant, setShowAIAssistant] = useState(false)
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null)
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -85,6 +95,59 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Photo handling functions
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    if (files.length === 0) return
+
+    // Validate file types and sizes
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not an image file`)
+        return false
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert(`${file.name} is too large. Maximum size is 5MB`)
+        return false
+      }
+      return true
+    })
+
+    if (validFiles.length === 0) return
+
+    // Check total photo limit (max 10 photos)
+    if (repairPhotos.length + validFiles.length > 10) {
+      alert('Maximum 10 photos allowed')
+      return
+    }
+
+    setRepairPhotos(prev => [...prev, ...validFiles])
+
+    // Create previews
+    validFiles.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setPhotoPreviews(prev => [...prev, e.target?.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removePhoto = (index: number) => {
+    setRepairPhotos(prev => prev.filter((_, i) => i !== index))
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const convertPhotosToBase64 = async (files: File[]): Promise<string[]> => {
+    return Promise.all(files.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.readAsDataURL(file)
+      })
+    }))
+  }
+
   const handleSave = async () => {
     if (!timerStarted) {
       alert('Please start the timer before completing the repair')
@@ -101,20 +164,29 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
       return
     }
 
-    const repairData = {
-      ...formData,
-      timeSpent: formatTime(elapsedTime),
-      ticketId: ticket.ticketId,
-      ticketNumber: ticket.ticketNumber,
-      completedAt: new Date().toISOString()
-    }
+    setUploadingPhotos(true)
 
     try {
+      // Convert photos to base64
+      const photoBase64s = await convertPhotosToBase64(repairPhotos)
+
+      const repairData = {
+        ...formData,
+        timeSpent: formatTime(elapsedTime),
+        ticketId: ticket.ticketId,
+        ticketNumber: ticket.ticketNumber,
+        completedAt: new Date().toISOString(),
+        repairPhotos: photoBase64s,
+        photoCount: repairPhotos.length
+      }
+
       await onSave(repairData)
       onClose()
     } catch (error) {
       console.error('Error saving repair completion:', error)
       alert('Failed to save repair completion')
+    } finally {
+      setUploadingPhotos(false)
     }
   }
 
@@ -153,7 +225,15 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
 
           {/* Timer Section */}
           <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-semibold mb-3">Work Timer</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Work Timer</h3>
+              <button
+                onClick={() => setShowAIAssistant(!showAIAssistant)}
+                className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center gap-1"
+              >
+                🤖 AI Assistant
+              </button>
+            </div>
             <div className="flex items-center gap-4 mb-4">
               <div className="text-3xl font-mono font-bold text-blue-600">
                 {formatTime(elapsedTime)}
@@ -192,6 +272,21 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
               </div>
             </div>
           </div>
+
+          {/* AI Assistant Section */}
+          {showAIAssistant && (
+            <div className="mb-6">
+              <AIRepairAssistantComponent
+                ticketId={ticket.ticketId}
+                deviceInfo={ticket.deviceInfo}
+                description={ticket.description}
+                onAnalysisComplete={(analysis) => {
+                  setAiAnalysis(analysis)
+                  console.log('🤖 AI Analysis received:', analysis)
+                }}
+              />
+            </div>
+          )}
 
           {/* Form Fields */}
           <div className="space-y-6">
@@ -281,6 +376,82 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
                 placeholder="Any additional notes or observations..."
               />
             </div>
+
+            {/* Photo Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Repair Photos (Optional)
+              </label>
+              <div className="space-y-4">
+                {/* Upload Button */}
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    disabled={!timerStarted || repairPhotos.length >= 10}
+                    className="hidden"
+                    id="repair-photo-upload"
+                  />
+                  <label
+                    htmlFor="repair-photo-upload"
+                    className={`cursor-pointer px-4 py-2 rounded-md border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors ${
+                      !timerStarted || repairPhotos.length >= 10 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'cursor-pointer'
+                    }`}
+                  >
+                    📷 Add Photos ({repairPhotos.length}/10)
+                  </label>
+                  {repairPhotos.length > 0 && (
+                    <span className="text-sm text-gray-500">
+                      {repairPhotos.length} photo{repairPhotos.length !== 1 ? 's' : ''} selected
+                    </span>
+                  )}
+                </div>
+
+                {/* Photo Previews */}
+                {photoPreviews.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {photoPreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Repair photo ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                        >
+                          ×
+                        </button>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                          <button
+                            onClick={() => window.open(preview, '_blank')}
+                            className="opacity-0 group-hover:opacity-100 bg-white bg-opacity-80 text-gray-800 px-2 py-1 rounded text-xs transition-opacity"
+                          >
+                            View
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Guidelines */}
+                <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                  <p><strong>Photo Guidelines:</strong></p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>Maximum 10 photos per repair</li>
+                    <li>Maximum 5MB per photo</li>
+                    <li>Supported formats: JPG, PNG, GIF</li>
+                    <li>Photos help document the repair process and results</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -293,10 +464,24 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
             </button>
             <button
               onClick={handleSave}
-              disabled={!timerStarted}
-              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={!timerStarted || uploadingPhotos}
+              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              ✅ Complete Repair
+              {uploadingPhotos ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  ✅ Complete Repair
+                  {repairPhotos.length > 0 && (
+                    <span className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded">
+                      +{repairPhotos.length} photos
+                    </span>
+                  )}
+                </>
+              )}
             </button>
           </div>
         </div>

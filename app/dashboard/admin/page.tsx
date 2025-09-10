@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import DashboardNavigation from '@/components/DashboardNavigation'
+import PerformanceMonitoring from '@/components/PerformanceMonitoring'
+import EnhancedTimeTracking from '@/components/EnhancedTimeTracking'
 
 interface ProcessedTicket {
   ticketId: string
@@ -529,6 +531,8 @@ export default function AdminDashboard() {
               {[
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
                 { id: 'analytics', name: 'Performance Analytics', icon: '📈' },
+                { id: 'monitoring', name: 'Performance Monitoring', icon: '🚨' },
+                { id: 'time-tracking', name: 'Time Tracking', icon: '⏱️' },
                 { id: 'overview', name: 'Overview & Stats', icon: '📊' },
                 { id: 'technicians', name: 'Technician Management', icon: '👥' }
               ].map((tab) => (
@@ -821,7 +825,21 @@ export default function AdminDashboard() {
                 </table>
             </div>
           </div>
-        )}
+            )}
+
+            {/* Performance Monitoring Tab */}
+            {activeTab === 'monitoring' && (
+              <div className="p-6">
+                <PerformanceMonitoring />
+              </div>
+            )}
+
+            {/* Time Tracking Tab */}
+            {activeTab === 'time-tracking' && (
+              <div className="p-6">
+                <EnhancedTimeTracking showAllTechnicians={true} />
+              </div>
+            )}
         
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (

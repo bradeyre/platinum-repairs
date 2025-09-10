@@ -230,32 +230,70 @@ export default function TechnicianDashboard() {
 
   const handleRepairCompletionSave = async (repairData: any) => {
     try {
-      console.log('Repair completion saved:', repairData)
-      // Here you would typically save the repair completion to the database
-      // For now, we'll just log it
+      console.log('🔧 Saving repair completion:', repairData)
       
-      // Update the ticket status in RepairShopr
-      const response = await fetch('/api/tickets/update-status', {
+      // Save repair completion with photos to database
+      const response = await fetch('/api/repair-completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ticketId: repairData.ticketId,
-          status: 'Repair Completed'
+          ticketNumber: repairData.ticketNumber,
+          technician: selectedTechnician,
+          workCompleted: repairData.workCompleted,
+          partsUsed: repairData.partsUsed,
+          testingResults: repairData.testingResults,
+          finalStatus: repairData.finalStatus,
+          notes: repairData.notes,
+          timeSpent: repairData.timeSpent,
+          repairPhotos: repairData.repairPhotos || [],
+          photoCount: repairData.photoCount || 0
         })
       })
 
-      if (response.ok) {
-        // Refresh the tickets list
-        await fetchTickets(false)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save repair completion')
       }
+
+      const result = await response.json()
+      console.log('✅ Repair completion saved successfully:', result)
+
+      // Update the ticket status in RepairShopr
+      try {
+        const statusResponse = await fetch('/api/tickets/update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: repairData.ticketId,
+            status: 'Repair Completed'
+          })
+        })
+
+        if (statusResponse.ok) {
+          console.log('✅ RepairShopr status updated successfully')
+        }
+      } catch (statusError) {
+        console.error('⚠️ Failed to update RepairShopr status:', statusError)
+        // Don't fail the entire operation if RepairShopr update fails
+      }
+
+      // Refresh the tickets list
+      await fetchTickets(false)
       
       setShowRepairModal(false)
       setSelectedTicket(null)
+      
+      // Show success message
+      alert(`✅ Repair completed successfully! ${result.photosSaved} photos saved.`)
+      
     } catch (error) {
-      console.error('Error saving repair completion:', error)
-      alert('Failed to save repair completion')
+      console.error('❌ Error saving repair completion:', error)
+      alert(`Failed to save repair completion: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -274,15 +312,19 @@ export default function TechnicianDashboard() {
       {/* Navigation */}
       <DashboardNavigation currentSection="technician" userRole={user?.role} />
       
-      {/* Header */}
+      {/* Header - Mobile Optimized */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Platinum Repairs - Technician Dashboard</h1>
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-4 lg:py-6 space-y-4 lg:space-y-0">
+            <div className="flex-1">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Technician Dashboard</h1>
+              <p className="text-sm text-gray-600 mt-1">Welcome, {selectedTechnician || 'Technician'}</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            
+            {/* Mobile-First Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
+              {/* Role Switcher - Hidden on mobile, shown on desktop */}
+              <div className="hidden lg:flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-700">Switch to:</label>
                 <select 
                   className="border border-gray-300 rounded-md px-3 py-1 text-sm"
@@ -300,23 +342,24 @@ export default function TechnicianDashboard() {
                   <option value="claim-manager">Claim Manager</option>
                 </select>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-gray-600">
-                  Welcome, {selectedTechnician || 'Technician'}
-                </span>
+              
+              {/* Primary Actions */}
+              <div className="flex gap-2">
                 {selectedTechnician && (
                   <button 
                     onClick={() => setShowClaimModal(true)}
-                    className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600"
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 flex-1 sm:flex-none"
                   >
-                    🎯 Claim Tickets
+                    <span className="hidden sm:inline">🎯 Claim Tickets</span>
+                    <span className="sm:hidden">🎯 Claim</span>
                   </button>
                 )}
                 <button 
                   onClick={() => window.location.href = '/login'} 
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600 hover:text-blue-800 px-2 py-2 text-sm"
                 >
-                  Logout
+                  <span className="hidden sm:inline">Logout</span>
+                  <span className="sm:hidden">🚪</span>
                 </button>
               </div>
             </div>
@@ -465,99 +508,175 @@ export default function TechnicianDashboard() {
               <p className="text-sm">You don't have any tickets assigned to you yet. Use the "Claim Tickets" button to claim unassigned tickets.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ticket ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Device & Description  
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-                      ⚠️ Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {tickets.map((ticket, index) => (
-                    <tr 
-                      key={ticket.ticketId} 
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 cursor-pointer transition-colors`}
-                      onClick={() => handleTicketClick(ticket)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <span>{ticket.ticketId}</span>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            ticket.ticketType === 'PR' ? 'bg-blue-100 text-blue-800' :
-                            'bg-purple-100 text-purple-800'
-                          }`}>
-                            {ticket.ticketType}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <div>
-                          <div className="font-medium">{ticket.deviceInfo}</div>
-                          <div className="text-gray-500 text-sm">{ticket.description}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          ticket.status === 'Awaiting Rework' ? 'bg-red-100 text-red-800' :
-                          ticket.status === 'Awaiting Workshop Repairs' ? 'bg-orange-100 text-orange-800' :
-                          ticket.status === 'Awaiting Damage Report' ? 'bg-yellow-100 text-yellow-800' :
-                          ticket.status === 'Awaiting Repair' ? 'bg-blue-100 text-blue-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {ticket.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap w-20">
-                        <div className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
-                          {ticket.timeAgo}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          {ticket.status !== 'Awaiting Damage Report' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleStartWork(ticket)
-                              }}
-                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-                            >
-                              Start Work
-                            </button>
-                          )}
-                          {ticket.status === 'Awaiting Damage Report' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                // Open the comprehensive damage report modal
-                                handleTicketClick(ticket)
-                              }}
-                              className="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
-                            >
-                              Damage Report
-                            </button>
-                          )}
-                        </div>
-                      </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ticket ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Device & Description  
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                        ⚠️ Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {tickets.map((ticket, index) => (
+                      <tr 
+                        key={ticket.ticketId} 
+                        className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 cursor-pointer transition-colors`}
+                        onClick={() => handleTicketClick(ticket)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <div className="flex items-center gap-2">
+                            <span>{ticket.ticketId}</span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              ticket.ticketType === 'PR' ? 'bg-blue-100 text-blue-800' :
+                              'bg-purple-100 text-purple-800'
+                            }`}>
+                              {ticket.ticketType}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div>
+                            <div className="font-medium">{ticket.deviceInfo}</div>
+                            <div className="text-gray-500 text-sm">{ticket.description}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            ticket.status === 'Awaiting Rework' ? 'bg-red-100 text-red-800' :
+                            ticket.status === 'Awaiting Workshop Repairs' ? 'bg-orange-100 text-orange-800' :
+                            ticket.status === 'Awaiting Damage Report' ? 'bg-yellow-100 text-yellow-800' :
+                            ticket.status === 'Awaiting Repair' ? 'bg-blue-100 text-blue-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {ticket.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap w-20">
+                          <div className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                            {ticket.timeAgo}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center gap-2">
+                            {ticket.status !== 'Awaiting Damage Report' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleStartWork(ticket)
+                                }}
+                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                              >
+                                Start Work
+                              </button>
+                            )}
+                            {ticket.status === 'Awaiting Damage Report' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleTicketClick(ticket)
+                                }}
+                                className="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
+                              >
+                                Damage Report
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-4">
+                {tickets.map((ticket, index) => (
+                  <div 
+                    key={ticket.ticketId}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleTicketClick(ticket)}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{ticket.ticketId}</span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          ticket.ticketType === 'PR' ? 'bg-blue-100 text-blue-800' :
+                          'bg-purple-100 text-purple-800'
+                        }`}>
+                          {ticket.ticketType}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                          {ticket.timeAgo}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Device Info */}
+                    <div className="mb-3">
+                      <div className="font-medium text-gray-900 mb-1">{ticket.deviceInfo}</div>
+                      <div className="text-gray-500 text-sm line-clamp-2">{ticket.description}</div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="mb-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        ticket.status === 'Awaiting Rework' ? 'bg-red-100 text-red-800' :
+                        ticket.status === 'Awaiting Workshop Repairs' ? 'bg-orange-100 text-orange-800' :
+                        ticket.status === 'Awaiting Damage Report' ? 'bg-yellow-100 text-yellow-800' :
+                        ticket.status === 'Awaiting Repair' ? 'bg-blue-100 text-blue-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {ticket.status}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      {ticket.status !== 'Awaiting Damage Report' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStartWork(ticket)
+                          }}
+                          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
+                        >
+                          Start Work
+                        </button>
+                      )}
+                      {ticket.status === 'Awaiting Damage Report' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleTicketClick(ticket)
+                          }}
+                          className="flex-1 bg-yellow-600 text-white px-3 py-2 rounded text-sm hover:bg-yellow-700"
+                        >
+                          Damage Report
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
