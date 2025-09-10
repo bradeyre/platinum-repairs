@@ -1,7 +1,25 @@
 'use client'
 
 import React, { useState } from 'react'
-import { AIRepairAssistant, AIAnalysisResult, RepairSuggestion } from '@/lib/ai-assistant'
+
+export interface RepairSuggestion {
+  category: 'diagnosis' | 'repair' | 'testing' | 'parts' | 'safety'
+  priority: 'high' | 'medium' | 'low'
+  suggestion: string
+  reasoning: string
+  confidence: number // 0-100
+}
+
+export interface AIAnalysisResult {
+  deviceType: string
+  likelyIssues: string[]
+  repairSuggestions: RepairSuggestion[]
+  estimatedComplexity: 'simple' | 'moderate' | 'complex'
+  estimatedTime: string
+  safetyWarnings: string[]
+  partsRecommendations: string[]
+  testingSteps: string[]
+}
 
 interface AIRepairAssistantProps {
   ticketId: string
@@ -30,16 +48,33 @@ export default function AIRepairAssistantComponent({
       
       console.log('🤖 Starting AI analysis for ticket:', ticketId)
       
-      const result = await AIRepairAssistant.analyzeRepairRequest(
-        deviceInfo,
-        description,
-        symptoms
-      )
+      const response = await fetch('/api/ai-repair-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deviceInfo,
+          description,
+          symptoms
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI analysis')
+      }
+
+      const data = await response.json()
       
-      setAnalysis(result)
-      onAnalysisComplete?.(result)
-      
-      console.log('✅ AI analysis completed successfully')
+      if (data.success) {
+        setAnalysis(data.analysis)
+        onAnalysisComplete?.(data.analysis)
+        console.log('✅ AI analysis completed successfully')
+      } else {
+        setAnalysis(data.analysis) // Use fallback analysis
+        onAnalysisComplete?.(data.analysis)
+        console.log('⚠️ AI analysis failed, using fallback')
+      }
       
     } catch (error) {
       console.error('❌ AI analysis failed:', error)
