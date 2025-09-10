@@ -1049,13 +1049,20 @@ export default function ClaimManagerPage() {
                     {managerDecision.berDecision === true && (
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">BER Reason</label>
-                        <input
-                          type="text"
+                        <select
                           value={managerDecision.berReason}
                           onChange={(e) => setManagerDecision(prev => ({ ...prev, berReason: e.target.value }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Reason for BER decision..."
-                        />
+                        >
+                          <option value="">Select BER reason...</option>
+                          <option value="Beyond Economical Repair">Beyond Economical Repair</option>
+                          <option value="Liquid">Liquid</option>
+                          <option value="Mainboard">Mainboard</option>
+                          <option value="Power Surge">Power Surge</option>
+                          <option value="Stock unavailability">Stock unavailability</option>
+                          <option value="Due to the extent of impact damage">Due to the extent of impact damage</option>
+                          <option value="The waterproof seal cannot be sealed to its original factory state when these parts are replaced">The waterproof seal cannot be sealed to its original factory state when these parts are replaced</option>
+                        </select>
                       </div>
                     )}
 
