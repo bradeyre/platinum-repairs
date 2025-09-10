@@ -131,11 +131,22 @@ export default function ClaimManagerPage() {
       }
       const data = await response.json()
       
+      // Fetch technician data separately
+      const techResponse = await fetch('/api/technicians/work-data')
+      let technicians: any[] = []
+      if (techResponse.ok) {
+        const techData = await techResponse.json()
+        technicians = techData.technicians || []
+      }
+      
       // Map technician data to reports
-      const reportsWithTech = data.reports.map((report: any) => ({
-        ...report,
-        assigned_tech_name: report.assigned_tech?.full_name || 'Unknown Technician'
-      }))
+      const reportsWithTech = data.reports.map((report: any) => {
+        const tech = technicians.find(t => t.id === report.assigned_tech_id)
+        return {
+          ...report,
+          assigned_tech_name: tech?.full_name || 'Unknown Technician'
+        }
+      })
       
       setDamageReports(reportsWithTech)
       setError(null)
@@ -155,11 +166,22 @@ export default function ClaimManagerPage() {
       }
       const data = await response.json()
       
+      // Fetch technician data separately
+      const techResponse = await fetch('/api/technicians/work-data')
+      let technicians: any[] = []
+      if (techResponse.ok) {
+        const techData = await techResponse.json()
+        technicians = techData.technicians || []
+      }
+      
       // Map technician data to reports
-      const reportsWithTech = data.reports.map((report: any) => ({
-        ...report,
-        assigned_tech_name: report.assigned_tech?.full_name || 'Unknown Technician'
-      }))
+      const reportsWithTech = data.reports.map((report: any) => {
+        const tech = technicians.find(t => t.id === report.assigned_tech_id)
+        return {
+          ...report,
+          assigned_tech_name: tech?.full_name || 'Unknown Technician'
+        }
+      })
       
       setDamageReports(reportsWithTech)
     } catch (err) {

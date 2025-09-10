@@ -77,10 +77,7 @@ export async function GET(request: NextRequest) {
     
     const { data: reports, error } = await supabaseAdmin
       .from('damage_reports')
-      .select(`
-        *,
-        assigned_tech:users!assigned_tech_id(full_name, bio)
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) {
