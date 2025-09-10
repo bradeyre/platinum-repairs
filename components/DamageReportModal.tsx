@@ -27,8 +27,11 @@ interface DamageReportModalProps {
 export default function DamageReportModal({ ticket, onClose, onSave }: DamageReportModalProps) {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [timerStarted, setTimerStarted] = useState(false)
+  const [timerPaused, setTimerPaused] = useState(false)
   const [timerTime, setTimerTime] = useState(0)
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null)
+  const [timerStartTime, setTimerStartTime] = useState<number | null>(null)
+  const [pausedTime, setPausedTime] = useState(0)
   const [formData, setFormData] = useState({
     ticket: ticket.ticketId,
     claim: '',
@@ -63,6 +66,8 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     checked: boolean
     notes: string
   }[]>([])
+  const [ticketComments, setTicketComments] = useState<string[]>([])
+  const [loadingComments, setLoadingComments] = useState(false)
 
   // Device-specific parts
   const getDeviceParts = (deviceType: string) => {
@@ -151,6 +156,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
 
     // Fetch detailed ticket information including comments
     fetchTicketDetails()
+    fetchRelevantComments()
 
     // Auto-populate some fields from ticket data
     populateFromTicket()
@@ -210,6 +216,61 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     } catch (error) {
       console.error('Error fetching ticket details:', error)
     }
+  }
+
+  const fetchRelevantComments = async () => {
+    try {
+      setLoadingComments(true)
+      const ticketNumber = ticket.ticketId.replace('#', '')
+      const instance = ticket.ticketType === 'PR' ? 'platinum' : 'devicedoctor'
+      
+      const response = await fetch(`/api/ticket-details?ticketId=${ticketNumber}&instance=${instance}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        const comments = data.comments || []
+        
+        // Filter out irrelevant comments using AI
+        const relevantComments = await filterRelevantComments(comments)
+        setTicketComments(relevantComments)
+      }
+    } catch (error) {
+      console.error('Error fetching relevant comments:', error)
+    } finally {
+      setLoadingComments(false)
+    }
+  }
+
+  const filterRelevantComments = async (comments: any[]) => {
+    try {
+      const response = await fetch('/api/ai-filter-comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          comments: comments.map(comment => ({
+            text: comment.body || comment.comment || '',
+            date: comment.created_at || comment.date || '',
+            author: comment.user?.name || comment.author || 'Unknown'
+          }))
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        return data.relevantComments || []
+      }
+    } catch (error) {
+      console.error('Error filtering comments:', error)
+    }
+    
+    // Fallback: simple keyword filtering
+    const relevantKeywords = ['device', 'damage', 'issue', 'problem', 'repair', 'screen', 'battery', 'charging', 'water', 'drop', 'crack', 'broken', 'not working', 'faulty']
+    return comments.filter(comment => {
+      const text = (comment.body || comment.comment || '').toLowerCase()
+      return relevantKeywords.some(keyword => text.includes(keyword))
+    }).map(comment => comment.body || comment.comment || '')
   }
 
   const populateFromTicket = () => {
@@ -467,15 +528,42 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       return
     }
     
-    const start = Date.now()
-    setTimerStarted(true)
-    
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - start
-      setTimerTime(elapsed)
-    }, 1000)
-    
-    setTimerInterval(interval)
+    if (!timerStarted) {
+      // First time starting
+      const start = Date.now()
+      setTimerStartTime(start)
+      setTimerStarted(true)
+      setTimerPaused(false)
+      setPausedTime(0)
+      
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - start
+        setTimerTime(elapsed)
+      }, 1000)
+      
+      setTimerInterval(interval)
+    } else if (timerPaused) {
+      // Resuming from pause
+      const resumeTime = Date.now()
+      setTimerStartTime(resumeTime - pausedTime)
+      setTimerPaused(false)
+      
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - (resumeTime - pausedTime)
+        setTimerTime(elapsed)
+      }, 1000)
+      
+      setTimerInterval(interval)
+    }
+  }
+
+  const pauseTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval)
+      setTimerInterval(null)
+    }
+    setPausedTime(timerTime)
+    setTimerPaused(true)
   }
 
   const stopTimer = () => {
@@ -484,6 +572,10 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       setTimerInterval(null)
     }
     setTimerStarted(false)
+    setTimerPaused(false)
+    setTimerStartTime(null)
+    setPausedTime(0)
+    setTimerTime(0)
   }
 
   const formatTime = (ms: number): string => {
@@ -683,17 +775,28 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Timer
                   </label>
-                  <button
-                    onClick={timerStarted ? stopTimer : startTimer}
-                    disabled={!currentUser}
-                    className={`px-4 py-2 rounded font-medium ${
-                      timerStarted
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    } disabled:opacity-50`}
-                  >
-                    {timerStarted ? '⏹️ Stop Timer' : '▶️ Start Timer'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={timerStarted ? (timerPaused ? startTimer : pauseTimer) : startTimer}
+                      disabled={!currentUser}
+                      className={`px-4 py-2 rounded font-medium ${
+                        timerStarted && !timerPaused
+                          ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      } disabled:opacity-50`}
+                    >
+                      {timerStarted ? (timerPaused ? '▶️ Resume' : '⏸️ Pause') : '▶️ Start Timer'}
+                    </button>
+                    {timerStarted && (
+                      <button
+                        onClick={stopTimer}
+                        disabled={!currentUser}
+                        className="px-4 py-2 rounded font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        ⏹️ Stop
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="text-right">
@@ -903,6 +1006,29 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                     </ul>
                   </div>
                 </div>
+              </div>
+
+              {/* Ticket Comments Pane */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-green-900 mb-4">📝 Relevant Ticket Comments</h3>
+                
+                {loadingComments ? (
+                  <div className="text-center py-4">
+                    <div className="text-sm text-green-700">Loading relevant comments...</div>
+                  </div>
+                ) : ticketComments.length > 0 ? (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {ticketComments.map((comment, index) => (
+                      <div key={index} className="bg-white border border-green-200 rounded p-3">
+                        <div className="text-sm text-green-800">{comment}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="text-sm text-green-700">No relevant comments found</div>
+                  </div>
+                )}
               </div>
 
               {/* Dynamic Checkboxes based on AI Analysis */}
