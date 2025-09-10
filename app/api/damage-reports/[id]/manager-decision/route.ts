@@ -17,7 +17,9 @@ export async function POST(
       excessAmount,
       replacementValue,
       managerNotes,
-      selectedParts
+      selectedParts,
+      customParts,
+      finalETA
     } = body
 
     // Update the damage report with manager decision
@@ -30,8 +32,12 @@ export async function POST(
         excess_amount: excessAmount,
         replacement_value: replacementValue,
         notes: managerNotes,
-        final_parts_selected: selectedParts?.map((part: any) => part.part_name) || [],
-        total_parts_cost: selectedParts?.reduce((sum: number, part: any) => sum + part.insurance_price, 0) || 0,
+        final_parts_selected: [
+          ...(selectedParts?.map((part: any) => part.part_name) || []),
+          ...(customParts?.map((part: any) => part.name) || [])
+        ],
+        total_parts_cost: finalTotalCost || 0,
+        final_eta_days: finalETA || 1,
         status: decision === 'approve' ? 'in_repair' : decision === 'ber' ? 'ber_confirmed' : 'awaiting_approval',
         updated_at: new Date().toISOString()
       })

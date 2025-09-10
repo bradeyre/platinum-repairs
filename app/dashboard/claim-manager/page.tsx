@@ -70,6 +70,11 @@ export default function ClaimManagerDashboard() {
   const [selectedReport, setSelectedReport] = useState<DamageReport | null>(null)
   const [showPartsModal, setShowPartsModal] = useState(false)
   const [selectedParts, setSelectedParts] = useState<PartsPricing[]>([])
+  const [customParts, setCustomParts] = useState<Array<{
+    name: string
+    price: number
+    eta: number
+  }>>([])
   const [managerDecision, setManagerDecision] = useState<{
     berDecision: boolean | null
     berReason: string
@@ -103,8 +108,10 @@ export default function ClaimManagerDashboard() {
   useEffect(() => {
     if (user) {
       fetchDamageReports()
-      // Refresh every minute
-      const interval = setInterval(fetchDamageReports, 60000)
+      // Refresh every 30 seconds with Ajax (no page reload)
+      const interval = setInterval(() => {
+        fetchDamageReports()
+      }, 30000)
       return () => clearInterval(interval)
     }
   }, [user])
@@ -231,6 +238,39 @@ export default function ClaimManagerDashboard() {
     return (managerDecision.finalTotalCost / managerDecision.replacementValue) * 100
   }
 
+  const calculateFinalETA = () => {
+    const allParts = [...selectedParts, ...customParts.map(cp => ({ eta_info: `${cp.eta} days` }))]
+    if (allParts.length === 0) return 0
+    
+    const etas = allParts.map(part => {
+      const etaText = part.eta_info || '1 day'
+      const match = etaText.match(/(\d+)/)
+      return match ? parseInt(match[1]) : 1
+    })
+    
+    return Math.max(...etas)
+  }
+
+  const calculateTotalCost = () => {
+    const selectedPartsCost = selectedParts.reduce((sum, part) => sum + part.insurance_price, 0)
+    const customPartsCost = customParts.reduce((sum, part) => sum + part.price, 0)
+    return selectedPartsCost + customPartsCost
+  }
+
+  const addCustomPart = () => {
+    setCustomParts([...customParts, { name: '', price: 0, eta: 1 }])
+  }
+
+  const updateCustomPart = (index: number, field: string, value: string | number) => {
+    const updated = [...customParts]
+    updated[index] = { ...updated[index], [field]: value }
+    setCustomParts(updated)
+  }
+
+  const removeCustomPart = (index: number) => {
+    setCustomParts(customParts.filter((_, i) => i !== index))
+  }
+
   const handleManagerDecision = async (reportId: string, decision: 'approve' | 'reject' | 'ber') => {
     try {
       const response = await fetch(`/api/damage-reports/${reportId}/manager-decision`, {
@@ -242,11 +282,13 @@ export default function ClaimManagerDashboard() {
           decision,
           berDecision: decision === 'ber',
           berReason: managerDecision.berReason,
-          finalTotalCost: managerDecision.finalTotalCost,
+          finalTotalCost: calculateTotalCost(),
           excessAmount: managerDecision.excessAmount,
           replacementValue: managerDecision.replacementValue,
           managerNotes: managerDecision.managerNotes,
-          selectedParts: selectedParts
+          selectedParts: selectedParts,
+          customParts: customParts,
+          finalETA: calculateFinalETA()
         })
       })
       
@@ -392,237 +434,317 @@ export default function ClaimManagerDashboard() {
             <div className="space-y-4">
               {awaitingApproval.map((report) => (
                 <div key={report.id} className="bg-white p-6 rounded-lg shadow">
-                  <div className="flex justify-between items-start mb-4">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-6">
                     <div>
                       <h3 className="text-lg font-medium text-gray-900">{report.device_brand} {report.device_model}</h3>
-                      <p className="text-sm text-gray-600">Report ID: {report.id}</p>
+                      <p className="text-sm text-gray-600">DR: {report.dr_number} | Claim: {report.claim_number}</p>
                     </div>
                     <span className="px-3 py-1 text-sm font-medium text-orange-800 bg-orange-100 rounded-full">
                       Awaiting Approval
                     </span>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Damage Assessment</h4>
-                      <p className="text-sm text-gray-600">{report.notes || 'No additional notes'}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Repair Estimate</h4>
-                      <p className="text-lg font-semibold text-green-600">R{report.final_total_cost || report.total_parts_cost}</p>
-                    </div>
-                  </div>
 
-                  {/* Device information */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Device Details</h4>
-                      <p className="text-sm text-gray-600">
-                        {report.device_brand} {report.device_model}
-                      </p>
-                      <p className="text-xs text-gray-500">{report.device_type}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Claim Information</h4>
-                      <p className="text-sm text-gray-600">{report.claim_number || 'No claim number'}</p>
-                      {report.imei_serial && (
-                        <p className="text-xs text-gray-500">IMEI: {report.imei_serial}</p>
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Assessment</h4>
-                      <p className="text-sm text-gray-600">
-                        {report.tech_ber_suggestion ? 'BER Suggested' : 'Repairable'}
-                      </p>
-                      {report.damage_photos.length > 0 && (
-                        <p className="text-xs text-gray-500">{report.damage_photos.length} photos</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* AI Analysis and Issues */}
-                  {report.ai_checklist && report.ai_checklist.length > 0 && (
-                    <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2">🤖 AI Checklist</h4>
-                      <div className="space-y-1">
-                        {report.ai_checklist.map((item: string, index: number) => (
-                          <div key={index} className="text-sm text-blue-800">
-                            • {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {report.client_reported_issues && report.client_reported_issues.length > 0 && (
-                    <div className="mb-4 p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-2">✅ Client Reported Issues</h4>
-                      <div className="space-y-1">
-                        {report.client_reported_issues.map((issue: string, index: number) => (
-                          <div key={index} className="text-sm text-green-800">
-                            • {issue}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {report.tech_findings && report.tech_findings.length > 0 && (
-                    <div className="mb-4 p-4 bg-yellow-50 rounded-lg">
-                      <h4 className="font-medium text-yellow-900 mb-2">🔧 Technician Findings</h4>
-                      <div className="space-y-1">
-                        {report.tech_findings.map((finding: string, index: number) => (
-                          <div key={index} className="text-sm text-yellow-800">
-                            • {finding}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Parts and Pricing Section */}
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-blue-900">Parts & Pricing</h4>
-                      <button
-                        onClick={() => handleOpenPartsModal(report)}
-                        className="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700 transition-colors"
-                      >
-                        Select Parts
-                      </button>
-                    </div>
+                  {/* 3-Column Layout */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     
-                    {report.final_parts_selected && report.final_parts_selected.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h5 className="font-medium text-blue-800 mb-2">Selected Parts</h5>
-                          <div className="flex flex-wrap gap-2">
-                            {report.final_parts_selected.map((part, index) => (
-                              <span key={index} className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded">
-                                {part}
-                              </span>
+                    {/* Column 1: Device Info & Assessment */}
+                    <div className="space-y-4">
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-3">Device Information</h4>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-medium">Model:</span> {report.device_brand} {report.device_model}
+                          </div>
+                          <div>
+                            <span className="font-medium">Type:</span> {report.device_type}
+                          </div>
+                          {report.imei_serial && (
+                            <div>
+                              <span className="font-medium">IMEI:</span> {report.imei_serial}
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium">Photos:</span> {report.damage_photos.length} uploaded
+                          </div>
+                          <div>
+                            <span className="font-medium">Priority:</span> {report.priority}/5
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-3">Technician Assessment</h4>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-medium">Status:</span> 
+                            <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                              report.tech_ber_suggestion 
+                                ? 'bg-red-100 text-red-800' 
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {report.tech_ber_suggestion ? 'BER Suggested' : 'Repairable'}
+                            </span>
+                          </div>
+                          {report.ber_reason && (
+                            <div>
+                              <span className="font-medium">Reason:</span> {report.ber_reason}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* AI Checklist */}
+                      {report.ai_checklist && report.ai_checklist.length > 0 && (
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                          <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                            🤖 AI Checklist
+                          </h4>
+                          <ul className="text-sm text-blue-800 space-y-1">
+                            {report.ai_checklist.map((item, index) => (
+                              <li key={index}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Column 2: Issues & Findings */}
+                    <div className="space-y-4">
+                      {/* Client Reported Issues */}
+                      {report.client_reported_issues && report.client_reported_issues.length > 0 && (
+                        <div className="p-4 bg-green-50 rounded-lg">
+                          <h4 className="font-medium text-green-900 mb-2 flex items-center">
+                            ✅ Client Reported Issues
+                          </h4>
+                          <ul className="text-sm text-green-800 space-y-1">
+                            {report.client_reported_issues.map((issue, index) => (
+                              <li key={index}>• {issue}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Technician Findings */}
+                      {report.tech_findings && report.tech_findings.length > 0 && (
+                        <div className="p-4 bg-yellow-50 rounded-lg">
+                          <h4 className="font-medium text-yellow-900 mb-2 flex items-center">
+                            🔧 Technician Findings
+                          </h4>
+                          <ul className="text-sm text-yellow-800 space-y-1">
+                            {report.tech_findings.map((finding, index) => (
+                              <li key={index}>• {finding}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* BER Ratio Analysis */}
+                      {report.final_total_cost > 0 && report.replacement_value > 0 && (
+                        <div className="p-4 bg-yellow-50 rounded-lg">
+                          <h4 className="font-medium text-yellow-900 mb-2">BER Ratio Analysis</h4>
+                          <div className="text-sm text-yellow-800 space-y-1">
+                            <div>Repair Cost: R{report.final_total_cost}</div>
+                            <div>Replacement Value: R{report.replacement_value}</div>
+                            <div className="font-medium">
+                              BER Ratio: {((report.final_total_cost / report.replacement_value) * 100).toFixed(1)}%
+                              {((report.final_total_cost / report.replacement_value) * 100) > 70 && (
+                                <span className="text-red-600 ml-1">(High BER Risk)</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Column 3: Parts & Manager Decision */}
+                    <div className="space-y-4">
+                      {/* Parts Selection */}
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium text-blue-900">Parts & Pricing</h4>
+                          <button
+                            onClick={() => handleOpenPartsModal(report)}
+                            className="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Select Parts
+                          </button>
+                        </div>
+                        
+                        {/* Selected Parts from Pricing Sheet */}
+                        {selectedParts.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="font-medium text-blue-800 mb-2">From Pricing Sheet</h5>
+                            <div className="space-y-1">
+                              {selectedParts.map((part, index) => (
+                                <div key={index} className="text-sm text-blue-700 flex justify-between">
+                                  <span>{part.part_name}</span>
+                                  <span>R{part.insurance_price}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Custom Parts */}
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-medium text-blue-800">Custom Parts</h5>
+                            <button
+                              onClick={addCustomPart}
+                              className="text-blue-600 text-sm hover:text-blue-800"
+                            >
+                              + Add Custom Part
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {customParts.map((part, index) => (
+                              <div key={index} className="flex gap-2 items-center">
+                                <input
+                                  type="text"
+                                  placeholder="Part name"
+                                  value={part.name}
+                                  onChange={(e) => updateCustomPart(index, 'name', e.target.value)}
+                                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="Price"
+                                  value={part.price}
+                                  onChange={(e) => updateCustomPart(index, 'price', parseFloat(e.target.value) || 0)}
+                                  className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="ETA"
+                                  value={part.eta}
+                                  onChange={(e) => updateCustomPart(index, 'eta', parseInt(e.target.value) || 1)}
+                                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded"
+                                />
+                                <button
+                                  onClick={() => removeCustomPart(index)}
+                                  className="text-red-600 hover:text-red-800"
+                                >
+                                  ×
+                                </button>
+                              </div>
                             ))}
                           </div>
                         </div>
-                        <div>
-                          <h5 className="font-medium text-blue-800 mb-2">Cost Breakdown</h5>
-                          <p className="text-sm text-blue-700">Parts Cost: R{report.total_parts_cost}</p>
-                          <p className="text-sm text-blue-700">Final Total: R{report.final_total_cost}</p>
-                          {report.replacement_value > 0 && (
-                            <p className="text-sm text-blue-700">Replacement Value: R{report.replacement_value}</p>
-                          )}
+
+                        {/* Cost Summary */}
+                        <div className="border-t pt-2">
+                          <div className="text-sm text-blue-800 space-y-1">
+                            <div className="flex justify-between">
+                              <span>Parts Cost:</span>
+                              <span>R{calculateTotalCost()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Final ETA:</span>
+                              <span>{calculateFinalETA()} days</span>
+                            </div>
+                            {report.replacement_value > 0 && (
+                              <div className="flex justify-between">
+                                <span>Replacement Value:</span>
+                                <span>R{report.replacement_value}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      <p className="text-sm text-blue-700">No parts selected yet. Click "Select Parts" to choose from pricing list.</p>
-                    )}
-                  </div>
 
-                  {/* Manager Decision Section */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">Manager Decision</h4>
-                    
-                    {/* BER Ratio Calculation */}
-                    {report.final_total_cost > 0 && report.replacement_value > 0 && (
-                      <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
-                        <h5 className="font-medium text-yellow-900 mb-2">BER Ratio Analysis</h5>
-                        <p className="text-sm text-yellow-800">
-                          Repair Cost: R{report.final_total_cost} | Replacement Value: R{report.replacement_value}
-                        </p>
-                        <p className="text-sm text-yellow-800">
-                          BER Ratio: {((report.final_total_cost / report.replacement_value) * 100).toFixed(1)}%
-                          {((report.final_total_cost / report.replacement_value) * 100) > 80 && (
-                            <span className="text-red-600 font-medium"> (High BER Risk)</span>
-                          )}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Manager Notes */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Manager Notes</label>
-                      <textarea
-                        value={managerDecision.managerNotes}
-                        onChange={(e) => setManagerDecision(prev => ({ ...prev, managerNotes: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        rows={3}
-                        placeholder="Add manager notes..."
-                      />
-                    </div>
-
-                    {/* BER Decision */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">BER Decision</label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`ber-${report.id}`}
-                            value="repair"
-                            checked={managerDecision.berDecision === false}
-                            onChange={() => setManagerDecision(prev => ({ ...prev, berDecision: false }))}
-                            className="mr-2"
+                      {/* Manager Decision */}
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-3">Manager Decision</h4>
+                        
+                        {/* Manager Notes */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Manager Notes</label>
+                          <textarea
+                            value={managerDecision.managerNotes}
+                            onChange={(e) => setManagerDecision(prev => ({ ...prev, managerNotes: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            rows={3}
+                            placeholder="Add manager notes..."
                           />
-                          <span className="text-sm text-green-700">Repairable</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`ber-${report.id}`}
-                            value="ber"
-                            checked={managerDecision.berDecision === true}
-                            onChange={() => setManagerDecision(prev => ({ ...prev, berDecision: true }))}
-                            className="mr-2"
-                          />
-                          <span className="text-sm text-red-700">Beyond Economical Repair</span>
-                        </label>
+                        </div>
+
+                        {/* BER Decision */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">BER Decision</label>
+                          <div className="space-y-2">
+                            <label className="flex items-center">
+                              <input
+                                type="radio"
+                                name={`ber-${report.id}`}
+                                value="repair"
+                                checked={managerDecision.berDecision === false}
+                                onChange={() => setManagerDecision(prev => ({ ...prev, berDecision: false }))}
+                                className="mr-2"
+                              />
+                              <span className="text-sm text-green-700">Repairable</span>
+                            </label>
+                            <label className="flex items-center">
+                              <input
+                                type="radio"
+                                name={`ber-${report.id}`}
+                                value="ber"
+                                checked={managerDecision.berDecision === true}
+                                onChange={() => setManagerDecision(prev => ({ ...prev, berDecision: true }))}
+                                className="mr-2"
+                              />
+                              <span className="text-sm text-red-700">Beyond Economical Repair</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* BER Reason */}
+                        {managerDecision.berDecision === true && (
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">BER Reason</label>
+                            <input
+                              type="text"
+                              value={managerDecision.berReason}
+                              onChange={(e) => setManagerDecision(prev => ({ ...prev, berReason: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Reason for BER decision..."
+                            />
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => handleManagerDecision(report.id, 'approve')}
+                            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
+                          >
+                            Approve Repair
+                          </button>
+                          <button
+                            onClick={() => handleManagerDecision(report.id, 'ber')}
+                            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors text-sm"
+                          >
+                            Mark as BER
+                          </button>
+                          <button
+                            onClick={() => {
+                              const reason = prompt('Reason for rejection:')
+                              if (reason) handleRejectReport(report.id, reason)
+                            }}
+                            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors text-sm"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => handleGeneratePDF(report.id)}
+                            disabled={generatingPDF === report.id}
+                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
+                          >
+                            {generatingPDF === report.id ? 'Generating...' : 'Generate PDF'}
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    {/* BER Reason */}
-                    {managerDecision.berDecision === true && (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">BER Reason</label>
-                        <input
-                          type="text"
-                          value={managerDecision.berReason}
-                          onChange={(e) => setManagerDecision(prev => ({ ...prev, berReason: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Reason for BER decision..."
-                        />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleManagerDecision(report.id, 'approve')}
-                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-                    >
-                      Approve Repair
-                    </button>
-                    <button
-                      onClick={() => handleManagerDecision(report.id, 'ber')}
-                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
-                    >
-                      Mark as BER
-                    </button>
-                    <button
-                      onClick={() => {
-                        const reason = prompt('Reason for rejection:')
-                        if (reason) handleRejectReport(report.id, reason)
-                      }}
-                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      onClick={() => handleGeneratePDF(report.id)}
-                      disabled={generatingPDF === report.id}
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    >
-                      {generatingPDF === report.id ? 'Generating...' : 'Generate PDF'}
-                    </button>
                   </div>
                 </div>
               ))}
