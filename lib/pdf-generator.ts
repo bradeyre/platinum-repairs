@@ -18,6 +18,10 @@ export interface DamageReportData {
   ber_reason?: string
   selected_parts: any
   final_parts_selected?: string[]
+  final_parts_details?: {
+    selectedParts: any[]
+    customParts: any[]
+  }
   total_parts_cost: number
   final_eta_days?: number
   manager_notes?: string
@@ -101,8 +105,12 @@ export async function generateDamageReportPDF(damageReportId: string): Promise<s
       device_model: report.device_model,
       status: report.status,
       final_parts_selected: report.final_parts_selected,
+      final_parts_details: report.final_parts_details,
       total_parts_cost: report.total_parts_cost,
-      assigned_tech: assignedTech
+      assigned_tech_id: report.assigned_tech_id,
+      assigned_tech: assignedTech,
+      client_name: report.client_name,
+      ticket_number: report.ticket_number
     })
 
     // Generate HTML for the PDF
@@ -353,7 +361,17 @@ function generatePDFHTML(report: DamageReportData): string {
 
           <div class="section">
             <div class="section-title">Parts & Pricing</div>
-            ${report.final_parts_selected && report.final_parts_selected.length > 0 ? `
+            ${report.final_parts_details ? `
+            <div class="info-item">
+              <div class="info-label">Parts Needed:</div>
+              <div class="info-value">
+                <ul class="parts-list">
+                  ${report.final_parts_details.selectedParts.map((part: any) => `<li>${part.name || part.partName || 'Part'}: R${(part.price || 0).toFixed(2)}</li>`).join('')}
+                  ${report.final_parts_details.customParts.map((part: any) => `<li>${part.name || 'Custom Part'}: R${(part.price || 0).toFixed(2)}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+            ` : report.final_parts_selected && report.final_parts_selected.length > 0 ? `
             <div class="info-item">
               <div class="info-label">Parts Needed:</div>
               <div class="info-value">
@@ -364,11 +382,11 @@ function generatePDFHTML(report: DamageReportData): string {
             </div>
             ` : ''}
             <div class="info-item">
-              <div class="info-label">Parts Cost (excl. VAT):</div>
+              <div class="info-label">Total Cost (excl. VAT):</div>
               <div class="info-value">R ${(report.total_parts_cost || 0).toFixed(2)}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">Parts Cost (incl. VAT):</div>
+              <div class="info-label">Total Cost (incl. VAT):</div>
               <div class="info-value">R ${((report.total_parts_cost || 0) * 1.15).toFixed(2)}</div>
             </div>
             ${report.final_eta_days ? `
@@ -410,6 +428,14 @@ function generatePDFHTML(report: DamageReportData): string {
           </ul>
         </div>
         ` : ''}
+        
+        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #0066cc;">
+          <div style="font-weight: 600; color: #0066cc; margin-bottom: 5px;">Assessment Conclusion:</div>
+          <div style="color: #333; font-size: 12px;">
+            This device is: <strong>${report.manager_ber_decision ? 'Beyond Economical Repair (BER)' : 'Repairable'}</strong>
+            ${report.ber_reason ? ` - ${report.ber_reason}` : ''}
+          </div>
+        </div>
       </div>
       
       ${report.damage_photos && report.damage_photos.length > 0 ? `
