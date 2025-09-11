@@ -90,12 +90,12 @@ export default function AIPerformanceAnalysis() {
     
     return Object.entries(technicianStats).map(([tech, stats]) => ({
       technician: tech,
-      totalTickets: stats.totalTickets,
+      totalTickets: stats?.totalTickets || 0,
       currentLoad: stats.currentTickets,
       averageWaitTime: stats.waitTimes.length > 0 
         ? stats.waitTimes.reduce((sum: number, time: number) => sum + time, 0) / stats.waitTimes.length 
         : 0,
-      completionRate: stats.totalTickets > 0 ? (stats.completedTickets / stats.totalTickets) * 100 : 0
+      completionRate: (stats?.totalTickets || 0) > 0 ? (stats.completedTickets / (stats?.totalTickets || 1)) * 100 : 0
     }))
   }
 

@@ -194,7 +194,7 @@ function calculateAnalytics(tickets: ProcessedTicket[]): AnalyticsData {
   Object.keys(technicianStats).forEach(tech => {
     const stats = technicianStats[tech]
     const avgWaitTime = averageWaitTimeByTechnician[tech] || 0
-    const completionRate = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0
+    const completionRate = (stats?.total || 0) > 0 ? (stats.completed / stats.total) * 100 : 0
     
     // Get tickets for this technician
     const techTickets = tickets.filter(ticket => (ticket.assignedTo || 'Unassigned') === tech)
@@ -247,10 +247,10 @@ function calculateAnalytics(tickets: ProcessedTicket[]): AnalyticsData {
       : 0
     
     technicianEfficiency[tech] = {
-      totalTickets: stats.total,
+      totalTickets: stats?.total || 0,
       averageWaitTime: avgWaitTime,
       completionRate: completionRate,
-      currentLoad: stats.current,
+      currentLoad: stats?.current || 0,
       averageDamageReportTime: averageDamageReportTime,
       averageRepairTime: averageRepairTime,
       ticketsByDeviceType: ticketsByDeviceType,
@@ -611,18 +611,18 @@ export default function RepairShoprAnalytics() {
               {Object.entries(analytics.technicianEfficiency).map(([tech, stats]) => (
                 <tr key={tech}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tech}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stats.totalTickets}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stats.currentLoad}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stats.averageWaitTime.toFixed(1)}h</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stats.averageDamageReportTime.toFixed(1)}h</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stats.averageRepairTime.toFixed(1)}h</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stats?.totalTickets || 0}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stats?.currentLoad || 0}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(stats?.averageWaitTime || 0).toFixed(1)}h</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(stats?.averageDamageReportTime || 0).toFixed(1)}h</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(stats?.averageRepairTime || 0).toFixed(1)}h</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      stats.completionRate >= 80 ? 'bg-green-100 text-green-800' :
-                      stats.completionRate >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                      (stats?.completionRate || 0) >= 80 ? 'bg-green-100 text-green-800' :
+                      (stats?.completionRate || 0) >= 60 ? 'bg-yellow-100 text-yellow-800' :
                       'bg-red-100 text-red-800'
                     }`}>
-                      {stats.completionRate.toFixed(1)}%
+                      {(stats?.completionRate || 0).toFixed(1)}%
                     </span>
                   </td>
                 </tr>
