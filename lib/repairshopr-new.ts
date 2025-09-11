@@ -213,8 +213,8 @@ function formatBusinessHours(hours: number): string {
 // Fetch tickets from RepairShopr with specific status filtering
 async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, status: string): Promise<RepairShoprTicket[]> {
   try {
-    // First, get the list of tickets
-    const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}`
+    // First, get the list of tickets with higher limit
+    const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&limit=1000`
     console.log(`🔍 Fetching ${status} tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
     console.log(`List URL: ${listUrl}`)
     
@@ -241,7 +241,7 @@ async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, st
     // Now fetch detailed information for each ticket to get custom fields
     const detailedTickets: RepairShoprTicket[] = []
     
-    for (const ticket of tickets.slice(0, 3)) { // Limit to first 3 tickets for testing
+    for (const ticket of tickets.slice(0, 100)) { // Process up to 100 tickets for completed sync
       try {
         const detailUrl = `${baseUrl}/tickets/${ticket.id}?api_key=${token}`
         console.log(`🔍 Fetching details for ticket ${ticket.id} (${ticket.number || 'no number'}): ${detailUrl}`)
