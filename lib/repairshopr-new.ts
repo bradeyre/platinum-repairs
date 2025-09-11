@@ -81,6 +81,7 @@ const STATUS_MAPPING: Record<string, string> = {
   'In Progress': 'In Progress',
   
   // Completed/Other (not shown in main view)
+  'Completed': 'Completed',
   'Resolved': 'Completed',
   'Closed File': 'Completed',
   'Salvage': 'Completed',
@@ -507,10 +508,7 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     
     // Define completed statuses to fetch
     const completedStatuses = [
-      'Resolved',
-      'Closed File', 
-      'Salvage',
-      'BER'
+      'Completed'
     ]
     
     // Define allowed technicians for Device Doctor

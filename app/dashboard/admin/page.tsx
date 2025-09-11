@@ -154,7 +154,7 @@ function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Techni
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('comprehensive-analytics')
+  const [activeTab, setActiveTab] = useState('tickets')
   const [tickets, setTickets] = useState<ProcessedTicket[]>([])
   const [technicians, setTechnicians] = useState<Technician[]>([])
   const [stats, setStats] = useState<DashboardStats>({
@@ -628,8 +628,8 @@ export default function AdminDashboard() {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
               {[
-                { id: 'comprehensive-analytics', name: 'Comprehensive Analytics', icon: '📊' },
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
+                { id: 'comprehensive-analytics', name: 'Comprehensive Analytics', icon: '📊' },
                 { id: 'analytics', name: 'Analytics Dashboard', icon: '📈' },
                 { id: 'deep-analytics', name: 'Deep Analytics Report', icon: '🔍' },
                 { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
