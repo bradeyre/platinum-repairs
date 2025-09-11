@@ -505,45 +505,41 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
   }
   
   try {
-    console.log('🚀 Starting to fetch ALL tickets from both APIs to filter for completed ones...')
+    console.log('🚀 Starting to fetch completed tickets from both APIs...')
+    
+    // Define completed status to fetch (using the same approach as getAllTickets)
+    const targetStatuses = ['Completed']
     
     // Define allowed technicians for Device Doctor
     const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
     const excludedTechnicians = ['Thasveer', 'Shannon']
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
     
-    // Fetch ALL tickets from both APIs (no status filtering)
+    // Fetch tickets for completed status from both APIs (same approach as getAllTickets)
     const allApiCalls: Promise<RepairShoprTicket[]>[] = []
     
-    // Platinum Repairs API - fetch all tickets
-    allApiCalls.push(fetchAllTicketsFromRepairShopr(token1, REPAIRSHOPR_BASE_URL))
+    // Platinum Repairs API calls
+    for (const status of targetStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, status))
+    }
     
-    // Device Doctor API - fetch all tickets
-    allApiCalls.push(fetchAllTicketsFromRepairShopr(token2, REPAIRSHOPR_DD_BASE_URL))
+    // Device Doctor API calls  
+    for (const status of targetStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, status))
+    }
     
     // Execute all API calls in parallel
     const allResults = await Promise.all(allApiCalls)
     
     // Split results back into PR and DD tickets
-    const prTickets = allResults[0] || []
-    const ddTickets = allResults[1] || []
+    const prTickets = allResults.slice(0, 1).flat()
+    const ddTickets = allResults.slice(1, 2).flat()
     
-    console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
-    
-    // Filter for completed tickets
-    const completedStatuses = ['Completed', 'Resolved', 'Closed File', 'Salvage', 'BER']
-    const prCompletedTickets = prTickets.filter(ticket => 
-      completedStatuses.some(status => ticket.status?.toLowerCase().includes(status.toLowerCase()))
-    )
-    const ddCompletedTickets = ddTickets.filter(ticket => 
-      completedStatuses.some(status => ticket.status?.toLowerCase().includes(status.toLowerCase()))
-    )
-    
-    console.log(`🔍 Completed tickets found: PR: ${prCompletedTickets.length}, DD: ${ddCompletedTickets.length}`)
+    console.log(`🔍 Raw API results: PR completed tickets: ${prTickets.length}, DD completed tickets: ${ddTickets.length}`)
     
     // Process tickets with instance information (async)
-    const processedTickets1 = await Promise.all(prCompletedTickets.map(ticket => processTicket(ticket, 'platinum')))
-    const processedTickets2 = await Promise.all(ddCompletedTickets.map(ticket => processTicket(ticket, 'devicedoctor')))
+    const processedTickets1 = await Promise.all(prTickets.map(ticket => processTicket(ticket, 'platinum')))
+    const processedTickets2 = await Promise.all(ddTickets.map(ticket => processTicket(ticket, 'devicedoctor')))
     const processedTickets = [...processedTickets1, ...processedTickets2]
     
     console.log(`🔍 Processed completed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
@@ -552,8 +548,8 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     let filteredTickets = processedTickets.filter(ticket => {
       // Find the original ticket from the appropriate API response
       const originalTicket = ticket.ticketType === 'DD' 
-        ? ddCompletedTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
-        : prCompletedTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+        ? ddTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+        : prTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
       
       const assignedTo = originalTicket?.user?.full_name
       
