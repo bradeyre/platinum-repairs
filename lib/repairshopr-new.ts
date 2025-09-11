@@ -221,20 +221,20 @@ async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, st
     
     // Fetch all pages of results
     do {
-      const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&page=${currentPage}&limit=100`
+      const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&page=${currentPage}&limit=100&api_key=${token}`
       console.log(`📄 Fetching page ${currentPage}/${totalPages}: ${listUrl}`)
       console.log(`🔍 FULL URL BREAKDOWN:`)
       console.log(`   Base URL: ${baseUrl}`)
       console.log(`   Status: ${status}`)
       console.log(`   Page: ${currentPage}`)
       console.log(`   Limit: 100`)
+      console.log(`   API Key: ${token.substring(0, 10)}...`)
       console.log(`   Final URL: ${listUrl}`)
       
       const listResponse = await fetch(listUrl, {
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Accept': 'application/json'
         }
       })
       
