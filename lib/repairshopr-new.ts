@@ -477,51 +477,19 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
   }
   
   try {
-    console.log('🚀 Starting to fetch ALL tickets and filter for Resolved status...')
+    console.log('🚀 Starting to fetch ALL tickets and filter for completed status...')
     
-    // Define allowed technicians for Device Doctor
-    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
-    const excludedTechnicians = ['Thasveer', 'Shannon']
-    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
-    
-    // Use the same working approach as getAllTickets but with all statuses including Resolved
-    const targetStatuses = [
-      'Awaiting Rework',
-      'Awaiting Workshop Repairs', 
-      'Awaiting Damage Report',
-      'Awaiting Repair',
-      'In Progress',
-      'resolved',  // Add resolved to the list (lowercase)
-      'Completed',
-      'Closed File',
-      'Salvage',
-      'BER'
-    ]
-    
-    // Fetch tickets for each status from both APIs
-    const allApiCalls: Promise<RepairShoprTicket[]>[] = []
-    
-    // Platinum Repairs API calls
-    for (const status of targetStatuses) {
-      allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, status))
-    }
-    
-    // Device Doctor API calls  
-    for (const status of targetStatuses) {
-      allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, status))
-    }
-    
-    // Execute all API calls in parallel
-    const allResults = await Promise.all(allApiCalls)
-    
-    // Split results back into PR and DD tickets
-    const prTickets = allResults.slice(0, targetStatuses.length).flat()
-    const ddTickets = allResults.slice(targetStatuses.length, targetStatuses.length * 2).flat()
+    // Use the same working approach as the existing getAllTickets function
+    // Fetch from both instances in parallel (no status filtering in API call)
+    const [prTickets, ddTickets] = await Promise.all([
+      fetchAllTicketsFromRepairShopr(token1, REPAIRSHOPR_BASE_URL),
+      fetchAllTicketsFromRepairShopr(token2, REPAIRSHOPR_DD_BASE_URL)
+    ])
     
     console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
     
-    // Filter for completed/resolved tickets
-    const completedStatuses = ['resolved', 'Resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
+    // Filter for completed/resolved tickets locally
+    const completedStatuses = ['Resolved', 'resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
     
     const prCompletedTickets = prTickets.filter(ticket => {
       const status = ticket.status?.toLowerCase() || ''
@@ -555,6 +523,10 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     console.log(`🔍 Processed completed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
     // Apply technician filtering for both DD and PR tickets
+    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians = ['Thasveer', 'Shannon']
+    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    
     let filteredTickets = processedTickets.filter(ticket => {
       // Find the original ticket from the appropriate API response
       const originalTicket = ticket.ticketType === 'DD' 
@@ -611,44 +583,45 @@ async function fetchAllTicketsFromRepairShopr(token: string, baseUrl: string): P
   try {
     console.log(`🔍 Fetching ALL tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
     
-    // Try different approaches to get all tickets
-    const approaches = [
-      // Approach 1: No status filter
-      `${baseUrl}/tickets?limit=1000`,
-      // Approach 2: With limit
-      `${baseUrl}/tickets?limit=500`,
-      // Approach 3: With different parameters
-      `${baseUrl}/tickets`
-    ]
+    let allTickets: RepairShoprTicket[] = []
+    let currentPage = 1
+    let totalPages = 1
     
-    for (const url of approaches) {
-      try {
-        console.log(`Trying URL: ${url}`)
-        const response = await fetch(url, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        })
-        
-        console.log(`Response status: ${response.status}`)
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log(`✅ Successfully fetched ${data.tickets?.length || 0} tickets`)
-          return data.tickets || []
-        } else {
-          const errorText = await response.text()
-          console.log(`❌ API error ${response.status}: ${errorText}`)
+    // Fetch all pages of results (same approach as working code)
+    do {
+      const url = `${baseUrl}/tickets?page=${currentPage}&limit=100`
+      console.log(`📄 Fetching page ${currentPage}/${totalPages}: ${url}`)
+      
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.log(`❌ Request error: ${error}`)
+      })
+      
+      console.log(`Page ${currentPage} response status: ${response.status}`)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`❌ API error on page ${currentPage}: ${response.status} - ${errorText}`)
+        throw new Error(`API error: ${response.status} - ${errorText}`)
       }
-    }
+      
+      const data = await response.json()
+      const tickets = data.tickets || []
+      const meta = data.meta || {}
+      
+      totalPages = meta.total_pages || 1
+      console.log(`📄 Page ${currentPage}: ${tickets.length} tickets (total pages: ${totalPages})`)
+      
+      allTickets = allTickets.concat(tickets)
+      currentPage++
+      
+    } while (currentPage <= totalPages)
     
-    console.log('❌ All approaches failed')
-    return []
+    console.log(`✅ Successfully fetched ${allTickets.length} total tickets`)
+    return allTickets
     
   } catch (error) {
     console.error('❌ Error in fetchAllTicketsFromRepairShopr:', error)
