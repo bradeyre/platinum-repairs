@@ -49,6 +49,11 @@ export default function RepairChecklistComponent({
     generateChecklist()
   }, [ticketId, deviceInfo, description])
 
+  // Show loading state immediately when component mounts
+  useEffect(() => {
+    setLoading(true)
+  }, [])
+
   const generateChecklist = async () => {
     try {
       setLoading(true)
@@ -159,7 +164,10 @@ export default function RepairChecklistComponent({
       <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
         <div className="flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-          <span className="text-gray-600">Generating AI repair checklist...</span>
+          <div className="text-center">
+            <div className="text-gray-600 font-medium">AI is analyzing your ticket...</div>
+            <div className="text-sm text-gray-500 mt-1">Generating smart repair checklist based on ticket history</div>
+          </div>
         </div>
       </div>
     )

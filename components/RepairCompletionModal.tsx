@@ -50,7 +50,7 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
   const [aiAnalysis, setAiAnalysis] = useState<any>(null)
   
   // Repair Checklist state
-  const [showRepairChecklist, setShowRepairChecklist] = useState(false)
+  const [showRepairChecklist, setShowRepairChecklist] = useState(true) // Auto-show by default
   const [repairChecklist, setRepairChecklist] = useState<any>(null)
 
   useEffect(() => {
@@ -237,9 +237,13 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowRepairChecklist(!showRepairChecklist)}
-                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center gap-1"
+                  className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${
+                    showRepairChecklist 
+                      ? 'bg-green-600 text-white hover:bg-green-700' 
+                      : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                  }`}
                 >
-                  📋 Smart Checklist
+                  📋 Smart Checklist {showRepairChecklist ? '(Auto-loaded)' : '(Click to load)'}
                 </button>
                 <button
                   onClick={() => setShowAIAssistant(!showAIAssistant)}
