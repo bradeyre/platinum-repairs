@@ -214,14 +214,15 @@ function formatBusinessHours(hours: number): string {
 async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, status: string): Promise<RepairShoprTicket[]> {
   try {
     // First, get the list of tickets
-    const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&api_key=${token}`
+    const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}`
     console.log(`🔍 Fetching ${status} tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
     console.log(`List URL: ${listUrl}`)
     
     const listResponse = await fetch(listUrl, {
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
     })
     
@@ -607,11 +608,11 @@ async function fetchAllTicketsFromRepairShopr(token: string, baseUrl: string): P
     // Try different approaches to get all tickets
     const approaches = [
       // Approach 1: No status filter
-      `${baseUrl}/tickets?api_key=${token}&limit=1000`,
+      `${baseUrl}/tickets?limit=1000`,
       // Approach 2: With limit
-      `${baseUrl}/tickets?api_key=${token}&limit=500`,
+      `${baseUrl}/tickets?limit=500`,
       // Approach 3: With different parameters
-      `${baseUrl}/tickets?api_key=${token}`
+      `${baseUrl}/tickets`
     ]
     
     for (const url of approaches) {
@@ -620,7 +621,8 @@ async function fetchAllTicketsFromRepairShopr(token: string, baseUrl: string): P
         const response = await fetch(url, {
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
           }
         })
         
