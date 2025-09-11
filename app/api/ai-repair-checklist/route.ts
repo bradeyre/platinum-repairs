@@ -137,6 +137,13 @@ Description: ${description}
 Ticket History:
 ${JSON.stringify(ticketData, null, 2)}
 
+IMPORTANT CONTEXT RULES:
+1. IGNORE insurance company names (like "Monitor", "Discovery", "Outsurance", etc.) - these are NOT device issues
+2. Focus ONLY on actual device problems mentioned in damage reports and customer comments
+3. Look for specific damage descriptions like "screen cracked", "device not charging", "speaker not working"
+4. Pay attention to physical damage, functionality issues, and performance problems
+5. DO NOT create checklist items based on insurance company names or policy numbers
+
 Create a JSON response with this structure:
 {
   "summary": "Brief summary of key concerns and repair focus areas",
@@ -147,35 +154,34 @@ Create a JSON response with this structure:
       "id": "unique_id",
       "category": "safety|functionality|hardware|software|connectivity|battery|display|audio",
       "priority": "critical|high|medium|low",
-      "issue": "Specific issue to check (e.g., 'Overheating during charging')",
-      "description": "Detailed description of the concern",
-      "verificationMethod": "How to test/verify this issue (e.g., 'Test charging for 30 minutes and monitor temperature')",
-      "expectedOutcome": "What should happen if working correctly",
-      "source": "What in the ticket history led to this concern (e.g., 'Customer reported device heating up')",
+      "issue": "Specific device issue to check (e.g., 'Screen display functionality after crack repair')",
+      "description": "Detailed description of the device concern",
+      "verificationMethod": "How to test/verify this device issue (e.g., 'Test all screen functions, touch response, and display quality')",
+      "expectedOutcome": "What should happen if device is working correctly",
+      "source": "What in the ticket history led to this device concern (e.g., 'Damage report shows screen cracked from impact')",
       "checked": false,
       "notes": ""
     }
   ],
-  "recommendations": ["Specific repair recommendations based on analysis"],
-  "warnings": ["Important safety or quality warnings"]
+  "recommendations": ["Specific repair recommendations based on actual device issues"],
+  "warnings": ["Important device safety or quality warnings"]
 }
 
-Focus on:
-1. Specific issues mentioned in ticket history, damage reports, or comments
-2. Common problems for this device type
-3. Safety concerns (overheating, battery issues, etc.)
-4. Functionality issues (charging, connectivity, display, etc.)
-5. Hardware problems (buttons, ports, speakers, etc.)
-6. Software issues (performance, crashes, etc.)
+Focus ONLY on actual device issues:
+1. Physical damage mentioned (cracked screens, damaged ports, broken buttons)
+2. Functionality problems (charging issues, connectivity problems, audio problems)
+3. Performance issues (slow response, overheating, battery drain)
+4. Hardware failures (camera not working, speaker issues, vibration problems)
+5. Display problems (screen issues, touch response, brightness)
 
-DO NOT include basic safety procedures like:
-- "Use protective equipment"
-- "Disconnect device"
-- "Follow ESD procedures"
-- "Use proper tools"
+DO NOT include:
+- Insurance company names as issues
+- Basic safety procedures (use protective equipment, disconnect device, etc.)
+- Generic repair steps that apply to all repairs
+- Items not mentioned in the actual ticket data
 
-Only include specific, actionable items that relate to the actual issues in this ticket.
-Generate 8-15 specific checklist items based on the ticket data.
+Only include specific, actionable device-related items that relate to the actual problems in this ticket.
+Generate 6-12 specific checklist items based on the real device issues found in the ticket data.
 `
 
     const completion = await openai.chat.completions.create({

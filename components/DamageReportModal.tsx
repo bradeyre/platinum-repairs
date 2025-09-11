@@ -47,10 +47,12 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     deviceRepairable: true,
     repairExplanation: '',
     causeOfDamage: '',
-    suggestedParts: [] as string[],
+    partsUsed: [] as string[],
+    customPart: '',
     noPartsNeeded: false,
     photos: [] as File[],
-    additionalNotes: ''
+    additionalNotes: '',
+    qualityAssuranceConfirmed: false
   })
 
   const [aiAnalysis, setAiAnalysis] = useState({
@@ -627,10 +629,20 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
   const handlePartsChange = (part: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      suggestedParts: checked 
-        ? [...prev.suggestedParts, part]
-        : prev.suggestedParts.filter(p => p !== part)
+      partsUsed: checked 
+        ? [...prev.partsUsed, part]
+        : prev.partsUsed.filter(p => p !== part)
     }))
+  }
+
+  const addCustomPart = () => {
+    if (formData.customPart.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        partsUsed: [...prev.partsUsed, prev.customPart.trim()],
+        customPart: ''
+      }))
+    }
   }
 
   const handleSave = async () => {
@@ -638,6 +650,12 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       // Validate required fields
       if (!formData.ticket || !currentUser || !formData.causeOfDamage) {
         alert('Please fill in all required fields including cause of damage')
+        return
+      }
+      
+      // Validate quality assurance confirmation
+      if (!formData.qualityAssuranceConfirmed) {
+        alert('Please confirm that you have tested all device functions and the device meets factory-level quality standards')
         return
       }
       
@@ -911,7 +929,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
               </div>
 
               <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Suggested Parts</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Parts Used</h3>
                 
                 <div className="mb-4">
                   <label className="flex items-center">
@@ -921,27 +939,75 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       onChange={(e) => setFormData(prev => ({ 
                         ...prev, 
                         noPartsNeeded: e.target.checked,
-                        suggestedParts: e.target.checked ? [] : prev.suggestedParts
+                        partsUsed: e.target.checked ? [] : prev.partsUsed
                       }))}
                       className="mr-2"
+                      disabled={!timerStarted}
                     />
                     <span className="text-sm text-gray-700">No parts needed</span>
                   </label>
                 </div>
 
                 {!formData.noPartsNeeded && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {getDeviceParts(formData.deviceType).map(part => (
-                      <label key={part} className="flex items-center">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {getDeviceParts(formData.deviceType).map(part => (
+                        <label key={part} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={formData.partsUsed.includes(part)}
+                            onChange={(e) => handlePartsChange(part, e.target.checked)}
+                            className="mr-2"
+                            disabled={!timerStarted}
+                          />
+                          <span className="text-sm text-gray-700">{part}</span>
+                        </label>
+                      ))}
+                    </div>
+                    
+                    {/* Custom Part Addition */}
+                    <div className="border-t pt-4">
+                      <div className="flex gap-2">
                         <input
-                          type="checkbox"
-                          checked={formData.suggestedParts.includes(part)}
-                          onChange={(e) => handlePartsChange(part, e.target.checked)}
-                          className="mr-2"
+                          type="text"
+                          value={formData.customPart}
+                          onChange={(e) => setFormData(prev => ({ ...prev, customPart: e.target.value }))}
+                          placeholder="Add custom part..."
+                          className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                          disabled={!timerStarted}
                         />
-                        <span className="text-sm text-gray-700">{part}</span>
-                      </label>
-                    ))}
+                        <button
+                          type="button"
+                          onClick={addCustomPart}
+                          disabled={!timerStarted || !formData.customPart.trim()}
+                          className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Selected Parts Display */}
+                    {formData.partsUsed.length > 0 && (
+                      <div className="border-t pt-4">
+                        <div className="text-sm font-medium text-gray-700 mb-2">Selected Parts:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.partsUsed.map((part, index) => (
+                            <div key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center gap-1">
+                              <span>{part}</span>
+                              <button
+                                type="button"
+                                onClick={() => handlePartsChange(part, false)}
+                                className="text-blue-600 hover:text-blue-800"
+                                disabled={!timerStarted}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1018,23 +1084,61 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                   </div>
                 ) : ticketComments.length > 0 ? (
                   <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {ticketComments.map((comment, index) => (
-                      <div key={index} className="bg-white border border-green-200 rounded p-3">
-                        <div className="text-sm text-green-800">
-                          {typeof comment === 'string' ? comment : comment.text || comment.body || comment.comment || 'No comment text'}
+                    {ticketComments.map((comment, index) => {
+                      const commentText = typeof comment === 'string' ? comment : comment.text || comment.body || comment.comment || 'No comment text'
+                      
+                      // Parse and format damage report data if it looks like a structured report
+                      const isDamageReport = commentText.toLowerCase().includes('damage report:') || 
+                                           commentText.toLowerCase().includes('device:') ||
+                                           commentText.toLowerCase().includes('imei #:')
+                      
+                      return (
+                        <div key={index} className="bg-white border border-green-200 rounded p-3">
+                          {isDamageReport ? (
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium text-green-800 mb-2">📋 Damage Report Details</div>
+                              <div className="text-xs text-green-700 space-y-1">
+                                {commentText.split('\n').map((line, lineIndex) => {
+                                  if (line.trim()) {
+                                    // Format key-value pairs
+                                    if (line.includes(':')) {
+                                      const [key, value] = line.split(':', 2)
+                                      return (
+                                        <div key={lineIndex} className="flex">
+                                          <span className="font-medium text-green-800 w-32 flex-shrink-0">{key.trim()}:</span>
+                                          <span className="text-green-700">{value.trim()}</span>
+                                        </div>
+                                      )
+                                    } else {
+                                      return (
+                                        <div key={lineIndex} className="text-green-700">
+                                          {line.trim()}
+                                        </div>
+                                      )
+                                    }
+                                  }
+                                  return null
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-green-800">
+                              {commentText}
+                            </div>
+                          )}
+                          {typeof comment === 'object' && comment.date && (
+                            <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-green-100">
+                              📅 {new Date(comment.date).toLocaleString()}
+                            </div>
+                          )}
+                          {typeof comment === 'object' && comment.author && (
+                            <div className="text-xs text-gray-500">
+                              👤 {comment.author}
+                            </div>
+                          )}
                         </div>
-                        {typeof comment === 'object' && comment.date && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {new Date(comment.date).toLocaleString()}
-                          </div>
-                        )}
-                        {typeof comment === 'object' && comment.author && (
-                          <div className="text-xs text-gray-500">
-                            - {comment.author}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-4">
@@ -1155,6 +1259,29 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       placeholder="Any additional observations or notes..."
                       disabled={!timerStarted}
                     />
+                  </div>
+
+                  {/* Quality Assurance Confirmation */}
+                  <div className="border-t pt-4">
+                    <label className="flex items-start">
+                      <input
+                        type="checkbox"
+                        checked={formData.qualityAssuranceConfirmed}
+                        onChange={(e) => setFormData(prev => ({ ...prev, qualityAssuranceConfirmed: e.target.checked }))}
+                        className="mr-3 mt-1"
+                        disabled={!timerStarted}
+                        required
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-gray-700">
+                          ✅ Quality Assurance Confirmation
+                        </span>
+                        <div className="text-xs text-gray-600 mt-1">
+                          I confirm that I have tested all device functions and am 100% certain that there are no latent defects. 
+                          The device has been repaired to factory-level quality standards.
+                        </div>
+                      </div>
+                    </label>
                   </div>
                 </div>
               </div>
