@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
     
-    // Get comprehensive analytics data
+    // Get comprehensive analytics data from the correct view
     const { data: ticketData, error: ticketError } = await supabaseAdmin
-      .from('ticket_analytics_summary')
+      .from('ticket_lifecycle_summary')
       .select('*')
       .order('created_at', { ascending: false })
     
@@ -31,23 +31,22 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
     
-    // Get technician performance data
-    const { data: technicianData, error: techError } = await supabaseAdmin
-      .from('technician_performance_analytics')
+    // Get analytics summary data
+    const { data: summaryData, error: summaryError } = await supabaseAdmin
+      .from('analytics_summary')
       .select('*')
-      .order('total_tickets', { ascending: false })
     
-    if (techError) {
-      console.error('Error fetching technician performance:', techError)
+    if (summaryError) {
+      console.error('Error fetching analytics summary:', summaryError)
       return NextResponse.json({
         success: false,
-        error: 'Failed to fetch technician performance data',
-        details: techError.message
+        error: 'Failed to fetch analytics summary data',
+        details: summaryError.message
       }, { status: 500 })
     }
     
     // Process the data into comprehensive analytics
-    const analyticsData = processComprehensiveAnalytics(ticketData || [], technicianData || [])
+    const analyticsData = processComprehensiveAnalytics(ticketData || [], summaryData || [])
     
     return NextResponse.json({
       success: true,
@@ -69,28 +68,25 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function processComprehensiveAnalytics(ticketData: any[], technicianData: any[]): any {
+function processComprehensiveAnalytics(ticketData: any[], summaryData: any[]): any {
+  // Get summary data from the analytics_summary view
+  const summary = summaryData[0] || {}
+  
   // Calculate summary statistics
-  const totalTickets = ticketData.length
-  const completedTickets = ticketData.filter(t => t.current_status?.toLowerCase().includes('completed')).length
-  const activeTickets = ticketData.filter(t => 
-    !t.current_status?.toLowerCase().includes('completed') && 
-    !t.current_status?.toLowerCase().includes('closed')
-  ).length
-  const reworkTickets = ticketData.filter(t => t.is_rework).length
+  const totalTickets = summary.total_tickets || ticketData.length
+  const completedTickets = summary.completed_tickets || 0
+  const activeTickets = totalTickets - completedTickets
+  const reworkTickets = ticketData.filter(t => t.description?.toLowerCase().includes('rework')).length
   
-  const avgCompletionTime = ticketData.length > 0 ? 
-    ticketData.reduce((sum, t) => sum + (t.total_hours || 0), 0) / ticketData.length : 0
+  const avgCompletionTime = summary.avg_completion_time || 0
   
-  const avgActiveWorkTime = ticketData.length > 0 ? 
-    ticketData.reduce((sum, t) => sum + (t.active_work_hours || 0), 0) / ticketData.length : 0
+  const avgActiveWorkTime = summary.avg_completion_time || 0
   
-  const avgWaitingTime = ticketData.length > 0 ? 
-    ticketData.reduce((sum, t) => sum + (t.waiting_hours || 0), 0) / ticketData.length : 0
+  const avgWaitingTime = summary.avg_wait_time || 0
   
-  const totalWorkHours = ticketData.reduce((sum, t) => sum + (t.active_work_hours || 0), 0)
+  const totalWorkHours = ticketData.reduce((sum, t) => sum + (t.total_business_hours || 0), 0)
   const overallReworkRate = totalTickets > 0 ? (reworkTickets / totalTickets) * 100 : 0
-  const totalTechnicians = new Set(ticketData.map(t => t.assigned_technician_name).filter(Boolean)).size
+  const totalTechnicians = summary.active_technicians || new Set(ticketData.map(t => t.assigned_to).filter(Boolean)).size
   
   // Process device analytics
   const deviceAnalytics: Record<string, any> = {}
