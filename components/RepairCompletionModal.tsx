@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import AIRepairAssistantComponent from './AIRepairAssistant'
+import RepairChecklistComponent from './RepairChecklist'
 
 interface ProcessedTicket {
   ticketId: string
@@ -47,6 +48,10 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
   // AI Assistant state
   const [showAIAssistant, setShowAIAssistant] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState<any>(null)
+  
+  // Repair Checklist state
+  const [showRepairChecklist, setShowRepairChecklist] = useState(false)
+  const [repairChecklist, setRepairChecklist] = useState<any>(null)
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -177,7 +182,9 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
         ticketNumber: ticket.ticketNumber,
         completedAt: new Date().toISOString(),
         repairPhotos: photoBase64s,
-        photoCount: repairPhotos.length
+        photoCount: repairPhotos.length,
+        repairChecklist: repairChecklist,
+        aiAnalysis: aiAnalysis
       }
 
       await onSave(repairData)
@@ -227,12 +234,20 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
           <div className="bg-blue-50 p-4 rounded-lg mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Work Timer</h3>
-              <button
-                onClick={() => setShowAIAssistant(!showAIAssistant)}
-                className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center gap-1"
-              >
-                🤖 AI Assistant
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowRepairChecklist(!showRepairChecklist)}
+                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center gap-1"
+                >
+                  📋 Smart Checklist
+                </button>
+                <button
+                  onClick={() => setShowAIAssistant(!showAIAssistant)}
+                  className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center gap-1"
+                >
+                  🤖 AI Assistant
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-4 mb-4">
               <div className="text-3xl font-mono font-bold text-blue-600">
@@ -272,6 +287,21 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
               </div>
             </div>
           </div>
+
+          {/* Repair Checklist Section */}
+          {showRepairChecklist && (
+            <div className="mb-6">
+              <RepairChecklistComponent
+                ticketId={ticket.ticketId}
+                deviceInfo={ticket.deviceInfo}
+                description={ticket.description}
+                onChecklistUpdate={(checklist) => {
+                  setRepairChecklist(checklist)
+                  console.log('📋 Repair Checklist updated:', checklist)
+                }}
+              />
+            </div>
+          )}
 
           {/* AI Assistant Section */}
           {showAIAssistant && (

@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS repair_completions (
   time_spent_seconds INTEGER, -- Time in seconds for calculations
   repair_photos TEXT[], -- Array of photo IDs
   photo_count INTEGER DEFAULT 0,
+  repair_checklist JSONB, -- AI-generated repair checklist
+  ai_analysis JSONB, -- AI analysis data
   completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

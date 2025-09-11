@@ -16,7 +16,9 @@ export async function POST(request: NextRequest) {
       notes,
       timeSpent,
       repairPhotos = [],
-      photoCount = 0
+      photoCount = 0,
+      repairChecklist = null,
+      aiAnalysis = null
     } = repairData
 
     console.log('🔧 Repair completion data received:', {
@@ -103,7 +105,9 @@ export async function POST(request: NextRequest) {
         time_spent: timeSpent,
         time_spent_seconds: timeSpentSeconds,
         repair_photos: photoIds,
-        photo_count: photoCount
+        photo_count: photoCount,
+        repair_checklist: repairChecklist ? JSON.stringify(repairChecklist) : null,
+        ai_analysis: aiAnalysis ? JSON.stringify(aiAnalysis) : null
       })
       .select()
       .single()
