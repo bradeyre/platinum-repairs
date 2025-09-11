@@ -76,7 +76,6 @@ export async function GET(request: NextRequest) {
     const allTickets: ProcessedTicket[] = await getAllTickets()
 
     console.log(`🔧 Dashboard Stats: Found ${allTickets.length} tickets`)
-    console.log('🔧 Dashboard Stats: First few tickets:', allTickets.slice(0, 3))
 
     // Calculate stats from actual tickets
     const totalTickets = allTickets.length
@@ -101,13 +100,6 @@ export async function GET(request: NextRequest) {
       ticket.status !== 'In Progress' && ticket.status !== 'Completed'
     ).length
 
-    console.log('🔧 Dashboard Stats: Status breakdown:', {
-      total: allTickets.length,
-      waiting: waitingTickets,
-      inProgress: allTickets.filter(t => t.status === 'In Progress').length,
-      completed: allTickets.filter(t => t.status === 'Completed').length,
-      statuses: [...new Set(allTickets.map(t => t.status))]
-    })
 
     // Get unassigned tickets
     const unassignedTickets = allTickets.filter(ticket => 
