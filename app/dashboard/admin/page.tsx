@@ -2,10 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import DashboardNavigation from '@/components/DashboardNavigation'
-import PerformanceMonitoring from '@/components/PerformanceMonitoring'
-import EnhancedTimeTracking from '@/components/EnhancedTimeTracking'
-import RepairShoprAnalytics from '@/components/RepairShoprAnalytics'
-import AIPerformanceAnalysis from '@/components/AIPerformanceAnalysis'
+import ConsolidatedAnalytics from '@/components/ConsolidatedAnalytics'
 import DeepAnalyticsReport from '@/components/DeepAnalyticsReport'
 
 interface ProcessedTicket {
@@ -631,14 +628,9 @@ export default function AdminDashboard() {
             <nav className="-mb-px flex space-x-8 px-6">
               {[
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
-                { id: 'repairshopr-analytics', name: 'RepairShopr Analytics', icon: '📊' },
+                { id: 'analytics', name: 'Analytics Dashboard', icon: '📊' },
                 { id: 'deep-analytics', name: 'Deep Analytics Report', icon: '🔍' },
                 { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
-                { id: 'analytics', name: 'Performance Analytics', icon: '📈' },
-                { id: 'ai-analysis', name: 'AI Performance Analysis', icon: '🤖' },
-                { id: 'monitoring', name: 'Performance Monitoring', icon: '🚨' },
-                { id: 'time-tracking', name: 'Time Tracking', icon: '⏱️' },
-                { id: 'overview', name: 'Overview & Stats', icon: '📊' },
                 { id: 'technicians', name: 'Technician Management', icon: '👥' }
               ].map((tab) => (
                 <button 
@@ -932,10 +924,10 @@ export default function AdminDashboard() {
           </div>
             )}
 
-            {/* RepairShopr Analytics Tab */}
-            {activeTab === 'repairshopr-analytics' && (
+            {/* Analytics Dashboard Tab */}
+            {activeTab === 'analytics' && (
               <div className="p-6">
-                <RepairShoprAnalytics />
+                <ConsolidatedAnalytics />
               </div>
             )}
 
@@ -1031,100 +1023,6 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Performance Monitoring Tab */}
-            {activeTab === 'monitoring' && (
-              <div className="p-6">
-                <PerformanceMonitoring />
-              </div>
-            )}
-
-            {/* Time Tracking Tab */}
-            {activeTab === 'time-tracking' && (
-              <div className="p-6">
-                <EnhancedTimeTracking showAllTechnicians={true} />
-              </div>
-            )}
-
-            {/* AI Performance Analysis Tab */}
-            {activeTab === 'ai-analysis' && (
-              <div className="p-6">
-                <AIPerformanceAnalysis />
-              </div>
-            )}
-        
-            {/* Analytics Tab */}
-            {activeTab === 'analytics' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">Performance Analytics</h3>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Productivity Metrics */}
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h4 className="font-medium text-gray-900 mb-4">Productivity Metrics</h4>
-                    <div className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Average Completion Time:</span>
-                        <span className="font-medium">{formatTime(stats.averageCompletionTime)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Average Wait Time:</span>
-                        <span className="font-medium">{stats.averageWaitTimeHours.toFixed(1)}h</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total Active Work Time:</span>
-                        <span className="font-medium">{stats.totalActiveWorkHours.toFixed(1)}h</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Monthly Growth:</span>
-                        <span className={`font-medium ${stats.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {stats.monthlyGrowth >= 0 ? '+' : ''}{stats.monthlyGrowth}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Top Performers */}
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h4 className="font-medium text-gray-900 mb-4">Top Performers {getTimeframeLabel()}</h4>
-                    <div className="space-y-3">
-                      {technicians
-                        .sort((a, b) => {
-                          const aTickets = selectedTimeframe === 'today' ? a.tickets_completed_today :
-                                          selectedTimeframe === 'week' ? a.tickets_completed_this_week :
-                                          a.tickets_completed_this_month
-                          const bTickets = selectedTimeframe === 'today' ? b.tickets_completed_today :
-                                          selectedTimeframe === 'week' ? b.tickets_completed_this_week :
-                                          b.tickets_completed_this_month
-                          return bTickets - aTickets
-                        })
-                        .slice(0, 3)
-                        .map((tech, index) => {
-                          const tickets = selectedTimeframe === 'today' ? tech.tickets_completed_today :
-                                        selectedTimeframe === 'week' ? tech.tickets_completed_this_week :
-                                        tech.tickets_completed_this_month
-                          const workHours = selectedTimeframe === 'today' ? tech.total_hours_today :
-                                          selectedTimeframe === 'week' ? tech.total_hours_this_week :
-                                          tech.total_hours_this_month
-                          return (
-                            <div key={tech.id} className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600">
-                                  {index + 1}
-                                </div>
-                                <div className="ml-3">
-                                  <div className="text-sm font-medium">{tech.full_name}</div>
-                                  <div className="text-xs text-gray-500">{workHours.toFixed(1)}h active</div>
-                                </div>
-                              </div>
-                              <span className="text-sm text-gray-600">{tickets} tickets</span>
-                            </div>
-                          )
-                        })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
