@@ -120,17 +120,19 @@ export default function ComprehensiveAnalytics() {
     }
   }
 
-  const syncRepairShoprData = async () => {
+  const syncRepairShoprData = async (syncType: string = 'smart') => {
     try {
       setSyncStatus('Syncing RepairShopr data...')
       
-      const response = await fetch('/api/sync/repairshopr-data', {
+      const response = await fetch('/api/sync/smart-repairshopr-sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          fullSync: true
+          syncType: syncType,
+          maxAge: 7, // Only sync tickets completed at least 1 week ago
+          priority: 'all'
         })
       })
       
@@ -170,7 +172,7 @@ export default function ComprehensiveAnalytics() {
         <p className="text-red-700 mb-4">{error}</p>
         <div className="space-y-4">
           <button
-            onClick={syncRepairShoprData}
+            onClick={() => syncRepairShoprData('smart')}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             🔄 Sync RepairShopr Data
@@ -214,10 +216,22 @@ export default function ComprehensiveAnalytics() {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={syncRepairShoprData}
+              onClick={() => syncRepairShoprData('smart')}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              🔄 Sync Data
+              🧠 Smart Sync
+            </button>
+            <button
+              onClick={() => syncRepairShoprData('completed_only')}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              ✅ Completed Only
+            </button>
+            <button
+              onClick={() => syncRepairShoprData('full')}
+              className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              🔄 Full Sync
             </button>
             <button
               onClick={fetchAnalyticsData}
@@ -232,6 +246,28 @@ export default function ComprehensiveAnalytics() {
             <div className="text-sm text-blue-800">{syncStatus}</div>
           </div>
         )}
+        
+        {/* Smart Sync Information */}
+        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <h4 className="font-semibold text-gray-900 mb-2">🧠 Smart Sync Strategy</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="font-medium text-blue-600">Smart Sync</div>
+              <div className="text-gray-600">Only completed tickets at least 1 week old</div>
+            </div>
+            <div>
+              <div className="font-medium text-green-600">Completed Only</div>
+              <div className="text-gray-600">All completed tickets regardless of age</div>
+            </div>
+            <div>
+              <div className="font-medium text-orange-600">Full Sync</div>
+              <div className="text-gray-600">All tickets including active ones</div>
+            </div>
+          </div>
+          <div className="mt-3 text-xs text-gray-500">
+            💡 Smart sync ensures we only analyze finalized data while building comprehensive historical knowledge
+          </div>
+        </div>
       </div>
 
       {/* Summary Stats */}
