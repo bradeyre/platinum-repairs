@@ -278,6 +278,72 @@ export default function RepairShoprAnalytics() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [timeFrame, setTimeFrame] = useState('all')
+  const [customDateRange, setCustomDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  })
+
+  // Function to filter tickets by time frame
+  const filterTicketsByTimeFrame = (tickets: ProcessedTicket[]): ProcessedTicket[] => {
+    const now = new Date()
+    let startDate: Date
+    let endDate: Date = now
+
+    switch (timeFrame) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        break
+      case 'yesterday':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        break
+      case 'thisWeek':
+        const startOfWeek = new Date(now)
+        startOfWeek.setDate(now.getDate() - now.getDay())
+        startOfWeek.setHours(0, 0, 0, 0)
+        startDate = startOfWeek
+        break
+      case 'lastWeek':
+        const lastWeekStart = new Date(now)
+        lastWeekStart.setDate(now.getDate() - now.getDay() - 7)
+        lastWeekStart.setHours(0, 0, 0, 0)
+        startDate = lastWeekStart
+        endDate = new Date(now)
+        endDate.setDate(now.getDate() - now.getDay())
+        endDate.setHours(0, 0, 0, 0)
+        break
+      case 'thisMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        break
+      case 'lastMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        endDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        break
+      case 'last30Days':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case 'last90Days':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+        break
+      case 'custom':
+        if (customDateRange.startDate && customDateRange.endDate) {
+          startDate = new Date(customDateRange.startDate)
+          endDate = new Date(customDateRange.endDate)
+          endDate.setHours(23, 59, 59, 999) // Include the entire end date
+        } else {
+          return tickets // Return all if custom dates not set
+        }
+        break
+      default: // 'all'
+        return tickets
+    }
+
+    return tickets.filter(ticket => {
+      const ticketDate = new Date(ticket.timestamp)
+      return ticketDate >= startDate && ticketDate <= endDate
+    })
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -288,8 +354,9 @@ export default function RepairShoprAnalytics() {
           const data = await response.json()
           setTickets(data.tickets || [])
           
-          // Calculate analytics
-          const calculatedAnalytics = calculateAnalytics(data.tickets || [])
+          // Filter tickets by time frame and calculate analytics
+          const filteredTickets = filterTicketsByTimeFrame(data.tickets || [])
+          const calculatedAnalytics = calculateAnalytics(filteredTickets)
           setAnalytics(calculatedAnalytics)
         } else {
           setError('Failed to fetch tickets data')
@@ -304,6 +371,15 @@ export default function RepairShoprAnalytics() {
 
     fetchData()
   }, [])
+
+  // Recalculate analytics when time frame changes
+  useEffect(() => {
+    if (tickets.length > 0) {
+      const filteredTickets = filterTicketsByTimeFrame(tickets)
+      const calculatedAnalytics = calculateAnalytics(filteredTickets)
+      setAnalytics(calculatedAnalytics)
+    }
+  }, [timeFrame, customDateRange, tickets])
 
   if (loading) {
     return (
@@ -348,6 +424,64 @@ export default function RepairShoprAnalytics() {
           <div className="text-right">
             <div className="text-3xl font-bold text-blue-600">{analytics.totalTickets}</div>
             <div className="text-sm text-gray-500">Total Tickets</div>
+          </div>
+        </div>
+        
+        {/* Time Frame Selector */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Time Frame:</label>
+              <select
+                value={timeFrame}
+                onChange={(e) => setTimeFrame(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="thisWeek">This Week</option>
+                <option value="lastWeek">Last Week</option>
+                <option value="thisMonth">This Month</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="last30Days">Last 30 Days</option>
+                <option value="last90Days">Last 90 Days</option>
+                <option value="custom">Custom Range</option>
+              </select>
+            </div>
+            
+            {timeFrame === 'custom' && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">From:</label>
+                <input
+                  type="date"
+                  value={customDateRange.startDate}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <label className="text-sm font-medium text-gray-700">To:</label>
+                <input
+                  type="date"
+                  value={customDateRange.endDate}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+            
+            <div className="text-sm text-gray-500">
+              {timeFrame === 'all' && 'Showing all tickets'}
+              {timeFrame === 'today' && 'Showing tickets from today'}
+              {timeFrame === 'yesterday' && 'Showing tickets from yesterday'}
+              {timeFrame === 'thisWeek' && 'Showing tickets from this week'}
+              {timeFrame === 'lastWeek' && 'Showing tickets from last week'}
+              {timeFrame === 'thisMonth' && 'Showing tickets from this month'}
+              {timeFrame === 'lastMonth' && 'Showing tickets from last month'}
+              {timeFrame === 'last30Days' && 'Showing tickets from last 30 days'}
+              {timeFrame === 'last90Days' && 'Showing tickets from last 90 days'}
+              {timeFrame === 'custom' && customDateRange.startDate && customDateRange.endDate && 
+                `Showing tickets from ${new Date(customDateRange.startDate).toLocaleDateString()} to ${new Date(customDateRange.endDate).toLocaleDateString()}`}
+            </div>
           </div>
         </div>
       </div>
