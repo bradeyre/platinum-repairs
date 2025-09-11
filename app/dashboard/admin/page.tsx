@@ -530,6 +530,7 @@ export default function AdminDashboard() {
             <nav className="-mb-px flex space-x-8 px-6">
               {[
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
+                { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
                 { id: 'analytics', name: 'Performance Analytics', icon: '📈' },
                 { id: 'monitoring', name: 'Performance Monitoring', icon: '🚨' },
                 { id: 'time-tracking', name: 'Time Tracking', icon: '⏱️' },
@@ -825,6 +826,91 @@ export default function AdminDashboard() {
                 </table>
             </div>
           </div>
+            )}
+
+            {/* Repair Archive Tab */}
+            {activeTab === 'repair-archive' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Repair Archive</h3>
+                  <button 
+                    onClick={() => window.open('/dashboard/admin/repair-archive', '_blank')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  >
+                    Open Full Archive
+                  </button>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 text-lg">🔧</span>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <h4 className="text-lg font-medium text-blue-900">Completed Repairs Archive</h4>
+                      <p className="text-blue-700 mt-1">
+                        View and manage all completed repairs with detailed information, photos, and AI analysis.
+                      </p>
+                      <div className="mt-3">
+                        <button 
+                          onClick={() => window.open('/dashboard/admin/repair-archive', '_blank')}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                          Access Repair Archive
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h4 className="font-medium text-gray-900 mb-4">Archive Features</h4>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li className="flex items-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Search and filter completed repairs
+                      </li>
+                      <li className="flex items-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        View detailed repair information
+                      </li>
+                      <li className="flex items-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Access repair photos and documentation
+                      </li>
+                      <li className="flex items-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Review AI analysis and checklists
+                      </li>
+                      <li className="flex items-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Track technician performance
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h4 className="font-medium text-gray-900 mb-4">Quick Stats</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total Completed:</span>
+                        <span className="font-medium">{stats.completedToday}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">This Month:</span>
+                        <span className="font-medium">-</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Average Time:</span>
+                        <span className="font-medium">{formatTime(stats.averageCompletionTime)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Performance Monitoring Tab */}
