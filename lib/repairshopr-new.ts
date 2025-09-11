@@ -510,21 +510,25 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     // Define completed status to fetch (using the same approach as getAllTickets)
     const targetStatuses = ['Completed']
     
+    // Also try alternative status names that might be used
+    const alternativeStatuses = ['Resolved', 'Closed File', 'Salvage', 'BER']
+    const allStatuses = [...targetStatuses, ...alternativeStatuses]
+    
     // Define allowed technicians for Device Doctor
     const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
     const excludedTechnicians = ['Thasveer', 'Shannon']
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
     
-    // Fetch tickets for completed status from both APIs (same approach as getAllTickets)
+    // Fetch tickets for all completed statuses from both APIs (same approach as getAllTickets)
     const allApiCalls: Promise<RepairShoprTicket[]>[] = []
     
     // Platinum Repairs API calls
-    for (const status of targetStatuses) {
+    for (const status of allStatuses) {
       allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, status))
     }
     
     // Device Doctor API calls  
-    for (const status of targetStatuses) {
+    for (const status of allStatuses) {
       allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, status))
     }
     
@@ -532,8 +536,8 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     const allResults = await Promise.all(allApiCalls)
     
     // Split results back into PR and DD tickets
-    const prTickets = allResults.slice(0, 1).flat()
-    const ddTickets = allResults.slice(1, 2).flat()
+    const prTickets = allResults.slice(0, allStatuses.length).flat()
+    const ddTickets = allResults.slice(allStatuses.length, allStatuses.length * 2).flat()
     
     console.log(`🔍 Raw API results: PR completed tickets: ${prTickets.length}, DD completed tickets: ${ddTickets.length}`)
     
