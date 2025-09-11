@@ -213,81 +213,53 @@ function formatBusinessHours(hours: number): string {
 // Fetch tickets from RepairShopr with specific status filtering
 async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, status: string): Promise<RepairShoprTicket[]> {
   try {
-    // First, get the list of tickets with higher limit
-    const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&limit=1000`
     console.log(`🔍 Fetching ${status} tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
-    console.log(`List URL: ${listUrl}`)
     
-    const listResponse = await fetch(listUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    let allTickets: RepairShoprTicket[] = []
+    let currentPage = 1
+    let totalPages = 1
     
-    console.log(`List response status: ${listResponse.status}`)
-    
-    if (!listResponse.ok) {
-      const errorText = await listResponse.text()
-      console.error(`❌ API error: ${listResponse.status} - ${errorText}`)
-      throw new Error(`API error: ${listResponse.status} - ${errorText}`)
-    }
-    
-    const listData = await listResponse.json()
-    const tickets = listData.tickets || []
-    console.log(`✅ Successfully fetched ${tickets.length} tickets with status: ${status}`)
-    
-    // Now fetch detailed information for each ticket to get custom fields
-    const detailedTickets: RepairShoprTicket[] = []
-    
-    for (const ticket of tickets.slice(0, 100)) { // Process up to 100 tickets for completed sync
-      try {
-        const detailUrl = `${baseUrl}/tickets/${ticket.id}?api_key=${token}`
-        console.log(`🔍 Fetching details for ticket ${ticket.id} (${ticket.number || 'no number'}): ${detailUrl}`)
-        
-        const detailResponse = await fetch(detailUrl, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        })
-        
-        console.log(`Detail response status for ticket ${ticket.id}: ${detailResponse.status}`)
-        
-        if (detailResponse.ok) {
-          const detailData = await detailResponse.json()
-          console.log(`Raw detail response for ticket ${ticket.id}:`, detailData)
-          
-          const detailedTicket = detailData.ticket || detailData
-          console.log(`✅ Got detailed ticket ${ticket.id}:`, JSON.stringify(detailedTicket, null, 2))
-          
-          // Check specifically for custom fields
-          if (detailedTicket.custom_fields) {
-            console.log(`🎯 Custom fields found for ticket ${ticket.id}:`, detailedTicket.custom_fields)
-          } else {
-            console.log(`❌ No custom_fields property found for ticket ${ticket.id}`)
-            console.log(`Available properties:`, Object.keys(detailedTicket))
-          }
-          
-          detailedTickets.push(detailedTicket)
-        } else {
-          const errorText = await detailResponse.text()
-          console.log(`❌ Failed to get details for ticket ${ticket.id}: ${detailResponse.status} - ${errorText}`)
-          detailedTickets.push(ticket)
+    // Fetch all pages of results
+    do {
+      const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&page=${currentPage}&limit=100`
+      console.log(`📄 Fetching page ${currentPage}/${totalPages}: ${listUrl}`)
+      
+      const listResponse = await fetch(listUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error(`Error fetching details for ticket ${ticket.id}:`, error)
-        detailedTickets.push(ticket)
+      })
+      
+      console.log(`Page ${currentPage} response status: ${listResponse.status}`)
+      
+      if (!listResponse.ok) {
+        const errorText = await listResponse.text()
+        console.error(`❌ API error on page ${currentPage}: ${listResponse.status} - ${errorText}`)
+        throw new Error(`API error: ${listResponse.status} - ${errorText}`)
       }
-    }
+      
+      const listData = await listResponse.json()
+      const tickets = listData.tickets || []
+      const meta = listData.meta || {}
+      
+      totalPages = meta.total_pages || 1
+      console.log(`📄 Page ${currentPage}: ${tickets.length} tickets (total pages: ${totalPages})`)
+      
+      allTickets = allTickets.concat(tickets)
+      currentPage++
+      
+    } while (currentPage <= totalPages)
     
-    // Add remaining tickets without detailed fetch for now
-    detailedTickets.push(...tickets.slice(5))
+    console.log(`✅ Successfully fetched ${allTickets.length} total tickets with status: ${status}`)
     
-    return detailedTickets
+    // For completed tickets, we don't need detailed info, just return the basic tickets
+    // This will be much faster and allow us to process more tickets
+    return allTickets
+    
   } catch (error) {
-    console.error(`Error fetching ${status} tickets from RepairShopr:`, error)
+    console.error(`❌ Error in fetchFromRepairShoprWithStatus:`, error)
     return []
   }
 }
