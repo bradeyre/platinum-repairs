@@ -235,7 +235,7 @@ function processComprehensiveAnalytics(ticketData: any[], summaryData: any[]): a
       overallReworkRate,
       totalTechnicians
     },
-    technicianPerformance: technicianData,
+    technicianPerformance: [], // Will be populated when we have technician data
     deviceAnalytics,
     repairTypeAnalytics,
     timeAnalytics: {
