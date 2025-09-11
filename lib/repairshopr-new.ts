@@ -247,6 +247,18 @@ async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, st
       }
       
       const listData = await listResponse.json()
+      console.log(`🔍 API Response for ${status} page ${currentPage}:`, {
+        hasTickets: !!listData.tickets,
+        ticketCount: listData.tickets?.length || 0,
+        meta: listData.meta,
+        sampleTicket: listData.tickets?.[0] ? {
+          id: listData.tickets[0].id,
+          number: listData.tickets[0].number,
+          status: listData.tickets[0].status,
+          subject: listData.tickets[0].subject?.substring(0, 50) + '...'
+        } : null
+      })
+      
       const tickets = listData.tickets || []
       const meta = listData.meta || {}
       
