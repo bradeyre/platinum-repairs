@@ -802,6 +802,74 @@ export default function ClaimManagerPage() {
                     </div>
                   )}
 
+                  {/* AI Analysis Section */}
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-medium text-blue-900 mb-3 flex items-center">
+                      🤖 AI Analysis
+                    </h4>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-sm font-medium text-blue-800">Device Assessment</div>
+                        <div className="text-sm text-blue-700">
+                          {selectedReport.ai_risk_assessment || 'AI analysis not available for this report.'}
+                        </div>
+                      </div>
+                      {selectedReport.ai_checklist && selectedReport.ai_checklist.length > 0 && (
+                        <div>
+                          <div className="text-sm font-medium text-blue-800">Key Issues Identified</div>
+                          <ul className="text-sm text-blue-700 space-y-1">
+                            {selectedReport.ai_checklist.map((item, index) => (
+                              <li key={index}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Relevant Ticket Comments Section */}
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-medium text-green-900 mb-3 flex items-center">
+                      📝 Ticket History & Comments
+                    </h4>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-sm font-medium text-green-800">Client Reported Issues</div>
+                        <div className="text-sm text-green-700">
+                          {selectedReport.client_reported_issues && selectedReport.client_reported_issues.length > 0 ? (
+                            <ul className="space-y-1">
+                              {selectedReport.client_reported_issues.map((issue, index) => (
+                                <li key={index}>• {issue}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            'No client issues recorded'
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-green-800">Technician Findings</div>
+                        <div className="text-sm text-green-700">
+                          {selectedReport.tech_findings && selectedReport.tech_findings.length > 0 ? (
+                            <ul className="space-y-1">
+                              {selectedReport.tech_findings.map((finding, index) => (
+                                <li key={index}>• {finding}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            'No technician findings recorded'
+                          )}
+                        </div>
+                      </div>
+                      {selectedReport.notes && (
+                        <div>
+                          <div className="text-sm font-medium text-green-800">Additional Notes</div>
+                          <div className="text-sm text-green-700">{selectedReport.notes}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* Column 2: Combined Issues & Parts */}

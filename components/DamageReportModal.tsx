@@ -42,8 +42,6 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     color: '',
     storage: '',
     imei: '',
-    lastUsed: '',
-    lastUsedUnknown: false,
     deviceRepairable: true,
     repairExplanation: '',
     causeOfDamage: '',
@@ -898,33 +896,6 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
                       🔍 Check IMEI Online
                     </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Used</label>
-                    <input
-                      type="date"
-                      value={formData.lastUsed}
-                      onChange={(e) => setFormData(prev => ({ ...prev, lastUsed: e.target.value }))}
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                      disabled={!timerStarted}
-                    />
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="lastUsedUnknown"
-                      checked={formData.lastUsedUnknown}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        lastUsedUnknown: e.target.checked,
-                        lastUsed: e.target.checked ? '' : prev.lastUsed
-                      }))}
-                      className="mr-2"
-                      disabled={!timerStarted}
-                    />
-                    <label htmlFor="lastUsedUnknown" className="text-sm text-gray-700">
-                      Last used date unknown
-                    </label>
-                  </div>
                 </div>
               </div>
 
@@ -1299,7 +1270,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
               onClick={handleSave}
               className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700"
             >
-              ✅ Complete Damage Report
+              ✅ Complete Repair
             </button>
             <button
               onClick={onClose}
