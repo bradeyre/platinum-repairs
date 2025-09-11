@@ -504,43 +504,45 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
   }
   
   try {
-    console.log('🚀 Starting to fetch completed tickets from both APIs...')
-    
-    // Define completed statuses to fetch
-    const completedStatuses = [
-      'Completed'
-    ]
+    console.log('🚀 Starting to fetch ALL tickets from both APIs to filter for completed ones...')
     
     // Define allowed technicians for Device Doctor
     const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
     const excludedTechnicians = ['Thasveer', 'Shannon']
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
     
-    // Fetch tickets for each completed status from both APIs
+    // Fetch ALL tickets from both APIs (no status filtering)
     const allApiCalls: Promise<RepairShoprTicket[]>[] = []
     
-    // Platinum Repairs API calls
-    for (const status of completedStatuses) {
-      allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, status))
-    }
+    // Platinum Repairs API - fetch all tickets
+    allApiCalls.push(fetchAllTicketsFromRepairShopr(token1, REPAIRSHOPR_BASE_URL))
     
-    // Device Doctor API calls  
-    for (const status of completedStatuses) {
-      allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, status))
-    }
+    // Device Doctor API - fetch all tickets
+    allApiCalls.push(fetchAllTicketsFromRepairShopr(token2, REPAIRSHOPR_DD_BASE_URL))
     
     // Execute all API calls in parallel
     const allResults = await Promise.all(allApiCalls)
     
     // Split results back into PR and DD tickets
-    const prTickets = allResults.slice(0, 4).flat()
-    const ddTickets = allResults.slice(4, 8).flat()
+    const prTickets = allResults[0] || []
+    const ddTickets = allResults[1] || []
     
-    console.log(`🔍 Raw API results: PR completed tickets: ${prTickets.length}, DD completed tickets: ${ddTickets.length}`)
+    console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
+    
+    // Filter for completed tickets
+    const completedStatuses = ['Completed', 'Resolved', 'Closed File', 'Salvage', 'BER']
+    const prCompletedTickets = prTickets.filter(ticket => 
+      completedStatuses.some(status => ticket.status?.toLowerCase().includes(status.toLowerCase()))
+    )
+    const ddCompletedTickets = ddTickets.filter(ticket => 
+      completedStatuses.some(status => ticket.status?.toLowerCase().includes(status.toLowerCase()))
+    )
+    
+    console.log(`🔍 Completed tickets found: PR: ${prCompletedTickets.length}, DD: ${ddCompletedTickets.length}`)
     
     // Process tickets with instance information (async)
-    const processedTickets1 = await Promise.all(prTickets.map(ticket => processTicket(ticket, 'platinum')))
-    const processedTickets2 = await Promise.all(ddTickets.map(ticket => processTicket(ticket, 'devicedoctor')))
+    const processedTickets1 = await Promise.all(prCompletedTickets.map(ticket => processTicket(ticket, 'platinum')))
+    const processedTickets2 = await Promise.all(ddCompletedTickets.map(ticket => processTicket(ticket, 'devicedoctor')))
     const processedTickets = [...processedTickets1, ...processedTickets2]
     
     console.log(`🔍 Processed completed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
@@ -549,8 +551,8 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     let filteredTickets = processedTickets.filter(ticket => {
       // Find the original ticket from the appropriate API response
       const originalTicket = ticket.ticketType === 'DD' 
-        ? ddTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
-        : prTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+        ? ddCompletedTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+        : prCompletedTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
       
       const assignedTo = originalTicket?.user?.full_name
       
@@ -593,6 +595,55 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     
   } catch (error) {
     console.error('❌ Error in getAllCompletedTickets:', error)
+    return []
+  }
+}
+
+// Helper function to fetch all tickets from RepairShopr (no status filtering)
+async function fetchAllTicketsFromRepairShopr(token: string, baseUrl: string): Promise<RepairShoprTicket[]> {
+  try {
+    console.log(`🔍 Fetching ALL tickets from: ${baseUrl.includes('devicedoctor') ? 'DEVICE DOCTOR' : 'PLATINUM REPAIRS'} API`)
+    
+    // Try different approaches to get all tickets
+    const approaches = [
+      // Approach 1: No status filter
+      `${baseUrl}/tickets?api_key=${token}&limit=1000`,
+      // Approach 2: With limit
+      `${baseUrl}/tickets?api_key=${token}&limit=500`,
+      // Approach 3: With different parameters
+      `${baseUrl}/tickets?api_key=${token}`
+    ]
+    
+    for (const url of approaches) {
+      try {
+        console.log(`Trying URL: ${url}`)
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        })
+        
+        console.log(`Response status: ${response.status}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log(`✅ Successfully fetched ${data.tickets?.length || 0} tickets`)
+          return data.tickets || []
+        } else {
+          const errorText = await response.text()
+          console.log(`❌ API error ${response.status}: ${errorText}`)
+        }
+      } catch (error) {
+        console.log(`❌ Request error: ${error}`)
+      }
+    }
+    
+    console.log('❌ All approaches failed')
+    return []
+    
+  } catch (error) {
+    console.error('❌ Error in fetchAllTicketsFromRepairShopr:', error)
     return []
   }
 }
