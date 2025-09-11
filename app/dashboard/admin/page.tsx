@@ -5,6 +5,7 @@ import DashboardNavigation from '@/components/DashboardNavigation'
 import PerformanceMonitoring from '@/components/PerformanceMonitoring'
 import EnhancedTimeTracking from '@/components/EnhancedTimeTracking'
 import RepairShoprAnalytics from '@/components/RepairShoprAnalytics'
+import AIPerformanceAnalysis from '@/components/AIPerformanceAnalysis'
 
 interface ProcessedTicket {
   ticketId: string
@@ -632,6 +633,7 @@ export default function AdminDashboard() {
                 { id: 'repairshopr-analytics', name: 'RepairShopr Analytics', icon: '📊' },
                 { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
                 { id: 'analytics', name: 'Performance Analytics', icon: '📈' },
+                { id: 'ai-analysis', name: 'AI Performance Analysis', icon: '🤖' },
                 { id: 'monitoring', name: 'Performance Monitoring', icon: '🚨' },
                 { id: 'time-tracking', name: 'Time Tracking', icon: '⏱️' },
                 { id: 'overview', name: 'Overview & Stats', icon: '📊' },
@@ -1031,6 +1033,13 @@ export default function AdminDashboard() {
             {activeTab === 'time-tracking' && (
               <div className="p-6">
                 <EnhancedTimeTracking showAllTechnicians={true} />
+              </div>
+            )}
+
+            {/* AI Performance Analysis Tab */}
+            {activeTab === 'ai-analysis' && (
+              <div className="p-6">
+                <AIPerformanceAnalysis />
               </div>
             )}
         

@@ -534,24 +534,19 @@ export default function RepairShoprAnalytics() {
         </div>
       </div>
 
-      {/* AI Performance Analysis */}
-      <AIPerformanceAnalysis performanceData={{
-        technicians: Object.entries(analytics.technicianEfficiency).map(([tech, stats]) => ({
-          technician: tech,
-          totalTickets: stats.totalTickets,
-          currentLoad: stats.currentLoad,
-          averageWaitTime: stats.averageWaitTime,
-          completionRate: stats.completionRate,
-          ticketsByStatus: {}, // Could be enhanced with actual status breakdown
-          averageCompletionTime: stats.averageRepairTime
-        })),
-        overallStats: {
-          totalTickets: analytics.totalTickets,
-          averageWaitTime: Object.values(analytics.averageWaitTimeByStatus).reduce((sum, time) => sum + time, 0) / Object.keys(analytics.averageWaitTimeByStatus).length || 0,
-          averageCompletionRate: Object.values(analytics.technicianEfficiency).reduce((sum, stats) => sum + stats.completionRate, 0) / Object.keys(analytics.technicianEfficiency).length || 0
-        },
-        insights: []
-      }} />
+      {/* AI Performance Analysis - Available in Admin Dashboard */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-blue-900 mb-4">🤖 AI Performance Analysis</h3>
+        <p className="text-blue-800 mb-4">
+          For detailed AI-powered performance insights, visit the "AI Performance Analysis" tab in the Admin Dashboard.
+        </p>
+        <div className="text-sm text-blue-700">
+          <p>• <strong>Who's doing what:</strong> Detailed technician workload analysis</p>
+          <p>• <strong>Training needs:</strong> AI-identified areas for improvement</p>
+          <p>• <strong>Performance insights:</strong> Actionable recommendations</p>
+          <p>• <strong>Efficiency trends:</strong> Pattern recognition and optimization</p>
+        </div>
+      </div>
     </div>
   )
 }

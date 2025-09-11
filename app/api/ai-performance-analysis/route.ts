@@ -11,83 +11,65 @@ interface TechnicianPerformance {
   currentLoad: number
   averageWaitTime: number
   completionRate: number
-  ticketsByStatus: Record<string, number>
-  averageCompletionTime?: number
-}
-
-interface PerformanceData {
-  technicians: TechnicianPerformance[]
-  overallStats: {
-    totalTickets: number
-    averageWaitTime: number
-    averageCompletionRate: number
-  }
-  insights: string[]
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { performanceData }: { performanceData: PerformanceData } = await request.json()
+    const { performanceData } = await request.json()
 
-    if (!performanceData || !performanceData.technicians) {
-      return NextResponse.json({ error: 'Performance data is required' }, { status: 400 })
+    if (!performanceData || !Array.isArray(performanceData)) {
+      return NextResponse.json({ error: 'Invalid performance data' }, { status: 400 })
     }
 
+    // Create a comprehensive prompt for AI analysis
     const prompt = `
-You are an expert workshop manager analyzing technician performance data. Provide actionable insights and recommendations.
+You are an expert workshop manager analyzing technician performance data. Analyze the following performance metrics and provide actionable insights:
 
-PERFORMANCE DATA:
+Performance Data:
 ${JSON.stringify(performanceData, null, 2)}
 
-ANALYSIS REQUIREMENTS:
-1. **Individual Performance Analysis**: For each technician, identify:
-   - Strengths and areas for improvement
-   - Workload distribution concerns
-   - Efficiency patterns
-   - Training needs
-
-2. **Team Performance Insights**:
-   - Overall team efficiency
-   - Bottlenecks and workflow issues
-   - Resource allocation recommendations
-
-3. **Actionable Recommendations**:
-   - Specific training needs for each technician
-   - Process improvements
-   - Workload balancing suggestions
-   - Performance targets
-
-4. **Priority Actions**:
-   - Most critical issues to address
-   - Quick wins for immediate improvement
-   - Long-term strategic improvements
-
-FORMAT YOUR RESPONSE AS JSON:
+Please provide a comprehensive analysis in the following JSON format:
 {
-  "individualAnalysis": {
-    "technicianName": {
-      "performance": "excellent/good/average/needs_improvement",
-      "strengths": ["strength1", "strength2"],
-      "concerns": ["concern1", "concern2"],
-      "trainingNeeds": ["training1", "training2"],
-      "recommendations": ["rec1", "rec2"]
-    }
-  },
-  "teamInsights": {
-    "overallEfficiency": "excellent/good/average/needs_improvement",
-    "bottlenecks": ["bottleneck1", "bottleneck2"],
-    "workloadBalance": "balanced/imbalanced",
-    "teamRecommendations": ["rec1", "rec2"]
-  },
-  "priorityActions": {
-    "immediate": ["action1", "action2"],
-    "shortTerm": ["action1", "action2"],
-    "longTerm": ["action1", "action2"]
-  },
-  "summary": "Brief overall assessment and key takeaways"
+  "overallInsights": [
+    "Key insight 1 about overall performance",
+    "Key insight 2 about team efficiency",
+    "Key insight 3 about workload distribution"
+  ],
+  "topPerformers": [
+    "Technician name 1",
+    "Technician name 2"
+  ],
+  "needsTraining": [
+    "Technician name who needs training",
+    "Another technician who needs support"
+  ],
+  "recommendations": [
+    "Specific actionable recommendation 1",
+    "Specific actionable recommendation 2",
+    "Specific actionable recommendation 3",
+    "Specific actionable recommendation 4"
+  ],
+  "efficiencyTrends": [
+    "Trend observation 1",
+    "Trend observation 2",
+    "Trend observation 3"
+  ],
+  "workloadDistribution": [
+    "Workload insight 1",
+    "Workload insight 2",
+    "Workload insight 3"
+  ]
 }
 
-Be specific, actionable, and focus on practical improvements for a repair workshop environment.
+Focus on:
+1. Who is performing well and why
+2. Who needs training or support
+3. Workload balance and distribution
+4. Specific actionable recommendations
+5. Efficiency patterns and trends
+6. Areas for improvement
+
+Be specific, actionable, and professional in your analysis.
 `
 
     const completion = await openai.chat.completions.create({
@@ -95,7 +77,7 @@ Be specific, actionable, and focus on practical improvements for a repair worksh
       messages: [
         {
           role: "system",
-          content: "You are an expert workshop manager with 15+ years of experience in repair operations, technician management, and performance optimization. Provide practical, actionable insights."
+          content: "You are an expert workshop manager with 15+ years of experience in technician performance analysis and team optimization. Provide specific, actionable insights based on data."
         },
         {
           role: "user",
@@ -103,38 +85,86 @@ Be specific, actionable, and focus on practical improvements for a repair worksh
         }
       ],
       temperature: 0.3,
-      max_tokens: 2000
+      max_tokens: 1500
     })
 
-    const analysis = completion.choices[0]?.message?.content
-
-    if (!analysis) {
-      throw new Error('No analysis generated')
+    const aiResponse = completion.choices[0]?.message?.content
+    if (!aiResponse) {
+      throw new Error('No response from AI')
     }
 
-    // Try to parse as JSON, fallback to text if needed
-    let parsedAnalysis
+    // Parse the AI response
+    let analysis
     try {
-      parsedAnalysis = JSON.parse(analysis)
-    } catch (error) {
-      // If JSON parsing fails, return as text analysis
-      parsedAnalysis = {
-        analysis: analysis,
-        format: 'text'
+      // Extract JSON from the response
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        analysis = JSON.parse(jsonMatch[0])
+      } else {
+        throw new Error('No JSON found in response')
+      }
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', parseError)
+      // Fallback to a structured response
+      analysis = {
+        overallInsights: [
+          "AI analysis temporarily unavailable",
+          "Using fallback performance metrics",
+          "Please try refreshing the analysis"
+        ],
+        topPerformers: [],
+        needsTraining: [],
+        recommendations: [
+          "Review individual technician performance metrics",
+          "Consider workload redistribution",
+          "Implement regular performance reviews",
+          "Provide targeted training where needed"
+        ],
+        efficiencyTrends: [
+          "Monitor completion rates regularly",
+          "Track average wait times",
+          "Identify performance patterns"
+        ],
+        workloadDistribution: [
+          "Review current ticket distribution",
+          "Balance workload across technicians",
+          "Consider capacity planning"
+        ]
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      analysis: parsedAnalysis,
-      timestamp: new Date().toISOString()
-    })
+    return NextResponse.json(analysis)
 
   } catch (error) {
     console.error('Error in AI performance analysis:', error)
-    return NextResponse.json(
-      { error: 'Failed to analyze performance data' },
-      { status: 500 }
-    )
+    
+    // Return fallback analysis
+    const fallbackAnalysis = {
+      overallInsights: [
+        "AI analysis service temporarily unavailable",
+        "Using basic performance metrics",
+        "Please try again later"
+      ],
+      topPerformers: [],
+      needsTraining: [],
+      recommendations: [
+        "Review technician performance metrics manually",
+        "Consider implementing peer mentoring",
+        "Set up regular performance reviews",
+        "Provide training for common repair types"
+      ],
+      efficiencyTrends: [
+        "Monitor completion rates weekly",
+        "Track average wait times by technician",
+        "Identify patterns in ticket completion"
+      ],
+      workloadDistribution: [
+        "Review current workload distribution",
+        "Consider redistributing tickets for balance",
+        "Monitor technician capacity"
+      ]
+    }
+
+    return NextResponse.json(fallbackAnalysis)
   }
 }

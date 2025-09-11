@@ -44,6 +44,35 @@ export default function TechnicianDashboard() {
   const [showRepairModal, setShowRepairModal] = useState(false)
   const router = useRouter()
 
+  // Auto clock-in function
+  const handleAutoClockIn = async (technicianId: string) => {
+    try {
+      const response = await fetch('/api/technicians/clock-in-out', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          technicianId,
+          action: 'clock_in'
+        })
+      })
+
+      if (response.ok) {
+        console.log('✅ Auto clocked in successfully')
+      } else {
+        const errorData = await response.json()
+        if (errorData.error === 'Technician is already clocked in') {
+          console.log('ℹ️ Already clocked in')
+        } else {
+          console.warn('⚠️ Auto clock-in failed:', errorData.error)
+        }
+      }
+    } catch (error) {
+      console.error('❌ Auto clock-in failed:', error)
+    }
+  }
+
   // Check authentication
   useEffect(() => {
     const checkAuth = async () => {
@@ -57,6 +86,11 @@ export default function TechnicianDashboard() {
       }
       
       setUser(currentUser)
+      
+      // Auto clock-in technicians on login
+      if (currentUser.role === 'technician') {
+        await handleAutoClockIn(currentUser.id)
+      }
       
       // If user is a technician, auto-select them and hide selector
       if (currentUser.role === 'technician') {

@@ -85,7 +85,9 @@ export default function RepairArchivePage() {
       }
     }
 
-    checkAuth()
+    // Add a small delay to prevent rapid redirects
+    const timeoutId = setTimeout(checkAuth, 100)
+    return () => clearTimeout(timeoutId)
   }, [router])
 
   const fetchRepairs = async (page = 1) => {
