@@ -491,7 +491,7 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
       'Awaiting Damage Report',
       'Awaiting Repair',
       'In Progress',
-      'Resolved',  // Add Resolved to the list
+      'resolved',  // Add resolved to the list (lowercase)
       'Completed',
       'Closed File',
       'Salvage',
@@ -521,7 +521,7 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
     
     // Filter for completed/resolved tickets
-    const completedStatuses = ['Resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
+    const completedStatuses = ['resolved', 'Resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
     
     const prCompletedTickets = prTickets.filter(ticket => {
       const status = ticket.status?.toLowerCase() || ''
