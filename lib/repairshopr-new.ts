@@ -223,6 +223,12 @@ async function fetchFromRepairShoprWithStatus(token: string, baseUrl: string, st
     do {
       const listUrl = `${baseUrl}/tickets?status=${encodeURIComponent(status)}&page=${currentPage}&limit=100`
       console.log(`📄 Fetching page ${currentPage}/${totalPages}: ${listUrl}`)
+      console.log(`🔍 FULL URL BREAKDOWN:`)
+      console.log(`   Base URL: ${baseUrl}`)
+      console.log(`   Status: ${status}`)
+      console.log(`   Page: ${currentPage}`)
+      console.log(`   Limit: 100`)
+      console.log(`   Final URL: ${listUrl}`)
       
       const listResponse = await fetch(listUrl, {
         headers: {
@@ -494,6 +500,12 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
     const excludedTechnicians = ['Thasveer', 'Shannon']
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    
+    // Log the base URLs being used
+    console.log(`🔍 API BASE URLS:`)
+    console.log(`   Platinum Repairs: ${REPAIRSHOPR_BASE_URL}`)
+    console.log(`   Device Doctor: ${REPAIRSHOPR_DD_BASE_URL}`)
+    console.log(`🔍 TARGET STATUSES: ${targetStatuses.join(', ')}`)
     
     // Fetch tickets for each status from both APIs (6 statuses × 2 APIs = 12 calls)
     const allApiCalls: Promise<RepairShoprTicket[]>[] = []
