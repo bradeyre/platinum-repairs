@@ -54,6 +54,104 @@ interface DashboardStats {
   waitTimeByStatus: Record<string, { total: number; count: number }>
 }
 
+// Helper function to calculate business hours between two dates
+function getBusinessHours(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  
+  let hours = 0
+  const current = new Date(start)
+  
+  while (current < end) {
+    const dayOfWeek = current.getDay()
+    const hour = current.getHours()
+    
+    // Only count business hours (8 AM - 5 PM, Monday to Friday)
+    if (dayOfWeek >= 1 && dayOfWeek <= 5 && hour >= 8 && hour < 17) {
+      const nextHour = new Date(current)
+      nextHour.setHours(current.getHours() + 1)
+      
+      if (nextHour > end) {
+        // Partial hour
+        hours += (end.getTime() - current.getTime()) / (1000 * 60 * 60)
+      } else {
+        hours += 1
+      }
+    }
+    
+    current.setHours(current.getHours() + 1)
+  }
+  
+  return hours
+}
+
+// Function to calculate dashboard stats from tickets data
+function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Technician[]): Partial<DashboardStats> {
+  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  
+  // Calculate core stats from tickets
+  const totalTickets = tickets.length
+  
+  // Get tickets completed today (status = 'Completed')
+  const completedToday = tickets.filter(ticket =>
+    ticket.status === 'Completed' &&
+    new Date(ticket.timestamp).toISOString().split('T')[0] === today
+  ).length
+  
+  // Get overdue tickets (older than 4 business hours and not completed)
+  const overdueTickets = tickets.filter(ticket => {
+    if (ticket.status === 'Completed') return false
+    const ticketDate = new Date(ticket.timestamp)
+    const businessHoursWaiting = getBusinessHours(ticketDate, now)
+    return businessHoursWaiting > 4
+  }).length
+  
+  // Get waiting tickets (not in progress and not completed)
+  const waitingTickets = tickets.filter(ticket => 
+    ticket.status !== 'In Progress' && ticket.status !== 'Completed'
+  ).length
+  
+  // Get unassigned tickets
+  const unassignedTickets = tickets.filter(ticket =>
+    !ticket.assignedTo || ticket.assignedTo === 'Unassigned'
+  ).length
+  
+  // Calculate average wait time from actual tickets
+  const ticketWaitTimes = tickets
+    .filter(ticket => ticket.status !== 'Completed')
+    .map(ticket => {
+      const ticketDate = new Date(ticket.timestamp)
+      return getBusinessHours(ticketDate, now)
+    })
+  
+  const averageWaitTimeHours = ticketWaitTimes.length > 0
+    ? ticketWaitTimes.reduce((sum, hours) => sum + hours, 0) / ticketWaitTimes.length
+    : 0
+  
+  // Calculate technician stats
+  const clockedInTechnicians = technicians.filter(tech => tech.is_clocked_in).length
+  const totalTechnicians = technicians.length
+  
+  return {
+    totalTickets,
+    waitingTickets,
+    completedToday,
+    overdueTickets,
+    unassignedTickets,
+    clockedInTechnicians,
+    totalTechnicians,
+    averageWaitTimeHours,
+    // Keep existing values for metrics that require database queries
+    averageCompletionTime: 0,
+    monthlyGrowth: 0,
+    totalActiveWorkHours: 0,
+    averageActiveWorkHours: 0,
+    waitTimeByTech: {},
+    waitTimeByStatus: {}
+  }
+}
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('tickets')
   const [tickets, setTickets] = useState<ProcessedTicket[]>([])
@@ -99,26 +197,26 @@ export default function AdminDashboard() {
       try {
         setLoading(true)
         
+        let ticketsData = { tickets: [] }
+        let techData = { technicians: [] }
+        
         // Fetch tickets
         const ticketsResponse = await fetch('/api/tickets')
         if (ticketsResponse.ok) {
-          const ticketsData = await ticketsResponse.json()
+          ticketsData = await ticketsResponse.json()
           setTickets(ticketsData.tickets || [])
         }
 
         // Fetch technicians and their work data
         const techResponse = await fetch('/api/technicians/work-data')
         if (techResponse.ok) {
-          const techData = await techResponse.json()
+          techData = await techResponse.json()
           setTechnicians(techData.technicians || [])
         }
 
-        // Fetch dashboard stats
-        const statsResponse = await fetch('/api/admin/dashboard-stats')
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
-          setStats(statsData)
-        }
+        // Calculate dashboard stats from tickets data (no separate API call needed)
+        const calculatedStats = calculateDashboardStats(ticketsData.tickets || [], techData.technicians || [])
+        setStats(prevStats => ({ ...prevStats, ...calculatedStats }))
 
         setError(null)
       } catch (err) {
@@ -138,26 +236,26 @@ export default function AdminDashboard() {
       try {
         setBackgroundLoading(true)
         
+        let ticketsData = { tickets: [] }
+        let techData = { technicians: [] }
+        
         // Fetch tickets
         const ticketsResponse = await fetch('/api/tickets')
         if (ticketsResponse.ok) {
-          const ticketsData = await ticketsResponse.json()
+          ticketsData = await ticketsResponse.json()
           setTickets(ticketsData.tickets || [])
         }
 
         // Fetch technicians and their work data
         const techResponse = await fetch('/api/technicians/work-data')
         if (techResponse.ok) {
-          const techData = await techResponse.json()
+          techData = await techResponse.json()
           setTechnicians(techData.technicians || [])
         }
 
-        // Fetch dashboard stats
-        const statsResponse = await fetch('/api/admin/dashboard-stats')
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
-          setStats(statsData)
-        }
+        // Calculate dashboard stats from tickets data (no separate API call needed)
+        const calculatedStats = calculateDashboardStats(ticketsData.tickets || [], techData.technicians || [])
+        setStats(prevStats => ({ ...prevStats, ...calculatedStats }))
 
         setError(null)
       } catch (err) {
