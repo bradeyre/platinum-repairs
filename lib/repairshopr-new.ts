@@ -515,14 +515,14 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     const excludedTechnicians = ['Thasveer', 'Shannon']
     const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
     
-    // Fetch ALL tickets from both APIs (no status filtering)
+    // Fetch tickets with "Resolved" status from both APIs (using the working approach)
     const allApiCalls: Promise<RepairShoprTicket[]>[] = []
     
-    // Platinum Repairs API - fetch all tickets
-    allApiCalls.push(fetchAllTicketsFromRepairShopr(token1, REPAIRSHOPR_BASE_URL))
+    // Platinum Repairs API - fetch resolved tickets
+    allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, 'Resolved'))
     
-    // Device Doctor API - fetch all tickets
-    allApiCalls.push(fetchAllTicketsFromRepairShopr(token2, REPAIRSHOPR_DD_BASE_URL))
+    // Device Doctor API - fetch resolved tickets
+    allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, 'Resolved'))
     
     // Execute all API calls in parallel
     const allResults = await Promise.all(allApiCalls)
@@ -531,32 +531,22 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     const prTickets = allResults[0] || []
     const ddTickets = allResults[1] || []
     
-    console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
+    console.log(`🔍 Raw API results: PR resolved tickets: ${prTickets.length}, DD resolved tickets: ${ddTickets.length}`)
     
-    // Filter for completed tickets
-    const prCompletedTickets = prTickets.filter(ticket => {
-      const status = ticket.status?.toLowerCase() || ''
-      const isCompleted = completedStatuses.some(completedStatus => 
-        status.includes(completedStatus.toLowerCase())
-      )
-      if (isCompleted) {
-        console.log(`✅ Found completed PR ticket ${ticket.number || ticket.id}: ${ticket.status}`)
-      }
-      return isCompleted
+    // Log the tickets we found
+    prTickets.forEach(ticket => {
+      console.log(`✅ Found resolved PR ticket ${ticket.number || ticket.id}: ${ticket.status}`)
     })
     
-    const ddCompletedTickets = ddTickets.filter(ticket => {
-      const status = ticket.status?.toLowerCase() || ''
-      const isCompleted = completedStatuses.some(completedStatus => 
-        status.includes(completedStatus.toLowerCase())
-      )
-      if (isCompleted) {
-        console.log(`✅ Found completed DD ticket ${ticket.number || ticket.id}: ${ticket.status}`)
-      }
-      return isCompleted
+    ddTickets.forEach(ticket => {
+      console.log(`✅ Found resolved DD ticket ${ticket.number || ticket.id}: ${ticket.status}`)
     })
     
-    console.log(`🔍 Completed tickets found: PR: ${prCompletedTickets.length}, DD: ${ddCompletedTickets.length}`)
+    // Use the tickets directly since they're already filtered for "Resolved" status
+    const prCompletedTickets = prTickets
+    const ddCompletedTickets = ddTickets
+    
+    console.log(`🔍 Resolved tickets found: PR: ${prCompletedTickets.length}, DD: ${ddCompletedTickets.length}`)
     
     // Process tickets with instance information (async)
     const processedTickets1 = await Promise.all(prCompletedTickets.map(ticket => processTicket(ticket, 'platinum')))
