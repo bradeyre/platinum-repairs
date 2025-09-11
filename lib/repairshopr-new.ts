@@ -491,3 +491,110 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     return []
   }
 }
+
+// New function specifically for syncing completed tickets
+export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
+  const token1 = process.env.REPAIRSHOPR_TOKEN
+  const token2 = process.env.REPAIRSHOPR_TOKEN_DD
+  
+  if (!token1 || !token2) {
+    console.error('RepairShopr tokens not found in environment variables')
+    return []
+  }
+  
+  try {
+    console.log('🚀 Starting to fetch completed tickets from both APIs...')
+    
+    // Define completed statuses to fetch
+    const completedStatuses = [
+      'Resolved',
+      'Closed File', 
+      'Salvage',
+      'BER'
+    ]
+    
+    // Define allowed technicians for Device Doctor
+    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians = ['Thasveer', 'Shannon']
+    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    
+    // Fetch tickets for each completed status from both APIs
+    const allApiCalls: Promise<RepairShoprTicket[]>[] = []
+    
+    // Platinum Repairs API calls
+    for (const status of completedStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, status))
+    }
+    
+    // Device Doctor API calls  
+    for (const status of completedStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, status))
+    }
+    
+    // Execute all API calls in parallel
+    const allResults = await Promise.all(allApiCalls)
+    
+    // Split results back into PR and DD tickets
+    const prTickets = allResults.slice(0, 4).flat()
+    const ddTickets = allResults.slice(4, 8).flat()
+    
+    console.log(`🔍 Raw API results: PR completed tickets: ${prTickets.length}, DD completed tickets: ${ddTickets.length}`)
+    
+    // Process tickets with instance information (async)
+    const processedTickets1 = await Promise.all(prTickets.map(ticket => processTicket(ticket, 'platinum')))
+    const processedTickets2 = await Promise.all(ddTickets.map(ticket => processTicket(ticket, 'devicedoctor')))
+    const processedTickets = [...processedTickets1, ...processedTickets2]
+    
+    console.log(`🔍 Processed completed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
+    
+    // Apply technician filtering for both DD and PR tickets
+    let filteredTickets = processedTickets.filter(ticket => {
+      // Find the original ticket from the appropriate API response
+      const originalTicket = ticket.ticketType === 'DD' 
+        ? ddTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+        : prTickets.find(t => String(t.number || t.id) === String(ticket.ticketNumber))
+      
+      const assignedTo = originalTicket?.user?.full_name
+      
+      if (ticket.ticketType === 'DD') {
+        // Exclude if assigned to excluded workshops
+        if (assignedTo && excludedWorkshops.includes(assignedTo)) {
+          console.log(`🚫 Excluding DD completed ticket ${ticket.ticketNumber} - assigned to excluded workshop: ${assignedTo}`)
+          return false
+        }
+      }
+      
+      // Apply same technician filtering to both DD and PR tickets
+      // Only include if assigned to allowed technicians or unassigned
+      if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
+        console.log(`🚫 Excluding ${ticket.ticketType} completed ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
+        return false
+      }
+      
+      // Also exclude specific technicians
+      if (assignedTo && excludedTechnicians.includes(assignedTo)) {
+        console.log(`🚫 Excluding ${ticket.ticketType} completed ticket ${ticket.ticketNumber} - assigned to excluded technician: ${assignedTo}`)
+        return false
+      }
+      
+      console.log(`✅ Including ${ticket.ticketType} completed ticket ${ticket.ticketNumber} - assigned to: ${assignedTo || 'Unassigned'}`)
+      return true
+    })
+    
+    console.log(`🔍 After technician/workshop filtering: ${filteredTickets.length} completed tickets`)
+    console.log(`🔍 Final completed tickets by type:`, {
+      PR: filteredTickets.filter(t => t.ticketType === 'PR').length,
+      DD: filteredTickets.filter(t => t.ticketType === 'DD').length
+    })
+    
+    // Sort by completion date (most recent first)
+    filteredTickets.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    
+    console.log(`✅ Successfully fetched ${filteredTickets.length} completed tickets`)
+    return filteredTickets
+    
+  } catch (error) {
+    console.error('❌ Error in getAllCompletedTickets:', error)
+    return []
+  }
+}

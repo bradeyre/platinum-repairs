@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getAllTickets } from '@/lib/repairshopr-new'
+import { getAllTickets, getAllCompletedTickets } from '@/lib/repairshopr-new'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,8 +30,15 @@ export async function POST(request: NextRequest) {
     const syncOperationId = syncOp?.id
     
     try {
-      // Fetch all tickets from RepairShopr
-      const tickets = await getAllTickets()
+      // Fetch tickets from RepairShopr based on sync type
+      let tickets
+      if (syncType === 'completed_only' || syncType === 'smart') {
+        tickets = await getAllCompletedTickets()
+        console.log(`📊 Fetching completed tickets for ${syncType} sync`)
+      } else {
+        tickets = await getAllTickets()
+        console.log(`📊 Fetching active tickets for ${syncType} sync`)
+      }
       
       if (!tickets || tickets.length === 0) {
         throw new Error('No tickets found in RepairShopr')
