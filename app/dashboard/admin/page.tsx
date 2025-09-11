@@ -6,6 +6,7 @@ import PerformanceMonitoring from '@/components/PerformanceMonitoring'
 import EnhancedTimeTracking from '@/components/EnhancedTimeTracking'
 import RepairShoprAnalytics from '@/components/RepairShoprAnalytics'
 import AIPerformanceAnalysis from '@/components/AIPerformanceAnalysis'
+import DeepAnalyticsReport from '@/components/DeepAnalyticsReport'
 
 interface ProcessedTicket {
   ticketId: string
@@ -631,6 +632,7 @@ export default function AdminDashboard() {
               {[
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
                 { id: 'repairshopr-analytics', name: 'RepairShopr Analytics', icon: '📊' },
+                { id: 'deep-analytics', name: 'Deep Analytics Report', icon: '🔍' },
                 { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
                 { id: 'analytics', name: 'Performance Analytics', icon: '📈' },
                 { id: 'ai-analysis', name: 'AI Performance Analysis', icon: '🤖' },
@@ -934,6 +936,13 @@ export default function AdminDashboard() {
             {activeTab === 'repairshopr-analytics' && (
               <div className="p-6">
                 <RepairShoprAnalytics />
+              </div>
+            )}
+
+            {/* Deep Analytics Report Tab */}
+            {activeTab === 'deep-analytics' && (
+              <div className="p-6">
+                <DeepAnalyticsReport />
               </div>
             )}
 
