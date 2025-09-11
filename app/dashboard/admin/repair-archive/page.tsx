@@ -67,7 +67,14 @@ export default function RepairArchivePage() {
             setUser(userData.user)
             fetchRepairs()
           } else {
-            router.push('/login')
+            // Redirect to appropriate dashboard based on role
+            if (userData.user?.role === 'technician') {
+              router.push('/dashboard/technician')
+            } else if (userData.user?.role === 'claim_manager') {
+              router.push('/dashboard/claim-manager')
+            } else {
+              router.push('/login')
+            }
           }
         } else {
           router.push('/login')
