@@ -380,13 +380,14 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
   try {
     console.log('🚀 Starting to fetch tickets from both APIs with proper filtering...')
     
-    // Define the 5 specific statuses we want to fetch
+    // Define the 6 specific statuses we want to fetch (including Resolved)
     const targetStatuses = [
       'Awaiting Rework',
       'Awaiting Workshop Repairs', 
       'Awaiting Damage Report',
       'Awaiting Repair',
-      'In Progress'
+      'In Progress',
+      'Resolved'  // Add Resolved to include completed tickets
     ]
     
     // Define allowed technicians for Device Doctor
@@ -411,8 +412,8 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     const allResults = await Promise.all(allApiCalls)
     
     // Split results back into PR and DD tickets
-    const prTickets = allResults.slice(0, 5).flat()
-    const ddTickets = allResults.slice(5, 10).flat()
+    const prTickets = allResults.slice(0, 6).flat()
+    const ddTickets = allResults.slice(6, 12).flat()
     
     console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
     
