@@ -208,9 +208,9 @@ export default function ComprehensiveAnalytics() {
             <h4 className="font-semibold text-yellow-800 mb-2">📋 Setup Instructions</h4>
             <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
               <li>Go to your <strong>Supabase Dashboard</strong> → <strong>SQL Editor</strong></li>
-              <li>Copy and paste the contents of <strong>ticket-lifecycle-schema-working.sql</strong></li>
+              <li>Copy and paste the contents of <strong>ticket-lifecycle-schema-safe.sql</strong></li>
               <li>Execute the script to create the database schema</li>
-              <li><strong>IMPORTANT:</strong> Go to <strong>Vercel Dashboard</strong> → <strong>Settings</strong> → <strong>Security</strong> → <strong>Disable Deployment Protection</strong></li>
+              <li><strong>Note:</strong> If you get "already exists" errors, use the <strong>safe</strong> version which handles existing objects</li>
               <li>Click the <strong>"🔍 Test Schema"</strong> button below to verify</li>
               <li>Once schema is ready, use <strong>"🧠 Smart Sync"</strong> to sync data</li>
             </ol>
