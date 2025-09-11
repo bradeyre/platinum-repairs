@@ -342,13 +342,13 @@ export default function ComprehensiveAnalytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Tickets</h3>
-          <div className="text-3xl font-bold text-blue-600">{analyticsData.summary.totalTickets}</div>
-          <div className="text-sm text-gray-500">{analyticsData.summary.completedTickets} completed</div>
+          <div className="text-3xl font-bold text-blue-600">{analyticsData?.summary?.totalTickets || 0}</div>
+          <div className="text-sm text-gray-500">{analyticsData?.summary?.completedTickets || 0} completed</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Active Tickets</h3>
-          <div className="text-3xl font-bold text-orange-600">{analyticsData.summary.activeTickets}</div>
+          <div className="text-3xl font-bold text-orange-600">{analyticsData?.summary?.activeTickets || 0}</div>
           <div className="text-sm text-gray-500">Currently in progress</div>
         </div>
         

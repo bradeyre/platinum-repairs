@@ -422,7 +422,7 @@ export default function RepairShoprAnalytics() {
             <p className="text-gray-600 mt-1">Insights from existing ticket data</p>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold text-blue-600">{analytics.totalTickets}</div>
+            <div className="text-3xl font-bold text-blue-600">{analytics?.totalTickets || 0}</div>
             <div className="text-sm text-gray-500">Total Tickets</div>
           </div>
         </div>

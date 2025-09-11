@@ -948,7 +948,7 @@ export default function DeepAnalyticsReport() {
               {Object.entries(analyticsData.technicianPerformance).map(([tech, data]: [string, any]) => (
                 <tr key={tech}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tech}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.totalTickets}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data?.totalTickets || 0}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(data.totalRepairTime / 3600).toFixed(1)}h</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(data.averageRepairTime / 60).toFixed(1)}m</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.ticketsPerDay.toFixed(1)}</td>

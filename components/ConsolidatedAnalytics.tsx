@@ -477,25 +477,25 @@ export default function ConsolidatedAnalytics() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Tickets</h3>
-              <div className="text-3xl font-bold text-blue-600">{analyticsData.currentStats.totalTickets}</div>
+              <div className="text-3xl font-bold text-blue-600">{analyticsData?.currentStats?.totalTickets || 0}</div>
               <div className="text-sm text-gray-500">Active tickets</div>
             </div>
             
             <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Waiting</h3>
-              <div className="text-3xl font-bold text-yellow-600">{analyticsData.currentStats.waitingTickets}</div>
+              <div className="text-3xl font-bold text-yellow-600">{analyticsData?.currentStats?.waitingTickets || 0}</div>
               <div className="text-sm text-gray-500">Awaiting action</div>
             </div>
             
             <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Completed Today</h3>
-              <div className="text-3xl font-bold text-green-600">{analyticsData.currentStats.completedToday}</div>
+              <div className="text-3xl font-bold text-green-600">{analyticsData?.currentStats?.completedToday || 0}</div>
               <div className="text-sm text-gray-500">Finished today</div>
             </div>
             
             <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Overdue</h3>
-              <div className="text-3xl font-bold text-red-600">{analyticsData.currentStats.overdueTickets}</div>
+              <div className="text-3xl font-bold text-red-600">{analyticsData?.currentStats?.overdueTickets || 0}</div>
               <div className="text-sm text-gray-500">Past due date</div>
             </div>
           </div>
@@ -561,7 +561,7 @@ export default function ConsolidatedAnalytics() {
                         {data.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.totalTickets}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data?.totalTickets || 0}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.completedToday}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className={`px-2 py-1 rounded-full text-xs ${

@@ -323,7 +323,7 @@ export default function AIPerformanceAnalysis() {
               {performanceData.map((tech) => (
                 <tr key={tech.technician}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tech.technician}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tech.totalTickets}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tech?.totalTickets || 0}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tech.currentLoad}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tech.averageWaitTime.toFixed(1)}h</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
