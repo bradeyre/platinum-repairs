@@ -247,7 +247,7 @@ export default function TechnicianDashboard() {
 
   const handleTicketClick = (ticket: ProcessedTicket) => {
     setSelectedTicket(ticket)
-    setShowDamageModal(true)
+    setShowRepairModal(true)
   }
 
   const handleStartWork = (ticket: ProcessedTicket) => {
