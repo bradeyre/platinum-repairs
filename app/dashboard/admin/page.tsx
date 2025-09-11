@@ -547,7 +547,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Tickets</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalTickets}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.totalTickets || 0}</p>
                   </div>
                 </div>
               </div>
@@ -561,7 +561,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Waiting</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.waitingTickets}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.waitingTickets || 0}</p>
                   </div>
                 </div>
               </div>
@@ -575,7 +575,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Completed {getTimeframeLabel()}</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.completedToday}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.completedToday || 0}</p>
                   </div>
                 </div>
               </div>
@@ -589,7 +589,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.overdueTickets}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.overdueTickets || 0}</p>
                   </div>
                 </div>
               </div>
@@ -603,7 +603,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Clocked In</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.clockedInTechnicians}/{stats.totalTechnicians}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.clockedInTechnicians || 0}/{stats?.totalTechnicians || 0}</p>
                 </div>
               </div>
             </div>
@@ -617,7 +617,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Avg Wait Time</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.averageWaitTimeHours.toFixed(1)}h</p>
+                <p className="text-2xl font-bold text-gray-900">{(stats?.averageWaitTimeHours || 0).toFixed(1)}h</p>
               </div>
             </div>
           </div>
@@ -701,7 +701,7 @@ export default function AdminDashboard() {
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h4 className="font-medium text-gray-900 mb-4">Average Wait Time by Technician</h4>
                     <div className="space-y-3">
-                      {Object.entries(stats.waitTimeByTech).map(([techId, data]) => {
+                      {Object.entries(stats?.waitTimeByTech || {}).map(([techId, data]) => {
                         const tech = technicians.find(t => t.id === techId)
                         const avgWaitTime = data.count > 0 ? data.total / data.count : 0
                         return (
@@ -714,7 +714,7 @@ export default function AdminDashboard() {
                           </div>
                         )
                       })}
-                      {Object.keys(stats.waitTimeByTech).length === 0 && (
+                      {Object.keys(stats?.waitTimeByTech || {}).length === 0 && (
                         <div className="text-sm text-gray-500 text-center py-4">No wait time data available</div>
                       )}
                     </div>
@@ -724,7 +724,7 @@ export default function AdminDashboard() {
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h4 className="font-medium text-gray-900 mb-4">Average Wait Time by Status</h4>
                     <div className="space-y-3">
-                      {Object.entries(stats.waitTimeByStatus).map(([status, data]) => {
+                      {Object.entries(stats?.waitTimeByStatus || {}).map(([status, data]) => {
                         const avgWaitTime = data.count > 0 ? data.total / data.count : 0
                         return (
                           <div key={status} className="flex justify-between items-center">
@@ -736,7 +736,7 @@ export default function AdminDashboard() {
                           </div>
                         )
                       })}
-                      {Object.keys(stats.waitTimeByStatus).length === 0 && (
+                      {Object.keys(stats?.waitTimeByStatus || {}).length === 0 && (
                         <div className="text-sm text-gray-500 text-center py-4">No wait time data available</div>
                       )}
                     </div>
@@ -1016,7 +1016,7 @@ export default function AdminDashboard() {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Total Completed:</span>
-                        <span className="font-medium">{stats.completedToday}</span>
+                        <span className="font-medium">{stats?.completedToday || 0}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">This Month:</span>
@@ -1024,7 +1024,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Average Time:</span>
-                        <span className="font-medium">{formatTime(stats.averageCompletionTime)}</span>
+                        <span className="font-medium">{formatTime(stats?.averageCompletionTime || 0)}</span>
                       </div>
                     </div>
                   </div>
