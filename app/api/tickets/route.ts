@@ -48,7 +48,45 @@ export async function GET() {
     
     const tickets = await getAllTickets()
     console.log(`API returning ${tickets.length} tickets`)
-    return NextResponse.json({ tickets })
+    
+    // Also test direct Resolved API call and include results
+    let resolvedTest = null
+    if (token) {
+      const testUrl = `https://platinumrepairs.repairshopr.com/api/v1/tickets?status=Resolved&page=1&limit=10&api_key=${token}`
+      try {
+        const response = await fetch(testUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          resolvedTest = {
+            status: response.status,
+            ticketCount: data.tickets?.length || 0,
+            meta: data.meta,
+            sampleTicket: data.tickets?.[0] ? {
+              id: data.tickets[0].id,
+              number: data.tickets[0].number,
+              status: data.tickets[0].status,
+              subject: data.tickets[0].subject?.substring(0, 50) + '...'
+            } : null
+          }
+        } else {
+          resolvedTest = { error: `HTTP ${response.status}`, status: response.status }
+        }
+      } catch (error) {
+        resolvedTest = { error: error instanceof Error ? error.message : 'Unknown error' }
+      }
+    }
+    
+    return NextResponse.json({ 
+      tickets,
+      resolvedTest,
+      tokenCheck: token ? `${token.substring(0, 10)}...` : 'Missing'
+    })
   } catch (error) {
     console.error('Error in tickets API:', error)
     return NextResponse.json(
