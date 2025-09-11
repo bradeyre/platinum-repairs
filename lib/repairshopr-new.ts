@@ -507,8 +507,8 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
   try {
     console.log('🚀 Starting to fetch ALL tickets from both APIs to filter for completed ones...')
     
-    // Define completed status names to look for
-    const completedStatuses = ['Completed', 'Resolved', 'Closed File', 'Salvage', 'BER', 'Closed']
+    // Define completed status names to look for (Resolved is the main one)
+    const completedStatuses = ['Resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
     
     // Define allowed technicians for Device Doctor
     const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
