@@ -1,73 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-
-// Import RepairShopr logic directly
-async function fetchRepairShoprTickets() {
-  try {
-    const prToken = process.env.REPAIRSHOPR_TOKEN
-    const ddToken = process.env.REPAIRSHOPR_TOKEN_DD
-    
-    if (!prToken || !ddToken) {
-      throw new Error('RepairShopr tokens not configured')
-    }
-
-    const allowedStatuses = [
-      'Awaiting Rework',
-      'Awaiting Workshop Repairs', 
-      'Awaiting Damage Report',
-      'Awaiting Repair',
-      'In Progress'
-    ]
-
-    // Fetch from both RepairShopr instances
-    const [prResponse, ddResponse] = await Promise.all([
-      fetch(`https://platinumrepairs.repairshopr.com/api/v1/tickets?status=${allowedStatuses.join(',')}&api_key=${prToken}`),
-      fetch(`https://devicedoctorsa.repairshopr.com/api/v1/tickets?status=${allowedStatuses.join(',')}&api_key=${ddToken}`)
-    ])
-
-    if (!prResponse.ok || !ddResponse.ok) {
-      throw new Error('Failed to fetch from RepairShopr APIs')
-    }
-
-    const prData = await prResponse.json()
-    const ddData = await ddResponse.json()
-
-    // Process PR tickets
-    const prTickets = (prData.tickets || []).map((ticket: any) => ({
-      ticketId: `#${ticket.number}`,
-      ticketNumber: ticket.number,
-      description: ticket.subject || ticket.description || '',
-      status: ticket.status,
-      timestamp: ticket.created_at,
-      deviceInfo: ticket.subject || 'Unknown Device',
-      assignedTo: ticket.assigned_to || 'Unassigned',
-      ticketType: 'PR'
-    }))
-
-    // Process DD tickets (with workshop filtering)
-    const ddTickets = (ddData.tickets || [])
-      .filter((ticket: any) => {
-        // Exclude tickets assigned to specific workshops
-        const assignedTo = ticket.assigned_to || ''
-        return !assignedTo.includes('Durban Workshop') && !assignedTo.includes('Cape Town Workshop')
-      })
-      .map((ticket: any) => ({
-        ticketId: `#${ticket.number}`,
-        ticketNumber: ticket.number,
-        description: ticket.subject || ticket.description || '',
-        status: ticket.status,
-        timestamp: ticket.created_at,
-        deviceInfo: ticket.subject || 'Unknown Device',
-        assignedTo: ticket.assigned_to || 'Unassigned',
-        ticketType: 'DD'
-      }))
-
-    return [...prTickets, ...ddTickets]
-  } catch (error) {
-    console.error('Error fetching RepairShopr tickets:', error)
-    return []
-  }
-}
+import { getAllTickets } from '@/lib/repairshopr-new'
 
 interface ProcessedTicket {
   ticketId: string
@@ -139,8 +72,8 @@ export async function GET(request: NextRequest) {
 
     console.log('🔧 Dashboard Stats: Starting to fetch data...')
 
-    // Fetch tickets directly from RepairShopr
-    const allTickets: ProcessedTicket[] = await fetchRepairShoprTickets()
+    // Fetch tickets using the same function as the working tickets API
+    const allTickets: ProcessedTicket[] = await getAllTickets()
 
     console.log(`🔧 Dashboard Stats: Found ${allTickets.length} tickets`)
 
