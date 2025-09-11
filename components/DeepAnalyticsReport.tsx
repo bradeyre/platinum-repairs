@@ -484,8 +484,15 @@ export default function DeepAnalyticsReport() {
     const reworks = detectReworks(tickets)
     const reworkAnalytics = analyzeReworkPatterns(reworks)
     
-    // Overall stats
-    const totalCompletedTickets = repairs.length + tickets.length // Include both repairs and tickets
+    // Filter tickets to completed ones for analysis
+    const completedTickets = tickets.filter(ticket => 
+      ticket.status.toLowerCase().includes('completed') || 
+      ticket.status.toLowerCase().includes('closed') ||
+      ticket.status.toLowerCase().includes('repaired')
+    )
+    
+    // Overall stats - use repair completions if available, otherwise use completed tickets
+    const totalCompletedTickets = repairs.length > 0 ? repairs.length : completedTickets.length
     const totalRepairTime = repairs.reduce((sum, repair) => sum + (repair.time_spent_seconds || 0), 0)
     const averageRepairTime = totalCompletedTickets > 0 ? totalRepairTime / totalCompletedTickets : 0
     
@@ -504,7 +511,7 @@ export default function DeepAnalyticsReport() {
       offPeakHours: []
     }
     
-    // Process each repair
+    // Process repair completions if available
     repairs.forEach(repair => {
       const technicianName = repair.technician_name
       const deviceType = extractDeviceType(repair.work_completed || '')
@@ -577,6 +584,83 @@ export default function DeepAnalyticsReport() {
       
       timeAnalytics.hourlyPatterns[hourKey] = (timeAnalytics.hourlyPatterns[hourKey] || 0) + 1
     })
+
+    // Process completed tickets if no repair completions available
+    if (repairs.length === 0) {
+      completedTickets.forEach(ticket => {
+        const technicianName = ticket.assignedTo || 'Unknown Technician'
+        const deviceType = extractDeviceType(ticket.description || '')
+        const repairType = extractRepairType(ticket.description || '')
+        const completionDate = new Date(ticket.timestamp)
+        const dayKey = completionDate.toISOString().split('T')[0]
+        const weekKey = getWeekKey(completionDate)
+        const hourKey = completionDate.getHours().toString()
+        
+        // Initialize technician data
+        if (!technicianPerformance[technicianName]) {
+          technicianPerformance[technicianName] = {
+            totalTickets: 0,
+            totalRepairTime: 0,
+            averageRepairTime: 0,
+            ticketsPerDay: 0,
+            efficiency: 0,
+            deviceExpertise: {},
+            repairTypes: {},
+            qualityScore: 0,
+            consistency: 0,
+            peakPerformanceDays: [],
+            improvementTrend: 'stable' as const,
+            strengths: [],
+            areasForImprovement: [],
+            reworkRate: 0,
+            totalReworks: 0,
+            averageReworkTime: 0,
+            reworkReasons: {},
+            firstTimeFixRate: 100
+          }
+        }
+        
+        // Initialize device analytics
+        if (!deviceAnalytics[deviceType]) {
+          deviceAnalytics[deviceType] = {
+            totalRepairs: 0,
+            averageRepairTime: 0,
+            successRate: 0,
+            commonIssues: [],
+            difficultyLevel: 'medium' as const,
+            technicianPerformance: {}
+          }
+        }
+        
+        // Update technician stats (estimate time based on device type)
+        const estimatedTime = deviceType === 'Smartphone' ? 3600 : deviceType === 'Tablet' ? 5400 : 7200 // 1-2 hours
+        technicianPerformance[technicianName].totalTickets++
+        technicianPerformance[technicianName].totalRepairTime += estimatedTime
+        technicianPerformance[technicianName].deviceExpertise[deviceType] = (technicianPerformance[technicianName].deviceExpertise[deviceType] || 0) + 1
+        technicianPerformance[technicianName].repairTypes[repairType] = (technicianPerformance[technicianName].repairTypes[repairType] || 0) + 1
+        
+        // Update device analytics
+        deviceAnalytics[deviceType].totalRepairs++
+        deviceAnalytics[deviceType].technicianPerformance[technicianName] = (deviceAnalytics[deviceType].technicianPerformance[technicianName] || 0) + 1
+        
+        // Update time analytics
+        if (!timeAnalytics.dailyPerformance[dayKey]) {
+          timeAnalytics.dailyPerformance[dayKey] = {
+            ticketsCompleted: 0,
+            totalTime: 0,
+            averageTime: 0,
+            technicians: []
+          }
+        }
+        timeAnalytics.dailyPerformance[dayKey].ticketsCompleted++
+        timeAnalytics.dailyPerformance[dayKey].totalTime += estimatedTime
+        if (!timeAnalytics.dailyPerformance[dayKey].technicians.includes(technicianName)) {
+          timeAnalytics.dailyPerformance[dayKey].technicians.push(technicianName)
+        }
+        
+        timeAnalytics.hourlyPatterns[hourKey] = (timeAnalytics.hourlyPatterns[hourKey] || 0) + 1
+      })
+    }
     
     // Add rework data to technician performance
     Object.keys(technicianPerformance).forEach(tech => {
