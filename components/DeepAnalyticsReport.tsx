@@ -885,7 +885,7 @@ export default function DeepAnalyticsReport() {
             </p>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold text-blue-600">{analyticsData.overallStats.totalCompletedTickets}</div>
+            <div className="text-3xl font-bold text-blue-600">{analyticsData.overallStats?.totalCompletedTickets || 0}</div>
             <div className="text-sm text-gray-500">Completed Repairs</div>
           </div>
         </div>
@@ -895,33 +895,33 @@ export default function DeepAnalyticsReport() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Repairs</h3>
-          <div className="text-3xl font-bold text-blue-600">{analyticsData.overallStats.totalCompletedTickets}</div>
-          <div className="text-sm text-gray-500">{analyticsData.overallStats.averageTicketsPerDay.toFixed(1)} per day</div>
+          <div className="text-3xl font-bold text-blue-600">{analyticsData.overallStats?.totalCompletedTickets || 0}</div>
+          <div className="text-sm text-gray-500">{(analyticsData.overallStats?.averageTicketsPerDay || 0).toFixed(1)} per day</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Time</h3>
-          <div className="text-3xl font-bold text-green-600">{(analyticsData.overallStats.totalRepairTime / 3600).toFixed(1)}h</div>
-          <div className="text-sm text-gray-500">{(analyticsData.overallStats.averageRepairTime / 60).toFixed(1)}m avg</div>
+          <div className="text-3xl font-bold text-green-600">{((analyticsData.overallStats?.totalRepairTime || 0) / 3600).toFixed(1)}h</div>
+          <div className="text-sm text-gray-500">{((analyticsData.overallStats?.averageRepairTime || 0) / 60).toFixed(1)}m avg</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Rework Rate</h3>
-          <div className={`text-3xl font-bold ${analyticsData.overallStats.reworkRate > 10 ? 'text-red-600' : analyticsData.overallStats.reworkRate > 5 ? 'text-yellow-600' : 'text-green-600'}`}>
-            {analyticsData.overallStats.reworkRate.toFixed(1)}%
+          <div className={`text-3xl font-bold ${(analyticsData.overallStats?.reworkRate || 0) > 10 ? 'text-red-600' : (analyticsData.overallStats?.reworkRate || 0) > 5 ? 'text-yellow-600' : 'text-green-600'}`}>
+            {(analyticsData.overallStats?.reworkRate || 0).toFixed(1)}%
           </div>
-          <div className="text-sm text-gray-500">{analyticsData.overallStats.totalReworks} reworks</div>
+          <div className="text-sm text-gray-500">{analyticsData.overallStats?.totalReworks || 0} reworks</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Technicians</h3>
-          <div className="text-3xl font-bold text-purple-600">{analyticsData.overallStats.totalTechnicians}</div>
-          <div className="text-sm text-gray-500">{analyticsData.overallStats.averageTicketsPerTechnician.toFixed(1)} per tech</div>
+          <div className="text-3xl font-bold text-purple-600">{analyticsData.overallStats?.totalTechnicians || 0}</div>
+          <div className="text-sm text-gray-500">{(analyticsData.overallStats?.averageTicketsPerTechnician || 0).toFixed(1)} per tech</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Efficiency</h3>
-          <div className="text-3xl font-bold text-orange-600">{(analyticsData.overallStats.totalRepairTime / analyticsData.overallStats.totalCompletedTickets / 60).toFixed(1)}m</div>
+          <div className="text-3xl font-bold text-orange-600">{((analyticsData.overallStats?.totalRepairTime || 0) / (analyticsData.overallStats?.totalCompletedTickets || 1) / 60).toFixed(1)}m</div>
           <div className="text-sm text-gray-500">Average repair time</div>
         </div>
       </div>
@@ -995,34 +995,34 @@ export default function DeepAnalyticsReport() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <h4 className="font-semibold text-red-900 mb-2">Total Reworks</h4>
-            <div className="text-2xl font-bold text-red-600">{analyticsData.reworkAnalytics.totalReworks}</div>
-            <div className="text-sm text-red-700">{analyticsData.reworkAnalytics.overallReworkRate.toFixed(1)}% rework rate</div>
+            <div className="text-2xl font-bold text-red-600">{analyticsData.reworkAnalytics?.totalReworks || 0}</div>
+            <div className="text-sm text-red-700">{(analyticsData.reworkAnalytics?.overallReworkRate || 0).toFixed(1)}% rework rate</div>
           </div>
           
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <h4 className="font-semibold text-orange-900 mb-2">Time Lost</h4>
-            <div className="text-2xl font-bold text-orange-600">{analyticsData.reworkAnalytics.timeLostToReworks.toFixed(1)}h</div>
+            <div className="text-2xl font-bold text-orange-600">{(analyticsData.reworkAnalytics?.timeLostToReworks || 0).toFixed(1)}h</div>
             <div className="text-sm text-orange-700">Productivity impact</div>
           </div>
           
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <h4 className="font-semibold text-yellow-900 mb-2">Rework Cost</h4>
-            <div className="text-2xl font-bold text-yellow-600">${analyticsData.reworkAnalytics.costOfReworks.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-yellow-600">${(analyticsData.reworkAnalytics?.costOfReworks || 0).toLocaleString()}</div>
             <div className="text-sm text-yellow-700">Additional costs</div>
           </div>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="font-semibold text-blue-900 mb-2">Avg Rework Time</h4>
-            <div className="text-2xl font-bold text-blue-600">{(analyticsData.reworkAnalytics.averageReworkTime / (1000 * 60 * 60)).toFixed(1)}h</div>
+            <div className="text-2xl font-bold text-blue-600">{((analyticsData.reworkAnalytics?.averageReworkTime || 0) / (1000 * 60 * 60)).toFixed(1)}h</div>
             <div className="text-sm text-blue-700">Per rework</div>
           </div>
         </div>
         
-        {analyticsData.reworkAnalytics.topReworkCauses.length > 0 && (
+        {(analyticsData.reworkAnalytics?.topReworkCauses || []).length > 0 && (
           <div className="mb-6">
             <h4 className="font-semibold text-gray-900 mb-3">🔍 Top Rework Causes</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {analyticsData.reworkAnalytics.topReworkCauses.map((cause, index) => (
+              {(analyticsData.reworkAnalytics?.topReworkCauses || []).map((cause, index) => (
                 <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
                   <div className="w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
                     {index + 1}

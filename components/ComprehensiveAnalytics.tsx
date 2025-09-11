@@ -354,21 +354,21 @@ export default function ComprehensiveAnalytics() {
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Rework Rate</h3>
-          <div className={`text-3xl font-bold ${analyticsData.summary.overallReworkRate > 10 ? 'text-red-600' : analyticsData.summary.overallReworkRate > 5 ? 'text-yellow-600' : 'text-green-600'}`}>
-            {analyticsData.summary.overallReworkRate.toFixed(1)}%
+          <div className={`text-3xl font-bold ${(analyticsData.summary?.overallReworkRate || 0) > 10 ? 'text-red-600' : (analyticsData.summary?.overallReworkRate || 0) > 5 ? 'text-yellow-600' : 'text-green-600'}`}>
+            {(analyticsData.summary?.overallReworkRate || 0).toFixed(1)}%
           </div>
-          <div className="text-sm text-gray-500">{analyticsData.summary.reworkTickets} reworks</div>
+          <div className="text-sm text-gray-500">{analyticsData.summary?.reworkTickets || 0} reworks</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Avg Completion</h3>
-          <div className="text-3xl font-bold text-green-600">{analyticsData.summary.avgCompletionTime.toFixed(1)}h</div>
+          <div className="text-3xl font-bold text-green-600">{(analyticsData.summary?.avgCompletionTime || 0).toFixed(1)}h</div>
           <div className="text-sm text-gray-500">Total time per ticket</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Technicians</h3>
-          <div className="text-3xl font-bold text-purple-600">{analyticsData.summary.totalTechnicians}</div>
+          <div className="text-3xl font-bold text-purple-600">{analyticsData.summary?.totalTechnicians || 0}</div>
           <div className="text-sm text-gray-500">Active technicians</div>
         </div>
       </div>
@@ -390,7 +390,7 @@ export default function ComprehensiveAnalytics() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {analyticsData.technicianPerformance.map((tech) => (
+              {(analyticsData.technicianPerformance || []).map((tech) => (
                 <tr key={tech.assigned_technician_name}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {tech.assigned_technician_name}
@@ -428,7 +428,7 @@ export default function ComprehensiveAnalytics() {
       <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">📱 Device Performance Analysis</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(analyticsData.deviceAnalytics).map(([device, data]) => (
+          {Object.entries(analyticsData.deviceAnalytics || {}).map(([device, data]) => (
             <div key={device} className="border border-gray-200 rounded-lg p-4">
               <h4 className="font-semibold text-gray-900 mb-2">{device}</h4>
               <div className="space-y-1 text-sm">
@@ -462,20 +462,20 @@ export default function ComprehensiveAnalytics() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <h4 className="font-semibold text-red-900 mb-2">Total Reworks</h4>
-            <div className="text-2xl font-bold text-red-600">{analyticsData.reworkAnalytics.totalReworks}</div>
-            <div className="text-sm text-red-700">{analyticsData.reworkAnalytics.reworkRate.toFixed(1)}% rework rate</div>
+            <div className="text-2xl font-bold text-red-600">{analyticsData.reworkAnalytics?.totalReworks || 0}</div>
+            <div className="text-sm text-red-700">{(analyticsData.reworkAnalytics?.reworkRate || 0).toFixed(1)}% rework rate</div>
           </div>
           
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <h4 className="font-semibold text-orange-900 mb-2">Avg Rework Time</h4>
-            <div className="text-2xl font-bold text-orange-600">{analyticsData.reworkAnalytics.avgReworkTime.toFixed(1)}h</div>
+            <div className="text-2xl font-bold text-orange-600">{(analyticsData.reworkAnalytics?.avgReworkTime || 0).toFixed(1)}h</div>
             <div className="text-sm text-orange-700">Per rework</div>
           </div>
           
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <h4 className="font-semibold text-yellow-900 mb-2">Top Rework Reasons</h4>
             <div className="text-sm text-yellow-700">
-              {analyticsData.reworkAnalytics.topReworkReasons.slice(0, 3).map((reason, index) => (
+              {(analyticsData.reworkAnalytics?.topReworkReasons || []).slice(0, 3).map((reason, index) => (
                 <div key={index} className="mb-1">
                   {index + 1}. {reason}
                 </div>
@@ -486,7 +486,7 @@ export default function ComprehensiveAnalytics() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="font-semibold text-blue-900 mb-2">Rework by Device</h4>
             <div className="text-sm text-blue-700">
-              {Object.entries(analyticsData.reworkAnalytics.reworkByDevice)
+              {Object.entries(analyticsData.reworkAnalytics?.reworkByDevice || {})
                 .sort(([,a], [,b]) => (b as number) - (a as number))
                 .slice(0, 3)
                 .map(([device, count], index) => (
