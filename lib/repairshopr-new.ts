@@ -479,17 +479,46 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
   try {
     console.log('🚀 Starting to fetch ALL tickets and filter for completed status...')
     
-    // Use the same working approach as the existing getAllTickets function
-    // Fetch from both instances in parallel (no status filtering in API call)
-    const [prTickets, ddTickets] = await Promise.all([
-      fetchAllTicketsFromRepairShopr(token1, REPAIRSHOPR_BASE_URL),
-      fetchAllTicketsFromRepairShopr(token2, REPAIRSHOPR_DD_BASE_URL)
-    ])
+    // Use the exact same working approach as getAllTickets function
+    // Define the statuses we want to fetch (including Resolved)
+    const targetStatuses = [
+      'Awaiting Rework',
+      'Awaiting Workshop Repairs', 
+      'Awaiting Damage Report',
+      'Awaiting Repair',
+      'In Progress',
+      'Resolved'  // Add Resolved to the list
+    ]
+    
+    // Define allowed technicians for Device Doctor
+    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians = ['Thasveer', 'Shannon']
+    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    
+    // Fetch tickets for each status from both APIs (6 statuses × 2 APIs = 12 calls)
+    const allApiCalls: Promise<RepairShoprTicket[]>[] = []
+    
+    // Platinum Repairs API calls
+    for (const status of targetStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token1, REPAIRSHOPR_BASE_URL, status))
+    }
+    
+    // Device Doctor API calls  
+    for (const status of targetStatuses) {
+      allApiCalls.push(fetchFromRepairShoprWithStatus(token2, REPAIRSHOPR_DD_BASE_URL, status))
+    }
+    
+    // Execute all API calls in parallel
+    const allResults = await Promise.all(allApiCalls)
+    
+    // Split results back into PR and DD tickets
+    const prTickets = allResults.slice(0, targetStatuses.length).flat()
+    const ddTickets = allResults.slice(targetStatuses.length, targetStatuses.length * 2).flat()
     
     console.log(`🔍 Raw API results: PR tickets: ${prTickets.length}, DD tickets: ${ddTickets.length}`)
     
-    // Filter for completed/resolved tickets locally
-    const completedStatuses = ['Resolved', 'resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
+    // Filter for completed/resolved tickets
+    const completedStatuses = ['Resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
     
     const prCompletedTickets = prTickets.filter(ticket => {
       const status = ticket.status?.toLowerCase() || ''
