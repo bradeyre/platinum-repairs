@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import DashboardNavigation from '@/components/DashboardNavigation'
 import ConsolidatedAnalytics from '@/components/ConsolidatedAnalytics'
 import DeepAnalyticsReport from '@/components/DeepAnalyticsReport'
+import ComprehensiveAnalytics from '@/components/ComprehensiveAnalytics'
 
 interface ProcessedTicket {
   ticketId: string
@@ -153,7 +154,7 @@ function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Techni
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('tickets')
+  const [activeTab, setActiveTab] = useState('comprehensive-analytics')
   const [tickets, setTickets] = useState<ProcessedTicket[]>([])
   const [technicians, setTechnicians] = useState<Technician[]>([])
   const [stats, setStats] = useState<DashboardStats>({
@@ -627,8 +628,9 @@ export default function AdminDashboard() {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
               {[
+                { id: 'comprehensive-analytics', name: 'Comprehensive Analytics', icon: '📊' },
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
-                { id: 'analytics', name: 'Analytics Dashboard', icon: '📊' },
+                { id: 'analytics', name: 'Analytics Dashboard', icon: '📈' },
                 { id: 'deep-analytics', name: 'Deep Analytics Report', icon: '🔍' },
                 { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
                 { id: 'technicians', name: 'Technician Management', icon: '👥' }
@@ -650,6 +652,13 @@ export default function AdminDashboard() {
           </div>
 
           <div className="p-6">
+            {/* Comprehensive Analytics Tab */}
+            {activeTab === 'comprehensive-analytics' && (
+              <div className="p-6">
+                <ComprehensiveAnalytics />
+              </div>
+            )}
+
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
