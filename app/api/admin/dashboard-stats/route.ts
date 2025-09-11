@@ -1,6 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+interface ProcessedTicket {
+  ticketId: string
+  ticketNumber: string
+  description: string
+  status: string
+  timeAgo: string
+  timestamp: Date
+  deviceInfo: string
+  assignedTo?: string
+  aiPriority: string
+  estimatedTime: string
+  ticketType: 'PR' | 'DD'
+  customFields?: Array<{
+    id: number
+    name: string
+    value: string
+  }>
+  claimNumber?: string
+}
+
+// Helper function to calculate business hours between two dates
+function getBusinessHours(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  
+  // Set to business hours (8 AM to 5 PM, Monday to Friday)
+  const businessStartHour = 8
+  const businessEndHour = 17
+  
+  let businessHours = 0
+  const current = new Date(start)
+  
+  while (current < end) {
+    const dayOfWeek = current.getDay()
+    
+    // Skip weekends (Saturday = 6, Sunday = 0)
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      const dayStart = new Date(current)
+      dayStart.setHours(businessStartHour, 0, 0, 0)
+      
+      const dayEnd = new Date(current)
+      dayEnd.setHours(businessEndHour, 0, 0, 0)
+      
+      // Calculate hours for this day
+      const dayStartTime = Math.max(dayStart.getTime(), start.getTime())
+      const dayEndTime = Math.min(dayEnd.getTime(), end.getTime())
+      
+      if (dayStartTime < dayEndTime) {
+        businessHours += (dayEndTime - dayStartTime) / (1000 * 60 * 60)
+      }
+    }
+    
+    // Move to next day
+    current.setDate(current.getDate() + 1)
+    current.setHours(0, 0, 0, 0)
+  }
+  
+  return businessHours
+}
+
 export async function GET(request: NextRequest) {
   try {
     const today = new Date().toISOString().split('T')[0]
@@ -9,41 +69,41 @@ export async function GET(request: NextRequest) {
     const startOfMonth = new Date()
     startOfMonth.setMonth(startOfMonth.getMonth(), 1)
 
-    // Get total tickets from RepairShopr (this would need to be fetched from the tickets API)
-    // For now, we'll get damage reports as a proxy
-    const { data: allReports } = await supabaseAdmin
-      .from('damage_reports')
-      .select('id, status, created_at, total_parts_cost')
+    // Fetch actual tickets from RepairShopr API
+    const ticketsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/tickets`)
+    if (!ticketsResponse.ok) {
+      throw new Error('Failed to fetch tickets from RepairShopr')
+    }
+    const ticketsData = await ticketsResponse.json()
+    const allTickets: ProcessedTicket[] = ticketsData.tickets || []
 
-    // Get tickets completed today
-    const { data: completedToday } = await supabaseAdmin
-      .from('damage_reports')
-      .select('id')
-      .eq('status', 'completed')
-      .gte('created_at', `${today}T00:00:00`)
-      .lt('created_at', `${today}T23:59:59`)
-
-    // Get overdue tickets (older than 3 days and not completed)
-    const threeDaysAgo = new Date()
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+    // Calculate stats from actual tickets
+    const totalTickets = allTickets.length
     
-    const { data: overdueTickets } = await supabaseAdmin
-      .from('damage_reports')
-      .select('id')
-      .neq('status', 'completed')
-      .lt('created_at', threeDaysAgo.toISOString())
+    // Get tickets completed today (status = 'Completed')
+    const completedToday = allTickets.filter(ticket => 
+      ticket.status === 'Completed' && 
+      new Date(ticket.timestamp).toISOString().split('T')[0] === today
+    ).length
 
-    // Get waiting tickets
-    const { data: waitingTickets } = await supabaseAdmin
-      .from('damage_reports')
-      .select('id')
-      .eq('status', 'awaiting_approval')
+    // Get overdue tickets (older than 4 business hours and not completed)
+    const now = new Date()
+    const overdueTickets = allTickets.filter(ticket => {
+      if (ticket.status === 'Completed') return false
+      const ticketDate = new Date(ticket.timestamp)
+      const businessHoursWaiting = getBusinessHours(ticketDate, now)
+      return businessHoursWaiting > 4
+    }).length
+
+    // Get waiting tickets (not in progress and not completed)
+    const waitingTickets = allTickets.filter(ticket => 
+      ticket.status !== 'In Progress' && ticket.status !== 'Completed'
+    ).length
 
     // Get unassigned tickets
-    const { data: unassignedTickets } = await supabaseAdmin
-      .from('damage_reports')
-      .select('id')
-      .is('assigned_tech_id', null)
+    const unassignedTickets = allTickets.filter(ticket => 
+      !ticket.assignedTo || ticket.assignedTo === 'Unassigned'
+    ).length
 
     // Get technician clock-in stats
     const { data: clockedInTechs } = await supabaseAdmin
@@ -130,18 +190,31 @@ export async function GET(request: NextRequest) {
     const lastMonthCount = lastMonthReports?.length || 0
     const monthlyGrowth = lastMonthCount > 0 ? Math.round(((thisMonthCount - lastMonthCount) / lastMonthCount) * 100) : 0
 
+    // Calculate average wait time from actual tickets
+    const currentTime = new Date()
+    const ticketWaitTimes = allTickets
+      .filter(ticket => ticket.status !== 'Completed')
+      .map(ticket => {
+        const ticketDate = new Date(ticket.timestamp)
+        return getBusinessHours(ticketDate, currentTime)
+      })
+
+    const averageWaitTimeHours = ticketWaitTimes.length > 0 
+      ? ticketWaitTimes.reduce((sum, hours) => sum + hours, 0) / ticketWaitTimes.length 
+      : 0
+
     const stats = {
-      totalTickets: allReports?.length || 0,
-      waitingTickets: waitingTickets?.length || 0,
-      completedToday: completedToday?.length || 0,
-      overdueTickets: overdueTickets?.length || 0,
-      unassignedTickets: unassignedTickets?.length || 0,
+      totalTickets,
+      waitingTickets,
+      completedToday,
+      overdueTickets,
+      unassignedTickets,
       clockedInTechnicians: clockedInTechs?.length || 0,
       totalTechnicians: allTechnicians?.length || 0,
       averageCompletionTime,
       monthlyGrowth,
       // New performance metrics
-      averageWaitTimeHours: waitTimes?.length ? waitTimes.reduce((sum, w) => sum + w.wait_time_hours, 0) / waitTimes.length : 0,
+      averageWaitTimeHours,
       totalActiveWorkHours: totalActiveWorkHours / 60, // Convert minutes to hours
       averageActiveWorkHours: averageActiveWorkHours / 60, // Convert minutes to hours
       waitTimeByTech,
