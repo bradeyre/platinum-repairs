@@ -52,6 +52,9 @@ interface DeepAnalyticsData {
     totalTechnicians: number
     averageTicketsPerDay: number
     averageTicketsPerTechnician: number
+    reworkRate: number
+    totalReworks: number
+    averageReworkTime: number
   }
   technicianPerformance: {
     [technicianName: string]: {
@@ -68,6 +71,11 @@ interface DeepAnalyticsData {
       improvementTrend: 'improving' | 'stable' | 'declining'
       strengths: string[]
       areasForImprovement: string[]
+      reworkRate: number
+      totalReworks: number
+      averageReworkTime: number
+      reworkReasons: Record<string, number>
+      firstTimeFixRate: number
     }
   }
   deviceAnalytics: {
@@ -78,7 +86,23 @@ interface DeepAnalyticsData {
       commonIssues: string[]
       difficultyLevel: 'easy' | 'medium' | 'hard'
       technicianPerformance: Record<string, number>
+      reworkRate: number
+      commonReworkReasons: string[]
+      averageReworkTime: number
     }
+  }
+  reworkAnalytics: {
+    overallReworkRate: number
+    totalReworks: number
+    averageReworkTime: number
+    reworkReasons: Record<string, number>
+    reworkByTechnician: Record<string, number>
+    reworkByDevice: Record<string, number>
+    reworkTrends: Record<string, number>
+    costOfReworks: number
+    timeLostToReworks: number
+    topReworkCauses: string[]
+    reworkPreventionOpportunities: string[]
   }
   timeAnalytics: {
     dailyPerformance: Record<string, {
@@ -86,12 +110,16 @@ interface DeepAnalyticsData {
       totalTime: number
       averageTime: number
       technicians: string[]
+      reworks: number
+      reworkRate: number
     }>
     weeklyTrends: Record<string, {
       week: string
       ticketsCompleted: number
       averageTime: number
       efficiency: number
+      reworks: number
+      reworkRate: number
     }>
     hourlyPatterns: Record<string, number>
     peakHours: string[]
@@ -107,6 +135,8 @@ interface DeepAnalyticsData {
       totalLaborHours: number
       averageCostPerRepair: number
       efficiencySavings: number
+      reworkCosts: number
+      potentialSavingsFromReworkReduction: number
     }
   }
   aiInsights: {
@@ -115,6 +145,8 @@ interface DeepAnalyticsData {
     riskFactors: string[]
     successFactors: string[]
     predictiveInsights: string[]
+    reworkInsights: string[]
+    qualityImprovementStrategies: string[]
   }
 }
 
@@ -190,6 +222,212 @@ function extractRepairType(workCompleted: string): string {
   }
 }
 
+// Function to detect reworks from ticket data
+function detectReworks(tickets: ProcessedTicket[]): { [ticketNumber: string]: any[] } {
+  const reworks: { [ticketNumber: string]: any[] } = {}
+  
+  // Group tickets by ticket number to find duplicates
+  const ticketGroups: { [ticketNumber: string]: ProcessedTicket[] } = {}
+  
+  tickets.forEach(ticket => {
+    if (!ticketGroups[ticket.ticketNumber]) {
+      ticketGroups[ticket.ticketNumber] = []
+    }
+    ticketGroups[ticket.ticketNumber].push(ticket)
+  })
+  
+  // Find tickets with multiple entries (potential reworks)
+  Object.entries(ticketGroups).forEach(([ticketNumber, ticketList]) => {
+    if (ticketList.length > 1) {
+      // Sort by timestamp to identify sequence
+      const sortedTickets = ticketList.sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      )
+      
+      // Identify rework patterns
+      const reworkSequence = []
+      for (let i = 1; i < sortedTickets.length; i++) {
+        const currentTicket = sortedTickets[i]
+        const previousTicket = sortedTickets[i - 1]
+        
+        // Check for rework indicators
+        const isRework = detectReworkIndicators(currentTicket, previousTicket)
+        if (isRework.isRework) {
+          reworkSequence.push({
+            ticketId: currentTicket.ticketId,
+            timestamp: currentTicket.timestamp,
+            reason: isRework.reason,
+            timeBetween: new Date(currentTicket.timestamp).getTime() - new Date(previousTicket.timestamp).getTime(),
+            technician: currentTicket.assignedTo || 'Unknown',
+            deviceType: extractDeviceType(currentTicket.description),
+            repairType: extractRepairType(currentTicket.description)
+          })
+        }
+      }
+      
+      if (reworkSequence.length > 0) {
+        reworks[ticketNumber] = reworkSequence
+      }
+    }
+  })
+  
+  return reworks
+}
+
+// Function to detect rework indicators
+function detectReworkIndicators(currentTicket: ProcessedTicket, previousTicket: ProcessedTicket): { isRework: boolean, reason: string } {
+  const currentDesc = currentTicket.description.toLowerCase()
+  const previousDesc = previousTicket.description.toLowerCase()
+  
+  // Check for explicit rework keywords
+  const reworkKeywords = [
+    'rework', 'redo', 'fix again', 'repair again', 'not working', 'still broken',
+    'issue persists', 'problem remains', 'failed repair', 'incomplete repair',
+    'quality issue', 'defect', 'malfunction', 'returned', 'comeback'
+  ]
+  
+  for (const keyword of reworkKeywords) {
+    if (currentDesc.includes(keyword) || previousDesc.includes(keyword)) {
+      return { isRework: true, reason: `Rework detected: ${keyword}` }
+    }
+  }
+  
+  // Check for status changes that indicate rework
+  const reworkStatuses = ['rework', 'returned', 'failed', 'incomplete', 'quality issue']
+  if (reworkStatuses.some(status => currentTicket.status.toLowerCase().includes(status))) {
+    return { isRework: true, reason: `Status indicates rework: ${currentTicket.status}` }
+  }
+  
+  // Check for time gap that might indicate rework (same ticket, different dates)
+  const timeDiff = new Date(currentTicket.timestamp).getTime() - new Date(previousTicket.timestamp).getTime()
+  const daysDiff = timeDiff / (1000 * 60 * 60 * 24)
+  
+  if (daysDiff > 1 && daysDiff < 30) { // Between 1 day and 1 month
+    return { isRework: true, reason: `Time gap suggests rework: ${Math.round(daysDiff)} days` }
+  }
+  
+  return { isRework: false, reason: '' }
+}
+
+// Function to analyze rework patterns
+function analyzeReworkPatterns(reworks: { [ticketNumber: string]: any[] }): any {
+  const allReworks = Object.values(reworks).flat()
+  
+  if (allReworks.length === 0) {
+    return {
+      overallReworkRate: 0,
+      totalReworks: 0,
+      averageReworkTime: 0,
+      reworkReasons: {},
+      reworkByTechnician: {},
+      reworkByDevice: {},
+      reworkTrends: {},
+      costOfReworks: 0,
+      timeLostToReworks: 0,
+      topReworkCauses: [],
+      reworkPreventionOpportunities: []
+    }
+  }
+  
+  // Analyze rework reasons
+  const reworkReasons: Record<string, number> = {}
+  const reworkByTechnician: Record<string, number> = {}
+  const reworkByDevice: Record<string, number> = {}
+  const reworkTrends: Record<string, number> = {}
+  
+  let totalReworkTime = 0
+  
+  allReworks.forEach(rework => {
+    // Count reasons
+    reworkReasons[rework.reason] = (reworkReasons[rework.reason] || 0) + 1
+    
+    // Count by technician
+    reworkByTechnician[rework.technician] = (reworkByTechnician[rework.technician] || 0) + 1
+    
+    // Count by device
+    reworkByDevice[rework.deviceType] = (reworkByDevice[rework.deviceType] || 0) + 1
+    
+    // Track trends by week
+    const weekKey = getWeekKey(new Date(rework.timestamp))
+    reworkTrends[weekKey] = (reworkTrends[weekKey] || 0) + 1
+    
+    // Add to total time
+    totalReworkTime += rework.timeBetween
+  })
+  
+  // Calculate top rework causes
+  const topReworkCauses = Object.entries(reworkReasons)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 5)
+    .map(([reason]) => reason)
+  
+  // Generate prevention opportunities
+  const reworkPreventionOpportunities = generateReworkPreventionOpportunities(reworkReasons, reworkByTechnician, reworkByDevice)
+  
+  return {
+    overallReworkRate: 0, // Will be calculated with total tickets
+    totalReworks: allReworks.length,
+    averageReworkTime: totalReworkTime / allReworks.length,
+    reworkReasons,
+    reworkByTechnician,
+    reworkByDevice,
+    reworkTrends,
+    costOfReworks: allReworks.length * 150, // Estimated cost per rework
+    timeLostToReworks: totalReworkTime / (1000 * 60 * 60), // Convert to hours
+    topReworkCauses,
+    reworkPreventionOpportunities
+  }
+}
+
+// Helper function to get week key
+function getWeekKey(date: Date): string {
+  const startOfWeek = new Date(date)
+  startOfWeek.setDate(date.getDate() - date.getDay())
+  return startOfWeek.toISOString().split('T')[0]
+}
+
+// Function to generate rework prevention opportunities
+function generateReworkPreventionOpportunities(reworkReasons: Record<string, number>, reworkByTechnician: Record<string, number>, reworkByDevice: Record<string, number>): string[] {
+  const opportunities = []
+  
+  // Analyze top rework reasons
+  const topReasons = Object.entries(reworkReasons)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 3)
+  
+  topReasons.forEach(([reason, count]) => {
+    if (reason.includes('quality issue')) {
+      opportunities.push('Implement quality checkpoints and standardized testing procedures')
+    } else if (reason.includes('incomplete repair')) {
+      opportunities.push('Create comprehensive repair checklists and completion verification')
+    } else if (reason.includes('time gap')) {
+      opportunities.push('Improve communication and follow-up procedures for complex repairs')
+    } else {
+      opportunities.push(`Address root cause of "${reason}" through targeted training`)
+    }
+  })
+  
+  // Analyze technician patterns
+  const topReworkTechnicians = Object.entries(reworkByTechnician)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 2)
+  
+  if (topReworkTechnicians.length > 0) {
+    opportunities.push(`Provide additional training for technicians with higher rework rates`)
+  }
+  
+  // Analyze device patterns
+  const topReworkDevices = Object.entries(reworkByDevice)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 2)
+  
+  if (topReworkDevices.length > 0) {
+    opportunities.push(`Develop specialized training for ${topReworkDevices[0][0]} repairs`)
+  }
+  
+  return opportunities
+}
+
 export default function DeepAnalyticsReport() {
   const [analyticsData, setAnalyticsData] = useState<DeepAnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -212,19 +450,22 @@ export default function DeepAnalyticsReport() {
       
       // Fetch completed repairs from the last 2 months
       const repairsResponse = await fetch(`/api/repair-archive?dateFrom=${startDate.toISOString().split('T')[0]}&dateTo=${endDate.toISOString().split('T')[0]}&limit=1000`)
-      if (!repairsResponse.ok) {
-        throw new Error('Failed to fetch repair data')
-      }
-      const repairsData = await repairsResponse.json()
       
-      // Fetch all tickets for context
+      let repairsData = { repairs: [] }
+      if (repairsResponse.ok) {
+        repairsData = await repairsResponse.json()
+      } else {
+        console.warn('Repair archive not available, using ticket data only')
+      }
+      
+      // Fetch all tickets for context and rework analysis
       const ticketsResponse = await fetch('/api/tickets')
       if (!ticketsResponse.ok) {
         throw new Error('Failed to fetch tickets data')
       }
       const ticketsData = await ticketsResponse.json()
       
-      // Process the data
+      // Process the data with enhanced rework analysis
       const processedData = await processDeepAnalytics(repairsData.repairs || [], ticketsData.tickets || [], startDate, endDate)
       setAnalyticsData(processedData)
       
@@ -239,10 +480,18 @@ export default function DeepAnalyticsReport() {
   const processDeepAnalytics = async (repairs: RepairCompletion[], tickets: ProcessedTicket[], startDate: Date, endDate: Date): Promise<DeepAnalyticsData> => {
     const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
     
+    // Detect and analyze reworks from ticket data
+    const reworks = detectReworks(tickets)
+    const reworkAnalytics = analyzeReworkPatterns(reworks)
+    
     // Overall stats
-    const totalCompletedTickets = repairs.length
+    const totalCompletedTickets = repairs.length + tickets.length // Include both repairs and tickets
     const totalRepairTime = repairs.reduce((sum, repair) => sum + (repair.time_spent_seconds || 0), 0)
     const averageRepairTime = totalCompletedTickets > 0 ? totalRepairTime / totalCompletedTickets : 0
+    
+    // Calculate overall rework rate
+    const overallReworkRate = totalCompletedTickets > 0 ? (reworkAnalytics.totalReworks / totalCompletedTickets) * 100 : 0
+    reworkAnalytics.overallReworkRate = overallReworkRate
     
     // Technician performance analysis
     const technicianPerformance: any = {}
@@ -280,7 +529,12 @@ export default function DeepAnalyticsReport() {
           peakPerformanceDays: [],
           improvementTrend: 'stable' as const,
           strengths: [],
-          areasForImprovement: []
+          areasForImprovement: [],
+          reworkRate: 0,
+          totalReworks: 0,
+          averageReworkTime: 0,
+          reworkReasons: {},
+          firstTimeFixRate: 100
         }
       }
       
@@ -324,6 +578,15 @@ export default function DeepAnalyticsReport() {
       timeAnalytics.hourlyPatterns[hourKey] = (timeAnalytics.hourlyPatterns[hourKey] || 0) + 1
     })
     
+    // Add rework data to technician performance
+    Object.keys(technicianPerformance).forEach(tech => {
+      const data = technicianPerformance[tech]
+      const techReworks = reworkAnalytics.reworkByTechnician[tech] || 0
+      data.totalReworks = techReworks
+      data.reworkRate = data.totalTickets > 0 ? (techReworks / data.totalTickets) * 100 : 0
+      data.firstTimeFixRate = data.totalTickets > 0 ? ((data.totalTickets - techReworks) / data.totalTickets) * 100 : 100
+    })
+    
     // Calculate derived metrics
     Object.keys(technicianPerformance).forEach(tech => {
       const data = technicianPerformance[tech]
@@ -359,7 +622,7 @@ export default function DeepAnalyticsReport() {
     timeAnalytics.offPeakHours = sortedHours.slice(-3).map(([hour]) => hour)
     
     // Generate business insights
-    const businessInsights = generateBusinessInsights(technicianPerformance, deviceAnalytics, timeAnalytics)
+    const businessInsights = generateBusinessInsights(technicianPerformance, deviceAnalytics, timeAnalytics, reworkAnalytics)
     
     // Generate AI insights
     const aiInsights = await generateAIInsights(technicianPerformance, deviceAnalytics, businessInsights)
@@ -376,21 +639,20 @@ export default function DeepAnalyticsReport() {
         averageRepairTime,
         totalTechnicians: Object.keys(technicianPerformance).length,
         averageTicketsPerDay: totalCompletedTickets / totalDays,
-        averageTicketsPerTechnician: totalCompletedTickets / Object.keys(technicianPerformance).length
+        averageTicketsPerTechnician: totalCompletedTickets / Object.keys(technicianPerformance).length,
+        reworkRate: overallReworkRate,
+        totalReworks: reworkAnalytics.totalReworks,
+        averageReworkTime: reworkAnalytics.averageReworkTime
       },
       technicianPerformance,
       deviceAnalytics,
+      reworkAnalytics,
       timeAnalytics,
       businessInsights,
       aiInsights
     }
   }
 
-  const getWeekKey = (date: Date): string => {
-    const startOfWeek = new Date(date)
-    startOfWeek.setDate(date.getDate() - date.getDay())
-    return startOfWeek.toISOString().split('T')[0]
-  }
 
   const calculateQualityScore = (techData: any): number => {
     // Simple quality score based on efficiency and consistency
@@ -405,7 +667,7 @@ export default function DeepAnalyticsReport() {
     return 0.8 // Placeholder
   }
 
-  const generateBusinessInsights = (technicianPerformance: any, deviceAnalytics: any, timeAnalytics: any) => {
+  const generateBusinessInsights = (technicianPerformance: any, deviceAnalytics: any, timeAnalytics: any, reworkAnalytics: any) => {
     const topPerformers = Object.entries(technicianPerformance)
       .sort(([,a], [,b]) => (b as any).efficiency - (a as any).efficiency)
       .slice(0, 3)
@@ -430,12 +692,15 @@ export default function DeepAnalyticsReport() {
         'Focus training on challenging device types',
         'Implement peer mentoring between top and bottom performers',
         'Optimize scheduling during peak hours',
-        'Create device-specific training modules'
+        'Create device-specific training modules',
+        'Reduce rework rates through quality improvements'
       ],
       costAnalysis: {
         totalLaborHours: Object.values(technicianPerformance).reduce((sum: number, tech: any) => sum + tech.totalRepairTime, 0) / 3600,
         averageCostPerRepair: 150, // Placeholder
-        efficiencySavings: 5000 // Placeholder
+        efficiencySavings: 5000, // Placeholder
+        reworkCosts: reworkAnalytics.costOfReworks,
+        potentialSavingsFromReworkReduction: reworkAnalytics.costOfReworks * 0.5 // 50% reduction potential
       }
     }
   }
@@ -543,7 +808,7 @@ export default function DeepAnalyticsReport() {
       </div>
 
       {/* Overall Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Repairs</h3>
           <div className="text-3xl font-bold text-blue-600">{analyticsData.overallStats.totalCompletedTickets}</div>
@@ -554,6 +819,14 @@ export default function DeepAnalyticsReport() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Time</h3>
           <div className="text-3xl font-bold text-green-600">{(analyticsData.overallStats.totalRepairTime / 3600).toFixed(1)}h</div>
           <div className="text-sm text-gray-500">{(analyticsData.overallStats.averageRepairTime / 60).toFixed(1)}m avg</div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Rework Rate</h3>
+          <div className={`text-3xl font-bold ${analyticsData.overallStats.reworkRate > 10 ? 'text-red-600' : analyticsData.overallStats.reworkRate > 5 ? 'text-yellow-600' : 'text-green-600'}`}>
+            {analyticsData.overallStats.reworkRate.toFixed(1)}%
+          </div>
+          <div className="text-sm text-gray-500">{analyticsData.overallStats.totalReworks} reworks</div>
         </div>
         
         <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
@@ -581,6 +854,8 @@ export default function DeepAnalyticsReport() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Time</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Per Day</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rework Rate</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Fix Rate</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quality Score</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Top Device</th>
               </tr>
@@ -593,6 +868,24 @@ export default function DeepAnalyticsReport() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(data.totalRepairTime / 3600).toFixed(1)}h</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{(data.averageRepairTime / 60).toFixed(1)}m</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{data.ticketsPerDay.toFixed(1)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      data.reworkRate > 10 ? 'bg-red-100 text-red-800' :
+                      data.reworkRate > 5 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {data.reworkRate.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      data.firstTimeFixRate >= 90 ? 'bg-green-100 text-green-800' :
+                      data.firstTimeFixRate >= 80 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {data.firstTimeFixRate.toFixed(1)}%
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       data.qualityScore >= 80 ? 'bg-green-100 text-green-800' :
@@ -610,6 +903,68 @@ export default function DeepAnalyticsReport() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Rework Analytics */}
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">🔄 Rework Analysis & Quality Insights</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 className="font-semibold text-red-900 mb-2">Total Reworks</h4>
+            <div className="text-2xl font-bold text-red-600">{analyticsData.reworkAnalytics.totalReworks}</div>
+            <div className="text-sm text-red-700">{analyticsData.reworkAnalytics.overallReworkRate.toFixed(1)}% rework rate</div>
+          </div>
+          
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 className="font-semibold text-orange-900 mb-2">Time Lost</h4>
+            <div className="text-2xl font-bold text-orange-600">{analyticsData.reworkAnalytics.timeLostToReworks.toFixed(1)}h</div>
+            <div className="text-sm text-orange-700">Productivity impact</div>
+          </div>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h4 className="font-semibold text-yellow-900 mb-2">Rework Cost</h4>
+            <div className="text-2xl font-bold text-yellow-600">${analyticsData.reworkAnalytics.costOfReworks.toLocaleString()}</div>
+            <div className="text-sm text-yellow-700">Additional costs</div>
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-900 mb-2">Avg Rework Time</h4>
+            <div className="text-2xl font-bold text-blue-600">{(analyticsData.reworkAnalytics.averageReworkTime / (1000 * 60 * 60)).toFixed(1)}h</div>
+            <div className="text-sm text-blue-700">Per rework</div>
+          </div>
+        </div>
+        
+        {analyticsData.reworkAnalytics.topReworkCauses.length > 0 && (
+          <div className="mb-6">
+            <h4 className="font-semibold text-gray-900 mb-3">🔍 Top Rework Causes</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {analyticsData.reworkAnalytics.topReworkCauses.map((cause, index) => (
+                <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <div className="w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                    {index + 1}
+                  </div>
+                  <span className="text-gray-800">{cause}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {analyticsData.reworkAnalytics.reworkPreventionOpportunities.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">💡 Rework Prevention Opportunities</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {analyticsData.reworkAnalytics.reworkPreventionOpportunities.map((opportunity, index) => (
+                <div key={index} className="flex items-start p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5">
+                    {index + 1}
+                  </div>
+                  <span className="text-green-800">{opportunity}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Device Analytics */}
