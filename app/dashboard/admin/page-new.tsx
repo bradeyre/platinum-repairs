@@ -202,7 +202,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Tickets</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalTickets}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.totalTickets || 0}</p>
               </div>
             </div>
           </div>
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Waiting</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.waitingTickets}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.waitingTickets || 0}</p>
               </div>
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Completed {getTimeframeLabel()}</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.completedToday}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.completedToday || 0}</p>
               </div>
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.overdueTickets}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.overdueTickets || 0}</p>
               </div>
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Clocked In</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.clockedInTechnicians}/{stats.totalTechnicians}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.clockedInTechnicians || 0}/{stats?.totalTechnicians || 0}</p>
               </div>
             </div>
           </div>
@@ -523,16 +523,16 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Average Completion Time:</span>
-                        <span className="font-medium">{formatTime(stats.averageCompletionTime)}</span>
+                        <span className="font-medium">{formatTime(stats?.averageCompletionTime || 0)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Total Revenue:</span>
-                        <span className="font-medium">R{stats.totalRevenue.toLocaleString()}</span>
+                        <span className="font-medium">R{(stats?.totalRevenue || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Monthly Growth:</span>
-                        <span className={`font-medium ${stats.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {stats.monthlyGrowth >= 0 ? '+' : ''}{stats.monthlyGrowth}%
+                        <span className={`font-medium ${(stats?.monthlyGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(stats?.monthlyGrowth || 0) >= 0 ? '+' : ''}{stats?.monthlyGrowth || 0}%
                         </span>
                       </div>
                     </div>
