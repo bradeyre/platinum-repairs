@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import DashboardNavigation from '@/components/DashboardNavigation'
 import PerformanceMonitoring from '@/components/PerformanceMonitoring'
 import EnhancedTimeTracking from '@/components/EnhancedTimeTracking'
+import RepairShoprAnalytics from '@/components/RepairShoprAnalytics'
 
 interface ProcessedTicket {
   ticketId: string
@@ -628,6 +629,7 @@ export default function AdminDashboard() {
             <nav className="-mb-px flex space-x-8 px-6">
               {[
                 { id: 'tickets', name: `RepairShopr Tickets (${tickets.length})`, icon: '🎫' },
+                { id: 'repairshopr-analytics', name: 'RepairShopr Analytics', icon: '📊' },
                 { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
                 { id: 'analytics', name: 'Performance Analytics', icon: '📈' },
                 { id: 'monitoring', name: 'Performance Monitoring', icon: '🚨' },
@@ -924,6 +926,13 @@ export default function AdminDashboard() {
                 </table>
             </div>
           </div>
+            )}
+
+            {/* RepairShopr Analytics Tab */}
+            {activeTab === 'repairshopr-analytics' && (
+              <div className="p-6">
+                <RepairShoprAnalytics />
+              </div>
             )}
 
             {/* Repair Archive Tab */}
