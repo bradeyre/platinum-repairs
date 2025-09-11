@@ -92,6 +92,7 @@ export default function ComprehensiveAnalytics() {
   const [error, setError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<string>('')
   const [lastSyncTime, setLastSyncTime] = useState<string>('')
+  const [schemaStatus, setSchemaStatus] = useState<string>('')
 
   useEffect(() => {
     fetchAnalyticsData()
@@ -106,17 +107,46 @@ export default function ComprehensiveAnalytics() {
       const response = await fetch('/api/analytics/ticket-lifecycle-summary')
       
       if (!response.ok) {
-        throw new Error('Failed to fetch analytics data')
+        if (response.status === 404) {
+          setError('Database schema not set up. Please run the SQL schema first.')
+          setSchemaStatus('Schema missing - run ticket-lifecycle-schema-working.sql in Supabase')
+        } else {
+          throw new Error('Failed to fetch analytics data')
+        }
+        return
       }
       
       const data = await response.json()
       setAnalyticsData(data)
+      setSchemaStatus('Schema ready')
       
     } catch (err) {
       console.error('Error fetching comprehensive analytics:', err)
       setError('Failed to load analytics data. You may need to sync RepairShopr data first.')
+      setSchemaStatus('Error - check database connection')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const testSchema = async () => {
+    try {
+      setSchemaStatus('Testing schema...')
+      const response = await fetch('/api/analytics/test-schema')
+      const result = await response.json()
+      
+      if (result.success) {
+        setSchemaStatus('✅ Schema is ready')
+        setError(null)
+        // Refresh analytics data
+        await fetchAnalyticsData()
+      } else {
+        setSchemaStatus('❌ Schema issue: ' + result.message)
+        setError(result.message)
+      }
+    } catch (err) {
+      setSchemaStatus('❌ Schema test failed')
+      setError('Failed to test schema')
     }
   }
 
@@ -171,12 +201,32 @@ export default function ComprehensiveAnalytics() {
         </div>
         <p className="text-red-700 mb-4">{error}</p>
         <div className="space-y-4">
-          <button
-            onClick={() => syncRepairShoprData('smart')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            🔄 Sync RepairShopr Data
-          </button>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h4 className="font-semibold text-yellow-800 mb-2">📋 Setup Instructions</h4>
+            <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
+              <li>Go to your <strong>Supabase Dashboard</strong> → <strong>SQL Editor</strong></li>
+              <li>Copy and paste the contents of <strong>ticket-lifecycle-schema-working.sql</strong></li>
+              <li>Execute the script to create the database schema</li>
+              <li>Click the <strong>"🔍 Test Schema"</strong> button below to verify</li>
+              <li>Once schema is ready, use <strong>"🧠 Smart Sync"</strong> to sync data</li>
+            </ol>
+          </div>
+          
+          <div className="flex space-x-3">
+            <button
+              onClick={testSchema}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              🔍 Test Schema
+            </button>
+            <button
+              onClick={() => syncRepairShoprData('smart')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              🧠 Smart Sync
+            </button>
+          </div>
+          
           {syncStatus && (
             <div className="text-sm text-gray-600">
               {syncStatus}
@@ -216,6 +266,12 @@ export default function ComprehensiveAnalytics() {
           </div>
           <div className="flex space-x-3">
             <button
+              onClick={testSchema}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              🔍 Test Schema
+            </button>
+            <button
               onClick={() => syncRepairShoprData('smart')}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -244,6 +300,14 @@ export default function ComprehensiveAnalytics() {
         {syncStatus && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="text-sm text-blue-800">{syncStatus}</div>
+          </div>
+        )}
+        
+        {schemaStatus && (
+          <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <div className="text-sm text-purple-800">
+              <strong>Schema Status:</strong> {schemaStatus}
+            </div>
           </div>
         )}
         
