@@ -110,6 +110,9 @@ export default function ComprehensiveAnalytics() {
         if (response.status === 404) {
           setError('Database schema not set up. Please run the SQL schema first.')
           setSchemaStatus('Schema missing - run ticket-lifecycle-schema-working.sql in Supabase')
+        } else if (response.status === 401 || response.status === 403) {
+          setError('Authentication required. Please disable Vercel deployment protection or use bypass token.')
+          setSchemaStatus('Authentication issue - check Vercel deployment settings')
         } else {
           throw new Error('Failed to fetch analytics data')
         }
@@ -207,6 +210,7 @@ export default function ComprehensiveAnalytics() {
               <li>Go to your <strong>Supabase Dashboard</strong> → <strong>SQL Editor</strong></li>
               <li>Copy and paste the contents of <strong>ticket-lifecycle-schema-working.sql</strong></li>
               <li>Execute the script to create the database schema</li>
+              <li><strong>IMPORTANT:</strong> Go to <strong>Vercel Dashboard</strong> → <strong>Settings</strong> → <strong>Security</strong> → <strong>Disable Deployment Protection</strong></li>
               <li>Click the <strong>"🔍 Test Schema"</strong> button below to verify</li>
               <li>Once schema is ready, use <strong>"🧠 Smart Sync"</strong> to sync data</li>
             </ol>
