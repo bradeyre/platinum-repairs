@@ -184,8 +184,10 @@ async function fetchDDTickets() {
     if (!allowedStatuses.includes(ticket.status)) return false
     
     // For DD tickets, exclude those assigned to specific workshops
-    const assignedTo = ticket.assigned_to?.name || ticket.assigned_to || ''
+    // Check multiple possible assignment fields
+    const assignedTo = ticket.assigned_to?.name || ticket.assigned_to || ticket.user?.full_name || ''
     if (assignedTo === 'Durban Workshop' || assignedTo === 'Cape Town Workshop') {
+      console.log(`🚫 Filtering out DD ticket ${ticket.number} assigned to: ${assignedTo}`)
       return false
     }
     
@@ -212,8 +214,17 @@ async function fetchDDTickets() {
     statusChangedAt: ticket.updated_at || ticket.created_at,
     assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
   })))
+
+  // Additional filtering after processing to catch workshop assignments
+  const finalFilteredTickets = processedTickets.filter(ticket => {
+    if (ticket.assignedTo === 'Durban Workshop' || ticket.assignedTo === 'Cape Town Workshop') {
+      console.log(`🚫 Post-processing filter: Removing DD ticket ${ticket.ticketNumber} assigned to: ${ticket.assignedTo}`)
+      return false
+    }
+    return true
+  })
   
-  return processedTickets
+  return finalFilteredTickets
 }
 
 export async function GET(request: NextRequest) {
