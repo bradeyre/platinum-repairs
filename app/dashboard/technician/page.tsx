@@ -250,6 +250,11 @@ export default function TechnicianDashboard() {
     setShowRepairModal(true)
   }
 
+  const handleDamageReportClick = (ticket: ProcessedTicket) => {
+    setSelectedTicket(ticket)
+    setShowDamageModal(true)
+  }
+
   const handleStartWork = (ticket: ProcessedTicket) => {
     setSelectedTicket(ticket)
     setShowRepairModal(true)
@@ -622,7 +627,7 @@ export default function TechnicianDashboard() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleTicketClick(ticket)
+                                  handleDamageReportClick(ticket)
                                 }}
                                 className="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
                               >
@@ -699,7 +704,7 @@ export default function TechnicianDashboard() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleTicketClick(ticket)
+                            handleDamageReportClick(ticket)
                           }}
                           className="flex-1 bg-yellow-600 text-white px-3 py-2 rounded text-sm hover:bg-yellow-700"
                         >
