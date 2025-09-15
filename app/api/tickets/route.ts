@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
       
       return {
         ...ticket,
-        assignedTo: existing?.assigned_to || null,
+        // Prioritize RepairShopr assignment, fallback to database assignment
+        assignedTo: ticket.assignedTo || existing?.assigned_to || null,
         dbId: existing?.id || null
       }
     })
@@ -110,6 +111,13 @@ async function fetchPRTickets() {
 
   const data = await response.json()
   console.log('🔍 PR API Response:', data.tickets?.length || 0, 'tickets')
+  
+  // Debug: Log first ticket structure to see available fields
+  if (data.tickets && data.tickets.length > 0) {
+    console.log('🔍 PR Ticket structure:', Object.keys(data.tickets[0]))
+    console.log('🔍 PR First ticket user data:', data.tickets[0].user)
+    console.log('🔍 PR First ticket assigned_to data:', data.tickets[0].assigned_to)
+  }
   const filteredTickets = data.tickets.filter((ticket: any) => 
     ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress'].includes(ticket.status)
   )
@@ -156,6 +164,13 @@ async function fetchDDTickets() {
 
   const data = await response.json()
   console.log('🔍 DD API Response:', data.tickets?.length || 0, 'tickets')
+  
+  // Debug: Log first ticket structure to see available fields
+  if (data.tickets && data.tickets.length > 0) {
+    console.log('🔍 DD Ticket structure:', Object.keys(data.tickets[0]))
+    console.log('🔍 DD First ticket user data:', data.tickets[0].user)
+    console.log('🔍 DD First ticket assigned_to data:', data.tickets[0].assigned_to)
+  }
   
   const filteredTickets = data.tickets.filter((ticket: any) => {
     // First filter by allowed statuses
