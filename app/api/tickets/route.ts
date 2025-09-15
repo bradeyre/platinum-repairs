@@ -237,6 +237,8 @@ export async function GET(request: NextRequest) {
 
     // Combine and process tickets
     const allTickets = [...prTickets, ...ddTickets]
+    console.log('🔍 Total tickets after combining:', allTickets.length)
+    console.log('🔍 PR tickets:', prTickets.length, 'DD tickets:', ddTickets.length)
     
     // Debug: Log all statuses to see what's coming through
     const allStatuses = allTickets.map(t => t.status)
@@ -262,6 +264,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log('🔍 Final processed tickets count:', processedTickets.length)
+    console.log('🔍 Tickets assigned to Ben:', processedTickets.filter(t => t.assignedTo?.toLowerCase() === 'ben').length)
+    
     return NextResponse.json({ 
       tickets: processedTickets,
       total: processedTickets.length,
