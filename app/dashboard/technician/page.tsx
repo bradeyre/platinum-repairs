@@ -120,15 +120,23 @@ export default function TechnicianDashboard() {
       
       // Filter for assigned tickets if technician is selected
       if (selectedTechnician) {
+        console.log('🔍 Filtering tickets for technician:', selectedTechnician)
         const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => {
           // Case-insensitive matching for technician names
           const selectedTechLower = selectedTechnician.toLowerCase()
           const assignedToLower = ticket.assignedTo?.toLowerCase() || ''
           
-          return assignedToLower === selectedTechLower || 
+          const matches = assignedToLower === selectedTechLower || 
                  assignedToLower === selectedTechLower.charAt(0).toUpperCase() + selectedTechLower.slice(1) ||
                  (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
+          
+          if (ticket.assignedTo) {
+            console.log(`🔍 Ticket ${ticket.ticketNumber}: assignedTo="${ticket.assignedTo}", selectedTech="${selectedTechnician}", matches=${matches}`)
+          }
+          
+          return matches
         })
+        console.log('🔍 Filtered tickets count:', assignedTickets.length)
         setTickets(assignedTickets)
       } else {
         setTickets([])
@@ -161,15 +169,23 @@ export default function TechnicianDashboard() {
         
         // Filter for assigned tickets if technician is selected
         if (selectedTechnician) {
+          console.log('🔄 Background refresh - filtering for technician:', selectedTechnician)
           const assignedTickets = data.tickets.filter((ticket: ProcessedTicket) => {
             // Case-insensitive matching for technician names
             const selectedTechLower = selectedTechnician.toLowerCase()
             const assignedToLower = ticket.assignedTo?.toLowerCase() || ''
             
-            return assignedToLower === selectedTechLower || 
+            const matches = assignedToLower === selectedTechLower || 
                    assignedToLower === selectedTechLower.charAt(0).toUpperCase() + selectedTechLower.slice(1) ||
                    (user && (ticket.assignedTo === user.full_name || ticket.assignedTo === user.username))
+            
+            if (ticket.assignedTo) {
+              console.log(`🔄 Ticket ${ticket.ticketNumber}: assignedTo="${ticket.assignedTo}", selectedTech="${selectedTechnician}", matches=${matches}`)
+            }
+            
+            return matches
           })
+          console.log('🔄 Background refresh - filtered tickets count:', assignedTickets.length)
           setTickets(assignedTickets)
         } else {
           setTickets([])
