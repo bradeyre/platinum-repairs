@@ -148,28 +148,72 @@ async function fetchDDTickets() {
     }))
 }
 
-function getTimeAgo(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffDays = Math.floor(diffHours / 24)
+// Calculate business hours between two dates (8 AM - 6 PM, Monday-Friday)
+function calculateBusinessHours(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  let businessHours = 0
   
-  if (diffDays > 0) {
-    return `${diffDays}d ago`
-  } else if (diffHours > 0) {
-    return `${diffHours}h ago`
+  // Business hours: 8 AM to 6 PM, Monday to Friday
+  const businessStart = 8 // 8 AM
+  const businessEnd = 18 // 6 PM
+  
+  while (start < end) {
+    const dayOfWeek = start.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    // Only count Monday (1) through Friday (5)
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      const dayStart = new Date(start)
+      dayStart.setHours(businessStart, 0, 0, 0)
+      
+      const dayEnd = new Date(start)
+      dayEnd.setHours(businessEnd, 0, 0, 0)
+      
+      // Calculate overlap with business hours for this day
+      const effectiveStart = start < dayStart ? dayStart : start
+      const effectiveEnd = end < dayEnd ? end : dayEnd
+      
+      if (effectiveStart < effectiveEnd) {
+        businessHours += (effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60)
+      }
+    }
+    
+    // Move to next day
+    start.setDate(start.getDate() + 1)
+    start.setHours(0, 0, 0, 0)
+  }
+  
+  return businessHours
+}
+
+// Format business hours into a readable string
+function formatBusinessHours(hours: number): string {
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60)
+    return `${minutes}m`
+  } else if (hours < 24) {
+    const wholeHours = Math.floor(hours)
+    const minutes = Math.round((hours - wholeHours) * 60)
+    return minutes > 0 ? `${wholeHours}h ${minutes}m` : `${wholeHours}h`
   } else {
-    const diffMinutes = Math.floor(diffMs / (1000 * 60))
-    return `${diffMinutes}m ago`
+    const days = Math.floor(hours / 8) // 8 business hours per day
+    const remainingHours = Math.round(hours % 8)
+    return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`
   }
 }
 
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const businessHours = calculateBusinessHours(date, now)
+  return formatBusinessHours(businessHours)
+}
+
 function getAIPriority(ticket: any): string {
-  const hours = Math.floor((Date.now() - new Date(ticket.created_at).getTime()) / (1000 * 60 * 60))
-  if (hours > 24) return 'P1'
-  if (hours > 12) return 'P2'
-  if (hours > 6) return 'P3'
+  const businessHours = calculateBusinessHours(new Date(ticket.created_at), new Date())
+  if (businessHours > 24) return 'P1'
+  if (businessHours > 12) return 'P2'
+  if (businessHours > 6) return 'P3'
   return 'P4'
 }
 
