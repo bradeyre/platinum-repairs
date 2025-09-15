@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+// Helper function to extract device info from description using AI
+async function extractDeviceInfo(description: string, fullTicketData?: any): Promise<string> {
+  try {
+    // Import the device detection function
+    const { getCachedDeviceDetection } = await import('@/lib/device-detection')
+    const result = await getCachedDeviceDetection(description, fullTicketData)
+    
+    // Only use AI result if confidence is high enough
+    if (result.confidence > 0.6) {
+      return result.deviceName
+    }
+    
+    // Fallback: try to extract device info from description manually
+    const devicePatterns = [
+      /iPhone\s+\d+/i,
+      /Samsung\s+Galaxy\s+[A-Z0-9\s]+/i,
+      /iPad\s+[A-Z0-9\s]+/i,
+      /MacBook\s+[A-Z0-9\s]+/i,
+      /Huawei\s+[A-Z0-9\s]+/i,
+      /HONOR\s+[A-Z0-9\s]+/i,
+      /Asus\s+[A-Z0-9\s]+/i,
+      /Device\s+([A-Za-z0-9\s]+)/i
+    ]
+    
+    for (const pattern of devicePatterns) {
+      const match = description.match(pattern)
+      if (match) {
+        return match[0].trim()
+      }
+    }
+    
+    return 'Unknown Device'
+  } catch (error) {
+    console.error('Error extracting device info:', error)
+    return 'Unknown Device'
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Fetch tickets from both PR and DD RepairShopr instances
@@ -72,11 +110,11 @@ async function fetchPRTickets() {
 
   const data = await response.json()
   console.log('🔍 PR API Response:', data.tickets?.length || 0, 'tickets')
-  return data.tickets
-    .filter((ticket: any) => 
-      ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress'].includes(ticket.status)
-    )
-    .map((ticket: any) => ({
+  const filteredTickets = data.tickets.filter((ticket: any) => 
+    ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress'].includes(ticket.status)
+  )
+  
+  const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => ({
       id: ticket.id,
       ticketId: `PR #${ticket.number}`,
       ticketNumber: ticket.number,
@@ -84,7 +122,7 @@ async function fetchPRTickets() {
       description: ticket.subject || 'No description',
       status: ticket.status,
       timeAgo: getTimeAgo(ticket.created_at),
-      deviceInfo: ticket.device_info || 'Unknown Device',
+      deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
       customerName: ticket.customer?.name || 'Unknown Customer',
       customerEmail: ticket.customer?.email,
       customerPhone: ticket.customer?.phone,
@@ -94,7 +132,9 @@ async function fetchPRTickets() {
       ticketType: 'PR' as const,
       timestamp: new Date(ticket.updated_at || ticket.created_at),
       statusChangedAt: ticket.updated_at || ticket.created_at
-    }))
+    })))
+    
+    return processedTickets
 }
 
 async function fetchDDTickets() {
@@ -115,39 +155,42 @@ async function fetchDDTickets() {
 
   const data = await response.json()
   console.log('🔍 DD API Response:', data.tickets?.length || 0, 'tickets')
-  return data.tickets
-    .filter((ticket: any) => {
-      // First filter by allowed statuses
-      const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
-      if (!allowedStatuses.includes(ticket.status)) return false
-      
-      // For DD tickets, exclude those assigned to specific workshops
-      const assignedTo = ticket.assigned_to?.name || ticket.assigned_to || ''
-      if (assignedTo === 'Durban Workshop' || assignedTo === 'Cape Town Workshop') {
-        return false
-      }
-      
-      return true
-    })
-    .map((ticket: any) => ({
-      id: ticket.id,
-      ticketId: `DD #${ticket.number}`,
-      ticketNumber: ticket.number,
-      company: 'DD',
-      description: ticket.subject || 'No description',
-      status: ticket.status,
-      timeAgo: getTimeAgo(ticket.created_at),
-      deviceInfo: ticket.device_info || 'Unknown Device',
-      customerName: ticket.customer?.name || 'Unknown Customer',
-      customerEmail: ticket.customer?.email,
-      customerPhone: ticket.customer?.phone,
-      priority: ticket.priority || 'normal',
-      aiPriority: getAIPriority(ticket),
-      estimatedTime: getEstimatedTime(ticket),
-      ticketType: 'DD' as const,
-      timestamp: new Date(ticket.updated_at || ticket.created_at),
-      statusChangedAt: ticket.updated_at || ticket.created_at
-    }))
+  
+  const filteredTickets = data.tickets.filter((ticket: any) => {
+    // First filter by allowed statuses
+    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
+    if (!allowedStatuses.includes(ticket.status)) return false
+    
+    // For DD tickets, exclude those assigned to specific workshops
+    const assignedTo = ticket.assigned_to?.name || ticket.assigned_to || ''
+    if (assignedTo === 'Durban Workshop' || assignedTo === 'Cape Town Workshop') {
+      return false
+    }
+    
+    return true
+  })
+  
+  const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => ({
+    id: ticket.id,
+    ticketId: `DD #${ticket.number}`,
+    ticketNumber: ticket.number,
+    company: 'DD',
+    description: ticket.subject || 'No description',
+    status: ticket.status,
+    timeAgo: getTimeAgo(ticket.created_at),
+    deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
+    customerName: ticket.customer?.name || 'Unknown Customer',
+    customerEmail: ticket.customer?.email,
+    customerPhone: ticket.customer?.phone,
+    priority: ticket.priority || 'normal',
+    aiPriority: getAIPriority(ticket),
+    estimatedTime: getEstimatedTime(ticket),
+    ticketType: 'DD' as const,
+    timestamp: new Date(ticket.updated_at || ticket.created_at),
+    statusChangedAt: ticket.updated_at || ticket.created_at
+  })))
+  
+  return processedTickets
 }
 
 // Calculate business hours between two dates (8 AM - 6 PM, Monday-Friday)
