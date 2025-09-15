@@ -198,7 +198,62 @@ export default function ClaimManagerPage() {
   const inProgress = damageReports.filter(report => report.status === 'in_repair' || report.status === 'ber_confirmed')
   const completed = damageReports.filter(report => report.status === 'completed')
 
-  const handleOpenModal = (report: DamageReport) => {
+  const suggestPartsBasedOnAssessment = async (report: DamageReport) => {
+    try {
+      // Get available parts for this device
+      const response = await fetch(`/api/parts-pricing?brand=${encodeURIComponent(report.device_brand)}&model=${encodeURIComponent(report.device_model)}`)
+      if (!response.ok) return
+      
+      const data = await response.json()
+      const availableParts = data.parts || []
+      
+      // AI-powered parts suggestion based on technician findings
+      const suggestedParts: PartsPricing[] = []
+      
+      // Check technician findings for common repair scenarios
+      const techFindings = report.tech_findings?.join(' ').toLowerCase() || ''
+      const clientIssues = report.client_reported_issues?.join(' ').toLowerCase() || ''
+      const allText = `${techFindings} ${clientIssues}`.toLowerCase()
+      
+      // Screen-related keywords
+      if (allText.includes('screen') || allText.includes('display') || allText.includes('guard') || allText.includes('crack')) {
+        const screenPart = availableParts.find(part => 
+          part.part_name.toLowerCase().includes('screen') || 
+          part.part_name.toLowerCase().includes('display')
+        )
+        if (screenPart) suggestedParts.push(screenPart)
+      }
+      
+      // Battery-related keywords
+      if (allText.includes('battery') || allText.includes('charging') || allText.includes('power')) {
+        const batteryPart = availableParts.find(part => 
+          part.part_name.toLowerCase().includes('battery')
+        )
+        if (batteryPart) suggestedParts.push(batteryPart)
+      }
+      
+      // Casing/back cover keywords
+      if (allText.includes('casing') || allText.includes('back') || allText.includes('cover') || allText.includes('housing')) {
+        const casingPart = availableParts.find(part => 
+          part.part_name.toLowerCase().includes('casing') || 
+          part.part_name.toLowerCase().includes('back') ||
+          part.part_name.toLowerCase().includes('cover')
+        )
+        if (casingPart) suggestedParts.push(casingPart)
+      }
+      
+      // If we found suggested parts, set them
+      if (suggestedParts.length > 0) {
+        setSelectedParts(suggestedParts)
+        console.log('🤖 AI suggested parts:', suggestedParts)
+      }
+      
+    } catch (error) {
+      console.error('Error suggesting parts:', error)
+    }
+  }
+
+  const handleOpenModal = async (report: DamageReport) => {
     setSelectedReport(report)
     setManagerDecision({
       berDecision: report.manager_ber_decision,
@@ -236,6 +291,20 @@ export default function ClaimManagerPage() {
     } else {
       setSelectedParts([])
       setCustomParts([])
+      
+      // Suggest parts based on technician assessment
+      await suggestPartsBasedOnAssessment(report)
+      
+      // Add default custom part for cleaning/maintenance if mentioned
+      const techFindings = report.tech_findings?.join(' ').toLowerCase() || ''
+      if (techFindings.includes('clean') || techFindings.includes('maintenance')) {
+        setCustomParts([{
+          name: 'Cleaning/Maintenance Service',
+          price: 150, // R150 for cleaning service
+          eta: 1,
+          etaOption: '1-3 days'
+        }])
+      }
     }
     
     setShowModal(true)
