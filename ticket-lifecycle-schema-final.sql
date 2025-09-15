@@ -407,3 +407,5 @@ COMMENT ON COLUMN ticket_lifecycle.is_finalized IS 'True if ticket is completed 
 COMMENT ON COLUMN ticket_lifecycle.sync_priority IS '1=high (completed+old), 2=medium (completed+recent), 3=low (active)';
 COMMENT ON COLUMN ticket_status_changes.business_hours_since_last_change IS 'Business hours only (8 AM - 5 PM, Mon-Fri)';
 COMMENT ON COLUMN ticket_comments.contains_rework_keywords IS 'Flag indicating if comment mentions rework-related terms';
+
+
