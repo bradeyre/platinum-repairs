@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Merge with database data
     const processedTickets = allTickets.map(ticket => {
       const existing = existingTickets?.find(et => 
-        et.repair_shopper_id === ticket.id && et.company === ticket.company
+        et.repair_shopper_id === ticket.ticketNumber && et.company === ticket.ticketType
       )
       
       return {
