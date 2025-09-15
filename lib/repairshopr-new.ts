@@ -391,9 +391,9 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     ]
     
     // Define allowed technicians for Device Doctor
-    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
-    const excludedTechnicians = ['Thasveer', 'Shannon'] // Additional technicians to exclude
-    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    const allowedTechnicians1 = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians1 = ['Thasveer', 'Shannon'] // Additional technicians to exclude
+    const excludedWorkshops1 = ['Durban Workshop', 'Cape Town Workshop']
     
     // Fetch tickets for each status from both APIs (5 statuses × 2 APIs = 10 calls)
     const allApiCalls: Promise<RepairShoprTicket[]>[] = []
@@ -435,7 +435,7 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       
       if (ticket.ticketType === 'DD') {
         // Exclude if assigned to excluded workshops
-        if (assignedTo && excludedWorkshops.includes(assignedTo)) {
+        if (assignedTo && excludedWorkshops1.includes(assignedTo)) {
           console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to excluded workshop: ${assignedTo}`)
           return false
         }
@@ -443,13 +443,13 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       
       // Apply same technician filtering to both DD and PR tickets
       // Only include if assigned to allowed technicians or unassigned
-      if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
+      if (assignedTo && !allowedTechnicians1.includes(assignedTo)) {
         console.log(`🚫 Excluding ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
         return false
       }
       
       // Also exclude specific technicians
-      if (assignedTo && excludedTechnicians.includes(assignedTo)) {
+      if (assignedTo && excludedTechnicians1.includes(assignedTo)) {
         console.log(`🚫 Excluding ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to excluded technician: ${assignedTo}`)
         return false
       }
@@ -510,9 +510,9 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     ]
     
     // Define allowed technicians for Device Doctor
-    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
-    const excludedTechnicians = ['Thasveer', 'Shannon']
-    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    const allowedTechnicians2 = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians2 = ['Thasveer', 'Shannon']
+    const excludedWorkshops2 = ['Durban Workshop', 'Cape Town Workshop']
     
     // Log the base URLs being used
     console.log(`🔍 API BASE URLS:`)
@@ -546,9 +546,9 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     const completedStatuses = ['Resolved', 'Completed', 'Closed File', 'Salvage', 'BER', 'Closed']
     
     const prCompletedTickets = prTickets.filter(ticket => {
-      const status = ticket.status?.toLowerCase() || ''
+      const status = ticket.status || ''
       const isCompleted = completedStatuses.some(completedStatus => 
-        status.includes(completedStatus.toLowerCase())
+        status === completedStatus || status.toLowerCase() === completedStatus.toLowerCase()
       )
       if (isCompleted) {
         console.log(`✅ Found completed PR ticket ${ticket.number || ticket.id}: ${ticket.status}`)
@@ -557,9 +557,9 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     })
     
     const ddCompletedTickets = ddTickets.filter(ticket => {
-      const status = ticket.status?.toLowerCase() || ''
+      const status = ticket.status || ''
       const isCompleted = completedStatuses.some(completedStatus => 
-        status.includes(completedStatus.toLowerCase())
+        status === completedStatus || status.toLowerCase() === completedStatus.toLowerCase()
       )
       if (isCompleted) {
         console.log(`✅ Found completed DD ticket ${ticket.number || ticket.id}: ${ticket.status}`)
@@ -577,9 +577,9 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
     console.log(`🔍 Processed completed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
     // Apply technician filtering for both DD and PR tickets
-    const allowedTechnicians = ['Marshal', 'Malvin', 'Francis', 'Ben']
-    const excludedTechnicians = ['Thasveer', 'Shannon']
-    const excludedWorkshops = ['Durban Workshop', 'Cape Town Workshop']
+    const allowedTechnicians3 = ['Marshal', 'Malvin', 'Francis', 'Ben']
+    const excludedTechnicians3 = ['Thasveer', 'Shannon']
+    const excludedWorkshops3 = ['Durban Workshop', 'Cape Town Workshop']
     
     let filteredTickets = processedTickets.filter(ticket => {
       // Find the original ticket from the appropriate API response
@@ -591,7 +591,7 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
       
       if (ticket.ticketType === 'DD') {
         // Exclude if assigned to excluded workshops
-        if (assignedTo && excludedWorkshops.includes(assignedTo)) {
+        if (assignedTo && excludedWorkshops3.includes(assignedTo)) {
           console.log(`🚫 Excluding DD completed ticket ${ticket.ticketNumber} - assigned to excluded workshop: ${assignedTo}`)
           return false
         }
@@ -599,13 +599,13 @@ export async function getAllCompletedTickets(): Promise<ProcessedTicket[]> {
       
       // Apply same technician filtering to both DD and PR tickets
       // Only include if assigned to allowed technicians or unassigned
-      if (assignedTo && !allowedTechnicians.includes(assignedTo)) {
+      if (assignedTo && !allowedTechnicians3.includes(assignedTo)) {
         console.log(`🚫 Excluding ${ticket.ticketType} completed ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
         return false
       }
       
       // Also exclude specific technicians
-      if (assignedTo && excludedTechnicians.includes(assignedTo)) {
+      if (assignedTo && excludedTechnicians3.includes(assignedTo)) {
         console.log(`🚫 Excluding ${ticket.ticketType} completed ticket ${ticket.ticketNumber} - assigned to excluded technician: ${assignedTo}`)
         return false
       }
