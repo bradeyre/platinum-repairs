@@ -92,6 +92,7 @@ async function fetchPRTickets() {
       aiPriority: getAIPriority(ticket),
       estimatedTime: getEstimatedTime(ticket),
       ticketType: 'PR' as const,
+      timestamp: new Date(ticket.updated_at || ticket.created_at),
       statusChangedAt: ticket.updated_at || ticket.created_at
     }))
 }
@@ -144,6 +145,7 @@ async function fetchDDTickets() {
       aiPriority: getAIPriority(ticket),
       estimatedTime: getEstimatedTime(ticket),
       ticketType: 'DD' as const,
+      timestamp: new Date(ticket.updated_at || ticket.created_at),
       statusChangedAt: ticket.updated_at || ticket.created_at
     }))
 }
