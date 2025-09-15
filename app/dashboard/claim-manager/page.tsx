@@ -445,8 +445,6 @@ export default function ClaimManagerPage() {
         berDecision: decision === 'ber',
         berReason: managerDecision.berReason,
         finalTotalCost: calculateTotalCost(),
-        excessAmount: managerDecision.excessAmount,
-        replacementValue: managerDecision.replacementValue,
         managerNotes: managerDecision.managerNotes,
         selectedParts: selectedParts,
         customParts: customParts,

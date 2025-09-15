@@ -17,8 +17,6 @@ export async function POST(
       berDecision,
       berReason,
       finalTotalCost,
-      excessAmount,
-      replacementValue,
       managerNotes,
       selectedParts,
       customParts,
@@ -31,15 +29,8 @@ export async function POST(
       .update({
         manager_ber_decision: berDecision,
         ber_reason: berReason,
-        final_total_cost: finalTotalCost,
-        excess_amount: excessAmount,
-        replacement_value: replacementValue,
-        notes: managerNotes,
-        final_parts_selected: [
-          ...(selectedParts?.map((part: any) => part.part_name) || []),
-          ...(customParts?.map((part: any) => part.name) || [])
-        ],
-        final_parts_details: {
+        manager_notes: managerNotes,
+        selected_parts: {
           selectedParts: selectedParts || [],
           customParts: customParts || []
         },
