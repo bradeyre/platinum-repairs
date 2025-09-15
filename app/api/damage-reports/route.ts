@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
       repairEstimate, // Old format
       partsNeeded, // Old format
       suggestedParts, // New format
+      partsUsed, // From technician dashboard
       status = 'completed', // New format defaults to completed
       timeSpent,
       aiAnalysis,
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
         client_reported_issues: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.label) || [],
         tech_findings: dynamicCheckboxes?.filter((cb: any) => cb.checked).map((cb: any) => cb.notes).filter((note: any) => note) || [],
         damage_photos: photos || [],
-        final_parts_selected: suggestedParts || [],
+        final_parts_selected: suggestedParts || partsUsed || [],
         total_parts_cost: 0, // Will be calculated from parts pricing
         final_total_cost: 0, // Final repair cost for Claim Manager
         excess_amount: 0, // Insurance excess amount

@@ -200,14 +200,77 @@ export default function ClaimManagerPage() {
 
   const suggestPartsBasedOnAssessment = async (report: DamageReport) => {
     try {
-      // Get available parts for this device
-      const response = await fetch(`/api/parts-pricing?brand=${encodeURIComponent(report.device_brand)}&model=${encodeURIComponent(report.device_model)}`)
-      if (!response.ok) return
+      // Get available parts for this device - try multiple model variations
+      let availableParts: any[] = []
       
-      const data = await response.json()
-      const availableParts = data.parts || []
+      // Try exact model match first
+      let response = await fetch(`/api/parts-pricing?brand=${encodeURIComponent(report.device_brand)}&model=${encodeURIComponent(report.device_model)}`)
+      if (response.ok) {
+        const data = await response.json()
+        availableParts = data.parts || []
+      }
       
-      // AI-powered parts suggestion based on technician findings
+      // If no parts found, try to find similar models
+      if (availableParts.length === 0) {
+        const brandResponse = await fetch(`/api/parts-pricing?action=models&brand=${encodeURIComponent(report.device_brand)}`)
+        if (brandResponse.ok) {
+          const brandData = await brandResponse.json()
+          const models = brandData.models || []
+          
+          // Find models that contain the device model name
+          const matchingModels = models.filter((model: string) => 
+            model.toLowerCase().includes(report.device_model.toLowerCase()) ||
+            report.device_model.toLowerCase().includes(model.toLowerCase())
+          )
+          
+          // Try each matching model
+          for (const model of matchingModels) {
+            const modelResponse = await fetch(`/api/parts-pricing?brand=${encodeURIComponent(report.device_brand)}&model=${encodeURIComponent(model)}`)
+            if (modelResponse.ok) {
+              const modelData = await modelResponse.json()
+              if (modelData.parts && modelData.parts.length > 0) {
+                availableParts = modelData.parts
+                console.log(`✅ Found parts for model variation: ${model}`)
+                break
+              }
+            }
+          }
+        }
+      }
+      
+      // First priority: Use technician's selected parts if available
+      if (report.final_parts_selected && report.final_parts_selected.length > 0) {
+        const technicianSelectedParts: PartsPricing[] = []
+        
+        for (const partName of report.final_parts_selected) {
+          // Try to find exact match first
+          let matchingPart = availableParts.find(part => 
+            part.part_name.toLowerCase() === partName.toLowerCase()
+          )
+          
+          // If no exact match, try partial match
+          if (!matchingPart) {
+            matchingPart = availableParts.find(part => 
+              part.part_name.toLowerCase().includes(partName.toLowerCase()) ||
+              partName.toLowerCase().includes(part.part_name.toLowerCase())
+            )
+          }
+          
+          if (matchingPart) {
+            technicianSelectedParts.push(matchingPart)
+          } else {
+            console.log(`⚠️ Part "${partName}" not found in pricing sheet for ${report.device_brand} ${report.device_model}`)
+          }
+        }
+        
+        if (technicianSelectedParts.length > 0) {
+          setSelectedParts(technicianSelectedParts)
+          console.log('🔧 Technician selected parts:', technicianSelectedParts)
+          return // Don't run AI suggestions if technician already selected parts
+        }
+      }
+      
+      // Fallback: AI-powered parts suggestion based on technician findings
       const suggestedParts: PartsPricing[] = []
       
       // Check technician findings for common repair scenarios
