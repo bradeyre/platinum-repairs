@@ -11,24 +11,13 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 Total tickets from getAllTickets():', allTickets.length)
     
-    // Get existing tickets from database to check assignments
-    const { data: existingTickets } = await supabaseAdmin
-      .from('repair_shopper_tickets')
-      .select('*')
-
-    // Merge with database data
-    const processedTickets = allTickets.map(ticket => {
-      const existing = existingTickets?.find(et => 
-        et.repair_shopper_id === ticket.ticketNumber && et.company === ticket.ticketType
-      )
-      
-      return {
-        ...ticket,
-        // Prioritize RepairShopr assignment, fallback to database assignment
-        assignedTo: ticket.assignedTo || existing?.assigned_to || null,
-        dbId: existing?.id || null
-      }
-    })
+    // For now, we don't store ticket assignments in the database
+    // In a full implementation, you would sync with RepairShopr and store assignments
+    const processedTickets = allTickets.map(ticket => ({
+      ...ticket,
+      assignedTo: ticket.assignedTo || null, // Use RepairShopr assignment if available
+      dbId: null // No local database storage yet
+    }))
 
     console.log('🔍 Final processed tickets count:', processedTickets.length)
     
