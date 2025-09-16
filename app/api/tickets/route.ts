@@ -100,8 +100,63 @@ function getTimeAgo(dateString: string): string {
   return formatBusinessHours(businessHours)
 }
 
+// Extract timing information from admin notes
+function extractTimingFromAdminNotes(ticket: any): Date | null {
+  if (!ticket.comments || !Array.isArray(ticket.comments)) {
+    return null
+  }
+  
+  // Look for admin notes with timing information
+  const adminNotes = ticket.comments.filter((comment: any) => 
+    comment.user?.role === 'admin' || 
+    comment.user?.role === 'manager' ||
+    comment.user?.username?.toLowerCase().includes('admin') ||
+    comment.user?.username?.toLowerCase().includes('manager')
+  )
+  
+  // Look for patterns like "Started at", "Work began", "Repair started", etc.
+  const timingPatterns = [
+    /started at (\d{1,2}:\d{2})/i,
+    /work began at (\d{1,2}:\d{2})/i,
+    /repair started at (\d{1,2}:\d{2})/i,
+    /damage report started at (\d{1,2}:\d{2})/i,
+    /began at (\d{1,2}:\d{2})/i,
+    /started: (\d{1,2}:\d{2})/i,
+    /time: (\d{1,2}:\d{2})/i
+  ]
+  
+  for (const note of adminNotes) {
+    const noteText = note.body || note.comment || ''
+    for (const pattern of timingPatterns) {
+      const match = noteText.match(pattern)
+      if (match) {
+        const timeStr = match[1]
+        const noteDate = new Date(note.created_at)
+        const [hours, minutes] = timeStr.split(':').map(Number)
+        
+        // Create a date with the time from the note
+        const timingDate = new Date(noteDate)
+        timingDate.setHours(hours, minutes, 0, 0)
+        
+        console.log(`📝 Found timing from admin note: ${timeStr} on ${noteDate.toDateString()}`)
+        return timingDate
+      }
+    }
+  }
+  
+  return null
+}
+
 // Calculate time since last status change (more accurate for waiting time)
 function getTimeSinceStatusChange(ticket: any): string {
+  // First, try to get timing from admin notes (for tickets not using our system)
+  const adminTiming = extractTimingFromAdminNotes(ticket)
+  if (adminTiming) {
+    const now = new Date()
+    const businessHours = calculateBusinessHours(adminTiming, now)
+    return formatBusinessHours(businessHours)
+  }
+  
   // If ticket has status changes, use the most recent one
   if (ticket.status_changes && ticket.status_changes.length > 0) {
     // Sort by created_at and get the most recent status change
@@ -123,7 +178,11 @@ function getAIPriority(ticket: any): string {
   // Use status change time for more accurate priority calculation
   let referenceDate = new Date(ticket.created_at)
   
-  if (ticket.status_changes && ticket.status_changes.length > 0) {
+  // First, try to get timing from admin notes (for tickets not using our system)
+  const adminTiming = extractTimingFromAdminNotes(ticket)
+  if (adminTiming) {
+    referenceDate = adminTiming
+  } else if (ticket.status_changes && ticket.status_changes.length > 0) {
     const sortedChanges = ticket.status_changes.sort((a: any, b: any) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
@@ -145,7 +204,7 @@ async function fetchPRTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN
   console.log('🔍 Fetching PR tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand=status_changes', {
+  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -161,7 +220,7 @@ async function fetchPRTickets() {
   console.log('🔍 PR API Response:', data.tickets?.length || 0, 'tickets')
   
   const filteredTickets = data.tickets.filter((ticket: any) => 
-    ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress'].includes(ticket.status)
+    ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress', 'Awaiting Walk-in Repair', 'Awaiting Walk-in DR'].includes(ticket.status)
   )
   
   const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => ({
@@ -192,7 +251,7 @@ async function fetchDDTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN_DD
   console.log('🔍 Fetching DD tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand=status_changes', {
+  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -209,7 +268,7 @@ async function fetchDDTickets() {
   
   const filteredTickets = data.tickets.filter((ticket: any) => {
     // First filter by allowed statuses
-    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress']
+    const allowedStatuses = ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress', 'Awaiting Walk-in Repair', 'Awaiting Walk-in DR']
     if (!allowedStatuses.includes(ticket.status)) return false
     
     // For DD tickets, exclude those assigned to specific workshops

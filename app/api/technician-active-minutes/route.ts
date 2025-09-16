@@ -54,13 +54,79 @@ function calculateBusinessMinutes(startTime: string, endTime: string): number {
   return totalMinutes
 }
 
+// Function to extract timing from admin notes
+function extractTimingFromAdminNotes(ticket: any): { startTime: Date | null, endTime: Date | null } {
+  if (!ticket.comments || !Array.isArray(ticket.comments)) {
+    return { startTime: null, endTime: null }
+  }
+  
+  // Look for admin notes with timing information
+  const adminNotes = ticket.comments.filter((comment: any) => 
+    comment.user?.role === 'admin' || 
+    comment.user?.role === 'manager' ||
+    comment.user?.username?.toLowerCase().includes('admin') ||
+    comment.user?.username?.toLowerCase().includes('manager')
+  )
+  
+  // Look for start and end time patterns
+  const startPatterns = [
+    /started at (\d{1,2}:\d{2})/i,
+    /work began at (\d{1,2}:\d{2})/i,
+    /repair started at (\d{1,2}:\d{2})/i,
+    /damage report started at (\d{1,2}:\d{2})/i,
+    /began at (\d{1,2}:\d{2})/i
+  ]
+  
+  const endPatterns = [
+    /completed at (\d{1,2}:\d{2})/i,
+    /finished at (\d{1,2}:\d{2})/i,
+    /work completed at (\d{1,2}:\d{2})/i,
+    /repair completed at (\d{1,2}:\d{2})/i,
+    /ended at (\d{1,2}:\d{2})/i
+  ]
+  
+  let startTime: Date | null = null
+  let endTime: Date | null = null
+  
+  for (const note of adminNotes) {
+    const noteText = note.body || note.comment || ''
+    const noteDate = new Date(note.created_at)
+    
+    // Check for start time
+    for (const pattern of startPatterns) {
+      const match = noteText.match(pattern)
+      if (match && !startTime) {
+        const timeStr = match[1]
+        const [hours, minutes] = timeStr.split(':').map(Number)
+        startTime = new Date(noteDate)
+        startTime.setHours(hours, minutes, 0, 0)
+        break
+      }
+    }
+    
+    // Check for end time
+    for (const pattern of endPatterns) {
+      const match = noteText.match(pattern)
+      if (match && !endTime) {
+        const timeStr = match[1]
+        const [hours, minutes] = timeStr.split(':').map(Number)
+        endTime = new Date(noteDate)
+        endTime.setHours(hours, minutes, 0, 0)
+        break
+      }
+    }
+  }
+  
+  return { startTime, endTime }
+}
+
 // Function to get technician work time from RepairShopr tickets
 async function getTechnicianWorkTimeFromTickets(technicianName: string, date: string) {
   try {
-    // Get tickets for both PR and DD instances
+    // Get tickets for both PR and DD instances with comments
     const [prResponse, ddResponse] = await Promise.all([
-      fetch(`https://platinumrepairs.repairshopr.com/api/v1/tickets?api_key=${process.env.REPAIRSHOPR_TOKEN}&assigned_to=${encodeURIComponent(technicianName)}&created_at=${date}`),
-      fetch(`https://devicedoctorsa.repairshopr.com/api/v1/tickets?api_key=${process.env.REPAIRSHOPR_TOKEN_DD}&assigned_to=${encodeURIComponent(technicianName)}&created_at=${date}`)
+      fetch(`https://platinumrepairs.repairshopr.com/api/v1/tickets?api_key=${process.env.REPAIRSHOPR_TOKEN}&assigned_to=${encodeURIComponent(technicianName)}&created_at=${date}&expand=comments`),
+      fetch(`https://devicedoctorsa.repairshopr.com/api/v1/tickets?api_key=${process.env.REPAIRSHOPR_TOKEN_DD}&assigned_to=${encodeURIComponent(technicianName)}&created_at=${date}&expand=comments`)
     ])
     
     const [prData, ddData] = await Promise.all([
@@ -75,27 +141,44 @@ async function getTechnicianWorkTimeFromTickets(technicianName: string, date: st
     // Process each ticket to calculate work time
     for (const ticket of allTickets) {
       if (ticket.status && ticket.created_at) {
-        // Calculate time from ticket creation to status change
-        const statusChanges = ticket.status_changes || []
+        // First, try to get timing from admin notes
+        const adminTiming = extractTimingFromAdminNotes(ticket)
         
-        if (statusChanges.length > 0) {
-          // Get the first status change (when work started)
-          const firstChange = statusChanges[0]
-          const workStart = firstChange.created_at || ticket.created_at
-          
-          // Get the last status change (when work completed)
-          const lastChange = statusChanges[statusChanges.length - 1]
-          const workEnd = lastChange.created_at || ticket.updated_at || ticket.created_at
-          
-          // Calculate business minutes between start and end
-          const workMinutes = calculateBusinessMinutes(workStart, workEnd)
+        if (adminTiming.startTime && adminTiming.endTime) {
+          // Use admin note timing
+          const workMinutes = calculateBusinessMinutes(adminTiming.startTime.toISOString(), adminTiming.endTime.toISOString())
           totalActiveMinutes += workMinutes
-          
-          console.log(`📊 Ticket ${ticket.number}: ${workMinutes} minutes of work`)
+          console.log(`📝 Ticket ${ticket.number}: ${workMinutes} minutes from admin notes`)
+        } else if (adminTiming.startTime) {
+          // Only start time from admin notes, estimate end time
+          const endTime = ticket.updated_at || new Date().toISOString()
+          const workMinutes = calculateBusinessMinutes(adminTiming.startTime.toISOString(), endTime)
+          totalActiveMinutes += Math.min(workMinutes, 480) // Cap at 8 hours
+          console.log(`📝 Ticket ${ticket.number}: ${workMinutes} minutes from admin start time`)
         } else {
-          // If no status changes, estimate based on ticket age
-          const ticketAge = calculateBusinessMinutes(ticket.created_at, ticket.updated_at || new Date().toISOString())
-          totalActiveMinutes += Math.min(ticketAge, 480) // Cap at 8 hours per ticket
+          // Fallback to status changes
+          const statusChanges = ticket.status_changes || []
+          
+          if (statusChanges.length > 0) {
+            // Get the first status change (when work started)
+            const firstChange = statusChanges[0]
+            const workStart = firstChange.created_at || ticket.created_at
+            
+            // Get the last status change (when work completed)
+            const lastChange = statusChanges[statusChanges.length - 1]
+            const workEnd = lastChange.created_at || ticket.updated_at || ticket.created_at
+            
+            // Calculate business minutes between start and end
+            const workMinutes = calculateBusinessMinutes(workStart, workEnd)
+            totalActiveMinutes += workMinutes
+            
+            console.log(`📊 Ticket ${ticket.number}: ${workMinutes} minutes from status changes`)
+          } else {
+            // If no status changes, estimate based on ticket age
+            const ticketAge = calculateBusinessMinutes(ticket.created_at, ticket.updated_at || new Date().toISOString())
+            totalActiveMinutes += Math.min(ticketAge, 480) // Cap at 8 hours per ticket
+            console.log(`📊 Ticket ${ticket.number}: ${ticketAge} minutes estimated`)
+          }
         }
       }
     }
