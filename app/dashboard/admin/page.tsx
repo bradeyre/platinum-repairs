@@ -5,6 +5,7 @@ import DashboardNavigation from '@/components/DashboardNavigation'
 import ConsolidatedAnalytics from '@/components/ConsolidatedAnalytics'
 import DeepAnalyticsReport from '@/components/DeepAnalyticsReport'
 import ComprehensiveAnalytics from '@/components/ComprehensiveAnalytics'
+import ActiveMinutesTracker from '@/components/ActiveMinutesTracker'
 
 interface ProcessedTicket {
   ticketId: string
@@ -632,6 +633,7 @@ export default function AdminDashboard() {
                 { id: 'comprehensive-analytics', name: 'Comprehensive Analytics', icon: '📊' },
                 { id: 'analytics', name: 'Analytics Dashboard', icon: '📈' },
                 { id: 'deep-analytics', name: 'Deep Analytics Report', icon: '🔍' },
+                { id: 'active-minutes', name: 'Active Minutes Tracker', icon: '⏱️' },
                 { id: 'repair-archive', name: 'Repair Archive', icon: '🔧' },
                 { id: 'technicians', name: 'Technician Management', icon: '👥' }
               ].map((tab) => (
@@ -944,6 +946,13 @@ export default function AdminDashboard() {
             {activeTab === 'deep-analytics' && (
               <div className="p-6">
                 <DeepAnalyticsReport />
+              </div>
+            )}
+
+            {/* Active Minutes Tracker Tab */}
+            {activeTab === 'active-minutes' && (
+              <div className="p-6">
+                <ActiveMinutesTracker />
               </div>
             )}
 

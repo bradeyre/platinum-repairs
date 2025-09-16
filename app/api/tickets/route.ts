@@ -215,13 +215,17 @@ async function fetchDDTickets() {
     assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
   })))
 
-  // Additional filtering after processing to catch workshop assignments
-  const finalFilteredTickets = processedTickets.filter(ticket => {
-    if (ticket.assignedTo === 'Durban Workshop' || ticket.assignedTo === 'Cape Town Workshop') {
-      console.log(`🚫 Post-processing filter: Removing DD ticket ${ticket.ticketNumber} assigned to: ${ticket.assignedTo}`)
-      return false
+  // Map workshop assignments to specific technicians
+  const finalFilteredTickets = processedTickets.map(ticket => {
+    if (ticket.assignedTo === 'Durban Workshop') {
+      console.log(`🔄 Mapping Durban Workshop ticket ${ticket.ticketNumber} to Thasveer`)
+      return { ...ticket, assignedTo: 'Thasveer' }
     }
-    return true
+    if (ticket.assignedTo === 'Cape Town Workshop') {
+      console.log(`🔄 Mapping Cape Town Workshop ticket ${ticket.ticketNumber} to Reece`)
+      return { ...ticket, assignedTo: 'Reece' }
+    }
+    return ticket
   })
   
   return finalFilteredTickets
