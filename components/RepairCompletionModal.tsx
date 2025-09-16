@@ -65,12 +65,32 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
     return () => clearInterval(interval)
   }, [timerStarted, timerPaused, timerStartTime, pausedTime])
 
-  const startTimer = () => {
+  const startTimer = async () => {
     if (!timerStarted) {
       setTimerStartTime(new Date())
       setTimerStarted(true)
       setTimerPaused(false)
       setPausedTime(0)
+      
+      // Record time tracking entry
+      try {
+        await fetch('/api/time-tracking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: ticket.ticketId,
+            technicianId: ticket.assignedTo || 'unknown',
+            technicianName: ticket.assignedTo || 'unknown',
+            workType: 'repair',
+            description: `Repair work on ${ticket.deviceInfo}`,
+            startTime: new Date().toISOString(),
+            status: 'active'
+          })
+        })
+        console.log('✅ Time tracking started for repair work')
+      } catch (error) {
+        console.error('❌ Failed to start time tracking:', error)
+      }
     } else if (timerPaused) {
       // Resume from pause
       setTimerStartTime(new Date())
@@ -174,6 +194,25 @@ export default function RepairCompletionModal({ ticket, onClose, onSave }: Repai
     try {
       // Convert photos to base64
       const photoBase64s = await convertPhotosToBase64(repairPhotos)
+
+      // Complete time tracking entry
+      try {
+        await fetch('/api/time-tracking', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: ticket.ticketId,
+            technicianId: ticket.assignedTo || 'unknown',
+            endTime: new Date().toISOString(),
+            duration: elapsedTime,
+            status: 'completed',
+            productivityScore: 85 // Default score, could be calculated based on time vs expected
+          })
+        })
+        console.log('✅ Time tracking completed for repair work')
+      } catch (error) {
+        console.error('❌ Failed to complete time tracking:', error)
+      }
 
       const repairData = {
         ...formData,

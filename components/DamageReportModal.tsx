@@ -522,7 +522,7 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
     setDynamicCheckboxes(checkboxes)
   }
 
-  const startTimer = () => {
+  const startTimer = async () => {
     if (!currentUser) {
       alert('Please wait for user authentication')
       return
@@ -535,6 +535,26 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       setTimerStarted(true)
       setTimerPaused(false)
       setPausedTime(0)
+      
+      // Record time tracking entry
+      try {
+        await fetch('/api/time-tracking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: ticket.ticketId,
+            technicianId: currentUser.id,
+            technicianName: currentUser.full_name || currentUser.username,
+            workType: 'damage_report',
+            description: `Damage assessment for ${ticket.deviceInfo}`,
+            startTime: new Date().toISOString(),
+            status: 'active'
+          })
+        })
+        console.log('✅ Time tracking started for damage report')
+      } catch (error) {
+        console.error('❌ Failed to start time tracking:', error)
+      }
       
       const interval = setInterval(() => {
         const elapsed = Date.now() - start
@@ -698,6 +718,25 @@ export default function DamageReportModal({ ticket, onClose, onSave }: DamageRep
       
       // Stop timer
       stopTimer()
+      
+      // Complete time tracking entry
+      try {
+        await fetch('/api/time-tracking', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: ticket.ticketId,
+            technicianId: currentUser.id,
+            endTime: new Date().toISOString(),
+            duration: Math.floor(timerTime / 1000), // Convert to seconds
+            status: 'completed',
+            productivityScore: 90 // Default score for damage reports
+          })
+        })
+        console.log('✅ Time tracking completed for damage report')
+      } catch (error) {
+        console.error('❌ Failed to complete time tracking:', error)
+      }
       
       const reportData = {
         ...formData,
