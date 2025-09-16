@@ -913,10 +913,12 @@ export default function AdminDashboard() {
                               // Ensure timestamp is a Date object
                               const ticketDate = ticket.timestamp instanceof Date ? ticket.timestamp : new Date(ticket.timestamp)
                               const businessHoursWaiting = getBusinessHours(ticketDate, new Date())
-                              if (businessHoursWaiting > 4) {
-                                return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >4 business hours - RED
+                              if (businessHoursWaiting > 12) {
+                                return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >12 business hours - RED
+                              } else if (businessHoursWaiting > 6) {
+                                return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 6-12 business hours - ORANGE
                               } else if (businessHoursWaiting > 2) {
-                                return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 2-4 business hours - ORANGE
+                                return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500' // 2-6 business hours - YELLOW
                               } else {
                                 return 'bg-green-100 text-green-800' // <2 business hours - GREEN
                               }
