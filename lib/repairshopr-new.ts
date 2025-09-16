@@ -391,10 +391,10 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       'Awaiting Walk-in DR'
     ]
     
-    // Define allowed technicians for Device Doctor
-    const allowedTechnicians1 = ['Marshal', 'Malvin', 'Francis', 'Ben']
-    const excludedTechnicians1 = ['Thasveer', 'Shannon'] // Additional technicians to exclude
-    const excludedWorkshops1 = ['Durban Workshop', 'Cape Town Workshop']
+    // Define allowed technicians for Device Doctor (expanded list)
+    const allowedTechnicians1 = ['Marshal', 'Malvin', 'Francis', 'Ben', 'Thasveer', 'Shannon', 'Reece']
+    const excludedTechnicians1 = [] // No longer excluding any technicians
+    const excludedWorkshops1 = [] // No longer excluding workshops - we want to include them
     
     // Fetch tickets for each status from both APIs (7 statuses × 2 APIs = 14 calls)
     const allApiCalls: Promise<RepairShoprTicket[]>[] = []
@@ -425,7 +425,7 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
     
     console.log(`🔍 Processed tickets: PR: ${processedTickets1.length}, DD: ${processedTickets2.length}`)
     
-    // Apply technician filtering for both DD and PR tickets
+    // Apply technician filtering and workshop mapping for both DD and PR tickets
     let filteredTickets = processedTickets.filter(ticket => {
       // Find the original ticket from the appropriate API response
       const originalTicket = ticket.ticketType === 'DD' 
@@ -434,28 +434,17 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       
       const assignedTo = originalTicket?.user?.full_name
       
-      if (ticket.ticketType === 'DD') {
-        // Exclude if assigned to excluded workshops
-        if (assignedTo && excludedWorkshops1.includes(assignedTo)) {
-          console.log(`🚫 Excluding DD ticket ${ticket.ticketNumber} - assigned to excluded workshop: ${assignedTo}`)
-          return false
-        }
+      // Map workshop assignments to specific technicians
+      if (assignedTo === 'Durban Workshop') {
+        ticket.assignedTo = 'Thasveer'
+        console.log(`🏭 Mapping DD ticket ${ticket.ticketNumber} from Durban Workshop to Thasveer`)
+      } else if (assignedTo === 'Cape Town Workshop') {
+        ticket.assignedTo = 'Reece'
+        console.log(`🏭 Mapping DD ticket ${ticket.ticketNumber} from Cape Town Workshop to Reece`)
       }
       
-      // Apply same technician filtering to both DD and PR tickets
-      // Only include if assigned to allowed technicians or unassigned
-      if (assignedTo && !allowedTechnicians1.includes(assignedTo)) {
-        console.log(`🚫 Excluding ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to non-allowed technician: ${assignedTo}`)
-        return false
-      }
-      
-      // Also exclude specific technicians
-      if (assignedTo && excludedTechnicians1.includes(assignedTo)) {
-        console.log(`🚫 Excluding ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to excluded technician: ${assignedTo}`)
-        return false
-      }
-      
-      console.log(`✅ Including ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to: ${assignedTo || 'Unassigned'}`)
+      // Include all tickets - no more restrictive filtering
+      console.log(`✅ Including ${ticket.ticketType} ticket ${ticket.ticketNumber} - assigned to: ${ticket.assignedTo || assignedTo || 'Unassigned'}`)
       return true
     })
     
