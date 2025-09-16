@@ -199,7 +199,7 @@ async function fetchTicketDetails(ticketId: string, ticketType: 'PR' | 'DD'): Pr
 
 // Calculate time since last status change (more accurate for waiting time)
 async function getTimeSinceStatusChange(ticket: any): Promise<string> {
-  console.log(`⏰ Calculating timing for ticket ${ticket.number}...`)
+  console.error(`⏰ Calculating timing for ticket ${ticket.number}...`)
   
   // First, try to get timing from admin notes (for tickets not using our system)
   const adminTiming = extractTimingFromAdminNotes(ticket)
@@ -207,13 +207,13 @@ async function getTimeSinceStatusChange(ticket: any): Promise<string> {
     const now = new Date()
     const businessHours = calculateBusinessHours(adminTiming, now)
     const result = formatBusinessHours(businessHours)
-    console.log(`✅ Ticket ${ticket.number}: Using admin timing - ${result}`)
+    console.error(`✅ Ticket ${ticket.number}: Using admin timing - ${result}`)
     return result
   }
   
   // If ticket has status changes, use the most recent one
   if (ticket.status_changes && ticket.status_changes.length > 0) {
-    console.log(`📊 Ticket ${ticket.number}: Using status changes (${ticket.status_changes.length} changes)`)
+    console.error(`📊 Ticket ${ticket.number}: Using status changes (${ticket.status_changes.length} changes)`)
     // Sort by created_at and get the most recent status change
     const sortedChanges = ticket.status_changes.sort((a: any, b: any) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -223,12 +223,12 @@ async function getTimeSinceStatusChange(ticket: any): Promise<string> {
     const now = new Date()
     const businessHours = calculateBusinessHours(statusChangeDate, now)
     const result = formatBusinessHours(businessHours)
-    console.log(`📊 Ticket ${ticket.number}: Using status change timing - ${result} (from ${lastStatusChange.status})`)
+    console.error(`📊 Ticket ${ticket.number}: Using status change timing - ${result} (from ${lastStatusChange.status})`)
     return result
   }
   
   // If no status changes in basic data, try to fetch detailed ticket info
-  console.log(`🔍 No status changes found, fetching detailed info for ticket ${ticket.number}`)
+  console.error(`🔍 No status changes found, fetching detailed info for ticket ${ticket.number}`)
   const ticketType = ticket.ticketId?.includes('PR') ? 'PR' : 'DD'
   const detailedTicket = await fetchTicketDetails(ticket.id, ticketType)
   
@@ -239,13 +239,13 @@ async function getTimeSinceStatusChange(ticket: any): Promise<string> {
       const now = new Date()
       const businessHours = calculateBusinessHours(detailedAdminTiming, now)
       const result = formatBusinessHours(businessHours)
-      console.log(`✅ Ticket ${ticket.number}: Using detailed admin timing - ${result}`)
+      console.error(`✅ Ticket ${ticket.number}: Using detailed admin timing - ${result}`)
       return result
     }
     
     // Try status changes from detailed ticket
     if (detailedTicket.status_changes && detailedTicket.status_changes.length > 0) {
-      console.log(`📊 Ticket ${ticket.number}: Using detailed status changes (${detailedTicket.status_changes.length} changes)`)
+      console.error(`📊 Ticket ${ticket.number}: Using detailed status changes (${detailedTicket.status_changes.length} changes)`)
       const sortedChanges = detailedTicket.status_changes.sort((a: any, b: any) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
@@ -254,13 +254,13 @@ async function getTimeSinceStatusChange(ticket: any): Promise<string> {
       const now = new Date()
       const businessHours = calculateBusinessHours(statusChangeDate, now)
       const result = formatBusinessHours(businessHours)
-      console.log(`📊 Ticket ${ticket.number}: Using detailed status change timing - ${result} (from ${lastStatusChange.status})`)
+      console.error(`📊 Ticket ${ticket.number}: Using detailed status change timing - ${result} (from ${lastStatusChange.status})`)
       return result
     }
   }
   
   // Fallback to ticket creation date if no status changes
-  console.log(`📅 Ticket ${ticket.number}: Using creation date fallback`)
+  console.error(`📅 Ticket ${ticket.number}: Using creation date fallback`)
   return getTimeAgo(ticket.created_at)
 }
 
@@ -325,12 +325,12 @@ async function fetchPRTickets() {
     ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress', 'Awaiting Walk-in Repair', 'Awaiting Walk-in DR'].includes(ticket.status)
   )
   
-  console.log(`🔍 Processing ${filteredTickets.length} PR tickets...`)
+  console.error(`🔍 Processing ${filteredTickets.length} PR tickets...`)
   
   const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => {
-    console.log(`🔄 Processing PR ticket ${ticket.number}...`)
+    console.error(`🔄 Processing PR ticket ${ticket.number}...`)
     const timeAgo = await getTimeSinceStatusChange(ticket)
-    console.log(`✅ PR ticket ${ticket.number} timing: ${timeAgo}`)
+    console.error(`✅ PR ticket ${ticket.number} timing: ${timeAgo}`)
     
     return {
       id: ticket.id,
@@ -392,12 +392,12 @@ async function fetchDDTickets() {
     return true
   })
   
-  console.log(`🔍 Processing ${filteredTickets.length} DD tickets...`)
+  console.error(`🔍 Processing ${filteredTickets.length} DD tickets...`)
   
   const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => {
-    console.log(`🔄 Processing DD ticket ${ticket.number}...`)
+    console.error(`🔄 Processing DD ticket ${ticket.number}...`)
     const timeAgo = await getTimeSinceStatusChange(ticket)
-    console.log(`✅ DD ticket ${ticket.number} timing: ${timeAgo}`)
+    console.error(`✅ DD ticket ${ticket.number} timing: ${timeAgo}`)
     
     return {
       id: ticket.id,
