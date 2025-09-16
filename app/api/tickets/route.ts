@@ -228,7 +228,8 @@ async function fetchPRTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN
   console.log('🔍 Fetching PR tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand[]=status_changes&expand[]=comments', {
+  // Try different expand parameter formats
+  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -286,7 +287,7 @@ async function fetchDDTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN_DD
   console.log('🔍 Fetching DD tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand[]=status_changes&expand[]=comments', {
+  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -392,7 +393,6 @@ export async function GET(request: NextRequest) {
     })
 
     console.log('🔍 Final processed tickets count:', processedTickets.length)
-    console.log('🔍 Tickets assigned to Ben:', processedTickets.filter(t => t.assignedTo?.toLowerCase() === 'ben').length)
     
     return NextResponse.json({ 
       tickets: processedTickets,
