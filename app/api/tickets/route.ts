@@ -228,7 +228,7 @@ async function fetchPRTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN
   console.log('🔍 Fetching PR tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
+  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand[]=status_changes&expand[]=comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -242,6 +242,17 @@ async function fetchPRTickets() {
 
   const data = await response.json()
   console.log('🔍 PR API Response:', data.tickets?.length || 0, 'tickets')
+  
+  // Debug: Check if comments are included in the response
+  if (data.tickets && data.tickets.length > 0) {
+    const sampleTicket = data.tickets[0]
+    console.log('🔍 Sample ticket structure:', {
+      hasComments: !!sampleTicket.comments,
+      commentsCount: sampleTicket.comments?.length || 0,
+      hasStatusChanges: !!sampleTicket.status_changes,
+      statusChangesCount: sampleTicket.status_changes?.length || 0
+    })
+  }
   
   const filteredTickets = data.tickets.filter((ticket: any) => 
     ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress', 'Awaiting Walk-in Repair', 'Awaiting Walk-in DR'].includes(ticket.status)
@@ -275,7 +286,7 @@ async function fetchDDTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN_DD
   console.log('🔍 Fetching DD tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
+  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand[]=status_changes&expand[]=comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
