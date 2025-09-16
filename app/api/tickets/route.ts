@@ -163,8 +163,42 @@ function extractTimingFromAdminNotes(ticket: any): Date | null {
   return null
 }
 
+// Fetch detailed ticket information including comments and status changes
+async function fetchTicketDetails(ticketId: string, ticketType: 'PR' | 'DD'): Promise<any> {
+  try {
+    const token = ticketType === 'PR' ? process.env.REPAIRSHOPR_TOKEN : process.env.REPAIRSHOPR_TOKEN_DD
+    const baseUrl = ticketType === 'PR' 
+      ? 'https://platinumrepairs.repairshopr.com/api/v1'
+      : 'https://devicedoctorsa.repairshopr.com/api/v1'
+    
+    const response = await fetch(`${baseUrl}/tickets/${ticketId}?expand=status_changes,comments`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      console.log(`🔍 Fetched details for ticket ${ticketId}:`, {
+        hasComments: !!data.ticket?.comments,
+        commentsCount: data.ticket?.comments?.length || 0,
+        hasStatusChanges: !!data.ticket?.status_changes,
+        statusChangesCount: data.ticket?.status_changes?.length || 0
+      })
+      return data.ticket
+    } else {
+      console.log(`❌ Failed to fetch details for ticket ${ticketId}: ${response.status}`)
+      return null
+    }
+  } catch (error) {
+    console.error(`❌ Error fetching ticket details for ${ticketId}:`, error)
+    return null
+  }
+}
+
 // Calculate time since last status change (more accurate for waiting time)
-function getTimeSinceStatusChange(ticket: any): string {
+async function getTimeSinceStatusChange(ticket: any): Promise<string> {
   console.log(`⏰ Calculating timing for ticket ${ticket.number}...`)
   
   // First, try to get timing from admin notes (for tickets not using our system)
@@ -191,6 +225,38 @@ function getTimeSinceStatusChange(ticket: any): string {
     const result = formatBusinessHours(businessHours)
     console.log(`📊 Ticket ${ticket.number}: Using status change timing - ${result} (from ${lastStatusChange.status})`)
     return result
+  }
+  
+  // If no status changes in basic data, try to fetch detailed ticket info
+  console.log(`🔍 No status changes found, fetching detailed info for ticket ${ticket.number}`)
+  const ticketType = ticket.ticketId?.includes('PR') ? 'PR' : 'DD'
+  const detailedTicket = await fetchTicketDetails(ticket.id, ticketType)
+  
+  if (detailedTicket) {
+    // Try admin notes from detailed ticket
+    const detailedAdminTiming = extractTimingFromAdminNotes(detailedTicket)
+    if (detailedAdminTiming) {
+      const now = new Date()
+      const businessHours = calculateBusinessHours(detailedAdminTiming, now)
+      const result = formatBusinessHours(businessHours)
+      console.log(`✅ Ticket ${ticket.number}: Using detailed admin timing - ${result}`)
+      return result
+    }
+    
+    // Try status changes from detailed ticket
+    if (detailedTicket.status_changes && detailedTicket.status_changes.length > 0) {
+      console.log(`📊 Ticket ${ticket.number}: Using detailed status changes (${detailedTicket.status_changes.length} changes)`)
+      const sortedChanges = detailedTicket.status_changes.sort((a: any, b: any) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+      const lastStatusChange = sortedChanges[0]
+      const statusChangeDate = new Date(lastStatusChange.created_at)
+      const now = new Date()
+      const businessHours = calculateBusinessHours(statusChangeDate, now)
+      const result = formatBusinessHours(businessHours)
+      console.log(`📊 Ticket ${ticket.number}: Using detailed status change timing - ${result} (from ${lastStatusChange.status})`)
+      return result
+    }
   }
   
   // Fallback to ticket creation date if no status changes
@@ -228,8 +294,8 @@ async function fetchPRTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN
   console.log('🔍 Fetching PR tickets with token:', token ? 'Present' : 'Missing')
   
-  // Try different expand parameter formats
-  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
+  // First try without expand to see basic structure
+  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -266,7 +332,7 @@ async function fetchPRTickets() {
     company: 'PR',
     description: ticket.subject || 'No description',
     status: ticket.status,
-    timeAgo: getTimeSinceStatusChange(ticket),
+    timeAgo: await getTimeSinceStatusChange(ticket),
     deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
     customerName: ticket.customer?.name || 'Unknown Customer',
     customerEmail: ticket.customer?.email,
@@ -287,7 +353,7 @@ async function fetchDDTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN_DD
   console.log('🔍 Fetching DD tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
+  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -325,7 +391,7 @@ async function fetchDDTickets() {
     company: 'DD',
     description: ticket.subject || 'No description',
     status: ticket.status,
-    timeAgo: getTimeSinceStatusChange(ticket),
+    timeAgo: await getTimeSinceStatusChange(ticket),
     deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
     customerName: ticket.customer?.name || 'Unknown Customer',
     customerEmail: ticket.customer?.email,
