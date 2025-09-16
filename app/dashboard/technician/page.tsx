@@ -591,7 +591,13 @@ export default function TechnicianDashboard() {
                       <tr 
                         key={ticket.ticketId} 
                         className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 cursor-pointer transition-colors`}
-                        onClick={() => handleTicketClick(ticket)}
+                        onClick={() => {
+                          if (ticket.status === 'Awaiting Damage Report') {
+                            handleDamageReportClick(ticket)
+                          } else {
+                            handleTicketClick(ticket)
+                          }
+                        }}
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           <div className="flex items-center gap-2">
@@ -664,7 +670,13 @@ export default function TechnicianDashboard() {
                   <div 
                     key={ticket.ticketId}
                     className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => handleTicketClick(ticket)}
+                    onClick={() => {
+                      if (ticket.status === 'Awaiting Damage Report') {
+                        handleDamageReportClick(ticket)
+                      } else {
+                        handleTicketClick(ticket)
+                      }
+                    }}
                   >
                     {/* Header */}
                     <div className="flex items-center justify-between mb-3">
