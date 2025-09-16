@@ -211,20 +211,34 @@ async function getTimeSinceStatusChange(ticket: any): Promise<string> {
     return result
   }
   
-  // If ticket has status changes, use the most recent one
+  // If ticket has status changes, find the most recent change to the CURRENT status
   if (ticket.status_changes && ticket.status_changes.length > 0) {
     console.error(`📊 Ticket ${ticket.number}: Using status changes (${ticket.status_changes.length} changes)`)
-    // Sort by created_at and get the most recent status change
+    // Sort by created_at and find the most recent change to the current status
     const sortedChanges = ticket.status_changes.sort((a: any, b: any) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
-    const lastStatusChange = sortedChanges[0]
-    const statusChangeDate = new Date(lastStatusChange.created_at)
-    const now = new Date()
-    const businessHours = calculateBusinessHours(statusChangeDate, now)
-    const result = formatBusinessHours(businessHours)
-    console.error(`📊 Ticket ${ticket.number}: Using status change timing - ${result} (from ${lastStatusChange.status})`)
-    return result
+    
+    // Find the most recent status change that matches the current status
+    const currentStatusChange = sortedChanges.find((change: any) => change.status === ticket.status)
+    
+    if (currentStatusChange) {
+      const statusChangeDate = new Date(currentStatusChange.created_at)
+      const now = new Date()
+      const businessHours = calculateBusinessHours(statusChangeDate, now)
+      const result = formatBusinessHours(businessHours)
+      console.error(`📊 Ticket ${ticket.number}: Using current status change timing - ${result} (changed to ${currentStatusChange.status} at ${currentStatusChange.created_at})`)
+      return result
+    } else {
+      // If no change to current status found, use the most recent change
+      const lastStatusChange = sortedChanges[0]
+      const statusChangeDate = new Date(lastStatusChange.created_at)
+      const now = new Date()
+      const businessHours = calculateBusinessHours(statusChangeDate, now)
+      const result = formatBusinessHours(businessHours)
+      console.error(`📊 Ticket ${ticket.number}: Using most recent status change timing - ${result} (from ${lastStatusChange.status})`)
+      return result
+    }
   }
   
   // If no status changes in basic data, try to fetch detailed ticket info
@@ -249,13 +263,27 @@ async function getTimeSinceStatusChange(ticket: any): Promise<string> {
       const sortedChanges = detailedTicket.status_changes.sort((a: any, b: any) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
-      const lastStatusChange = sortedChanges[0]
-      const statusChangeDate = new Date(lastStatusChange.created_at)
-      const now = new Date()
-      const businessHours = calculateBusinessHours(statusChangeDate, now)
-      const result = formatBusinessHours(businessHours)
-      console.error(`📊 Ticket ${ticket.number}: Using detailed status change timing - ${result} (from ${lastStatusChange.status})`)
-      return result
+      
+      // Find the most recent status change that matches the current status
+      const currentStatusChange = sortedChanges.find((change: any) => change.status === ticket.status)
+      
+      if (currentStatusChange) {
+        const statusChangeDate = new Date(currentStatusChange.created_at)
+        const now = new Date()
+        const businessHours = calculateBusinessHours(statusChangeDate, now)
+        const result = formatBusinessHours(businessHours)
+        console.error(`📊 Ticket ${ticket.number}: Using detailed current status change timing - ${result} (changed to ${currentStatusChange.status} at ${currentStatusChange.created_at})`)
+        return result
+      } else {
+        // If no change to current status found, use the most recent change
+        const lastStatusChange = sortedChanges[0]
+        const statusChangeDate = new Date(lastStatusChange.created_at)
+        const now = new Date()
+        const businessHours = calculateBusinessHours(statusChangeDate, now)
+        const result = formatBusinessHours(businessHours)
+        console.error(`📊 Ticket ${ticket.number}: Using detailed most recent status change timing - ${result} (from ${lastStatusChange.status})`)
+        return result
+      }
     }
   }
   
@@ -294,8 +322,8 @@ async function fetchPRTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN
   console.log('🔍 Fetching PR tickets with token:', token ? 'Present' : 'Missing')
   
-  // First try without expand to see basic structure
-  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets', {
+  // Fetch tickets with status changes and comments for accurate timing
+  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -361,7 +389,7 @@ async function fetchDDTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN_DD
   console.log('🔍 Fetching DD tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets', {
+  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand=status_changes,comments', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
