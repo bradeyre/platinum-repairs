@@ -100,12 +100,12 @@ function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Techni
     new Date(ticket.timestamp).toISOString().split('T')[0] === today
   ).length
   
-  // Get overdue tickets (older than 12 business hours and not completed)
+  // Get overdue tickets (older than 4 business hours and not completed)
   const overdueTickets = tickets.filter(ticket => {
     if (ticket.status === 'Completed') return false
     const ticketDate = new Date(ticket.timestamp)
     const businessHoursWaiting = getBusinessHours(ticketDate, now)
-    return businessHoursWaiting > 12
+    return businessHoursWaiting > 4
   }).length
   
   // Get waiting tickets (not in progress and not completed)
@@ -913,12 +913,10 @@ export default function AdminDashboard() {
                               // Ensure timestamp is a Date object
                               const ticketDate = ticket.timestamp instanceof Date ? ticket.timestamp : new Date(ticket.timestamp)
                               const businessHoursWaiting = getBusinessHours(ticketDate, new Date())
-                              if (businessHoursWaiting > 12) {
-                                return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >12 business hours - RED
-                              } else if (businessHoursWaiting > 6) {
-                                return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 6-12 business hours - ORANGE
+                              if (businessHoursWaiting > 4) {
+                                return 'bg-red-200 text-red-900 border-2 border-red-500 animate-pulse' // >4 business hours - RED
                               } else if (businessHoursWaiting > 2) {
-                                return 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500' // 2-6 business hours - YELLOW
+                                return 'bg-orange-200 text-orange-900 border-2 border-orange-500' // 2-4 business hours - ORANGE
                               } else {
                                 return 'bg-green-100 text-green-800' // <2 business hours - GREEN
                               }
