@@ -100,12 +100,12 @@ function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Techni
     new Date(ticket.timestamp).toISOString().split('T')[0] === today
   ).length
   
-  // Get overdue tickets (older than 4 business hours and not completed)
+  // Get overdue tickets (older than 12 business hours and not completed)
   const overdueTickets = tickets.filter(ticket => {
     if (ticket.status === 'Completed') return false
     const ticketDate = new Date(ticket.timestamp)
     const businessHoursWaiting = getBusinessHours(ticketDate, now)
-    return businessHoursWaiting > 4
+    return businessHoursWaiting > 12
   }).length
   
   // Get waiting tickets (not in progress and not completed)

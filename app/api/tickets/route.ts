@@ -151,7 +151,7 @@ async function fetchPRTickets() {
     aiPriority: getAIPriority(ticket),
     estimatedTime: getEstimatedTime(ticket),
     ticketType: 'PR' as const,
-    timestamp: new Date(ticket.updated_at || ticket.created_at),
+    timestamp: new Date(ticket.created_at),
     statusChangedAt: ticket.updated_at || ticket.created_at,
     assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
   })))
@@ -210,7 +210,7 @@ async function fetchDDTickets() {
     aiPriority: getAIPriority(ticket),
     estimatedTime: getEstimatedTime(ticket),
     ticketType: 'DD' as const,
-    timestamp: new Date(ticket.updated_at || ticket.created_at),
+    timestamp: new Date(ticket.created_at),
     statusChangedAt: ticket.updated_at || ticket.created_at,
     assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
   })))
