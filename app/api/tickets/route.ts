@@ -338,15 +338,31 @@ async function fetchPRTickets() {
   const data = await response.json()
   console.log('🔍 PR API Response:', data.tickets?.length || 0, 'tickets')
   
-  // Debug: Check if comments are included in the response
+  // Debug: Check if comments and status changes are included in the response
   if (data.tickets && data.tickets.length > 0) {
     const sampleTicket = data.tickets[0]
-    console.log('🔍 Sample ticket structure:', {
+    console.error('🔍 Sample ticket structure:', {
       hasComments: !!sampleTicket.comments,
       commentsCount: sampleTicket.comments?.length || 0,
       hasStatusChanges: !!sampleTicket.status_changes,
-      statusChangesCount: sampleTicket.status_changes?.length || 0
+      statusChangesCount: sampleTicket.status_changes?.length || 0,
+      ticketNumber: sampleTicket.number,
+      currentStatus: sampleTicket.status
     })
+    
+    // Check specifically for ticket 89820
+    const ticket89820 = data.tickets.find((t: any) => t.number === 89820)
+    if (ticket89820) {
+      console.error('🔍 Ticket 89820 structure:', {
+        hasComments: !!ticket89820.comments,
+        commentsCount: ticket89820.comments?.length || 0,
+        hasStatusChanges: !!ticket89820.status_changes,
+        statusChangesCount: ticket89820.status_changes?.length || 0,
+        currentStatus: ticket89820.status,
+        created_at: ticket89820.created_at,
+        updated_at: ticket89820.updated_at
+      })
+    }
   }
   
   const filteredTickets = data.tickets.filter((ticket: any) => 
