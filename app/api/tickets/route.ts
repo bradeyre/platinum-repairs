@@ -244,7 +244,7 @@ async function getTimeSinceStatusChange(ticket: any): Promise<string> {
   // If no status changes in basic data, try to fetch detailed ticket info
   console.error(`🔍 No status changes found, fetching detailed info for ticket ${ticket.number}`)
   const ticketType = ticket.ticketId?.includes('PR') ? 'PR' : 'DD'
-  const detailedTicket = await fetchTicketDetails(ticket.id, ticketType)
+  const detailedTicket = await fetchTicketDetails(ticket.number, ticketType)
   
   if (detailedTicket) {
     // Try admin notes from detailed ticket
