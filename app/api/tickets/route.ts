@@ -325,26 +325,34 @@ async function fetchPRTickets() {
     ['Awaiting Rework', 'Awaiting Workshop Repairs', 'Awaiting Damage Report', 'Awaiting Repair', 'In Progress', 'Awaiting Walk-in Repair', 'Awaiting Walk-in DR'].includes(ticket.status)
   )
   
-  const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => ({
-    id: ticket.id,
-    ticketId: `PR #${ticket.number}`,
-    ticketNumber: ticket.number,
-    company: 'PR',
-    description: ticket.subject || 'No description',
-    status: ticket.status,
-    timeAgo: await getTimeSinceStatusChange(ticket),
-    deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
-    customerName: ticket.customer?.name || 'Unknown Customer',
-    customerEmail: ticket.customer?.email,
-    customerPhone: ticket.customer?.phone,
-    priority: ticket.priority || 'normal',
-    aiPriority: getAIPriority(ticket),
-    estimatedTime: getEstimatedTime(ticket),
-    ticketType: 'PR' as const,
-    timestamp: new Date(ticket.created_at),
-    statusChangedAt: ticket.updated_at || ticket.created_at,
-    assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
-  })))
+  console.log(`🔍 Processing ${filteredTickets.length} PR tickets...`)
+  
+  const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => {
+    console.log(`🔄 Processing PR ticket ${ticket.number}...`)
+    const timeAgo = await getTimeSinceStatusChange(ticket)
+    console.log(`✅ PR ticket ${ticket.number} timing: ${timeAgo}`)
+    
+    return {
+      id: ticket.id,
+      ticketId: `PR #${ticket.number}`,
+      ticketNumber: ticket.number,
+      company: 'PR',
+      description: ticket.subject || 'No description',
+      status: ticket.status,
+      timeAgo: timeAgo,
+      deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
+      customerName: ticket.customer?.name || 'Unknown Customer',
+      customerEmail: ticket.customer?.email,
+      customerPhone: ticket.customer?.phone,
+      priority: ticket.priority || 'normal',
+      aiPriority: getAIPriority(ticket),
+      estimatedTime: getEstimatedTime(ticket),
+      ticketType: 'PR' as const,
+      timestamp: new Date(ticket.created_at),
+      statusChangedAt: ticket.updated_at || ticket.created_at,
+      assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
+    }
+  }))
   
   return processedTickets
 }
@@ -384,26 +392,34 @@ async function fetchDDTickets() {
     return true
   })
   
-  const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => ({
-    id: ticket.id,
-    ticketId: `DD #${ticket.number}`,
-    ticketNumber: ticket.number,
-    company: 'DD',
-    description: ticket.subject || 'No description',
-    status: ticket.status,
-    timeAgo: await getTimeSinceStatusChange(ticket),
-    deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
-    customerName: ticket.customer?.name || 'Unknown Customer',
-    customerEmail: ticket.customer?.email,
-    customerPhone: ticket.customer?.phone,
-    priority: ticket.priority || 'normal',
-    aiPriority: getAIPriority(ticket),
-    estimatedTime: getEstimatedTime(ticket),
-    ticketType: 'DD' as const,
-    timestamp: new Date(ticket.created_at),
-    statusChangedAt: ticket.updated_at || ticket.created_at,
-    assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
-  })))
+  console.log(`🔍 Processing ${filteredTickets.length} DD tickets...`)
+  
+  const processedTickets = await Promise.all(filteredTickets.map(async (ticket: any) => {
+    console.log(`🔄 Processing DD ticket ${ticket.number}...`)
+    const timeAgo = await getTimeSinceStatusChange(ticket)
+    console.log(`✅ DD ticket ${ticket.number} timing: ${timeAgo}`)
+    
+    return {
+      id: ticket.id,
+      ticketId: `DD #${ticket.number}`,
+      ticketNumber: ticket.number,
+      company: 'DD',
+      description: ticket.subject || 'No description',
+      status: ticket.status,
+      timeAgo: timeAgo,
+      deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
+      customerName: ticket.customer?.name || 'Unknown Customer',
+      customerEmail: ticket.customer?.email,
+      customerPhone: ticket.customer?.phone,
+      priority: ticket.priority || 'normal',
+      aiPriority: getAIPriority(ticket),
+      estimatedTime: getEstimatedTime(ticket),
+      ticketType: 'DD' as const,
+      timestamp: new Date(ticket.created_at),
+      statusChangedAt: ticket.updated_at || ticket.created_at,
+      assignedTo: ticket.user?.full_name || ticket.assigned_to?.name || null
+    }
+  }))
 
   // Map workshop assignments to specific technicians
   const finalFilteredTickets = processedTickets.map(ticket => {
