@@ -100,8 +100,37 @@ function getTimeAgo(dateString: string): string {
   return formatBusinessHours(businessHours)
 }
 
+// Calculate time since last status change (more accurate for waiting time)
+function getTimeSinceStatusChange(ticket: any): string {
+  // If ticket has status changes, use the most recent one
+  if (ticket.status_changes && ticket.status_changes.length > 0) {
+    // Sort by created_at and get the most recent status change
+    const sortedChanges = ticket.status_changes.sort((a: any, b: any) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    const lastStatusChange = sortedChanges[0]
+    const statusChangeDate = new Date(lastStatusChange.created_at)
+    const now = new Date()
+    const businessHours = calculateBusinessHours(statusChangeDate, now)
+    return formatBusinessHours(businessHours)
+  }
+  
+  // Fallback to ticket creation date if no status changes
+  return getTimeAgo(ticket.created_at)
+}
+
 function getAIPriority(ticket: any): string {
-  const businessHours = calculateBusinessHours(new Date(ticket.created_at), new Date())
+  // Use status change time for more accurate priority calculation
+  let referenceDate = new Date(ticket.created_at)
+  
+  if (ticket.status_changes && ticket.status_changes.length > 0) {
+    const sortedChanges = ticket.status_changes.sort((a: any, b: any) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    referenceDate = new Date(sortedChanges[0].created_at)
+  }
+  
+  const businessHours = calculateBusinessHours(referenceDate, new Date())
   if (businessHours > 24) return 'P1'
   if (businessHours > 12) return 'P2'
   if (businessHours > 6) return 'P3'
@@ -116,7 +145,7 @@ async function fetchPRTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN
   console.log('🔍 Fetching PR tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets', {
+  const response = await fetch('https://platinumrepairs.repairshopr.com/api/v1/tickets?expand=status_changes', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -142,7 +171,7 @@ async function fetchPRTickets() {
     company: 'PR',
     description: ticket.subject || 'No description',
     status: ticket.status,
-    timeAgo: getTimeAgo(ticket.created_at),
+    timeAgo: getTimeSinceStatusChange(ticket),
     deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
     customerName: ticket.customer?.name || 'Unknown Customer',
     customerEmail: ticket.customer?.email,
@@ -163,7 +192,7 @@ async function fetchDDTickets() {
   const token = process.env.REPAIRSHOPR_TOKEN_DD
   console.log('🔍 Fetching DD tickets with token:', token ? 'Present' : 'Missing')
   
-  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets', {
+  const response = await fetch('https://devicedoctorsa.repairshopr.com/api/v1/tickets?expand=status_changes', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -201,7 +230,7 @@ async function fetchDDTickets() {
     company: 'DD',
     description: ticket.subject || 'No description',
     status: ticket.status,
-    timeAgo: getTimeAgo(ticket.created_at),
+    timeAgo: getTimeSinceStatusChange(ticket),
     deviceInfo: await extractDeviceInfo(ticket.subject || ticket.comment || 'No description', ticket),
     customerName: ticket.customer?.name || 'Unknown Customer',
     customerEmail: ticket.customer?.email,
