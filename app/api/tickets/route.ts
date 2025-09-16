@@ -102,17 +102,30 @@ function getTimeAgo(dateString: string): string {
 
 // Extract timing information from admin notes
 function extractTimingFromAdminNotes(ticket: any): Date | null {
+  console.log(`🔍 Debugging ticket ${ticket.number}: Checking for admin notes...`)
+  
   if (!ticket.comments || !Array.isArray(ticket.comments)) {
+    console.log(`❌ Ticket ${ticket.number}: No comments array found`)
     return null
   }
   
+  console.log(`📝 Ticket ${ticket.number}: Found ${ticket.comments.length} comments`)
+  
   // Look for admin notes with timing information
-  const adminNotes = ticket.comments.filter((comment: any) => 
-    comment.user?.role === 'admin' || 
-    comment.user?.role === 'manager' ||
-    comment.user?.username?.toLowerCase().includes('admin') ||
-    comment.user?.username?.toLowerCase().includes('manager')
-  )
+  const adminNotes = ticket.comments.filter((comment: any) => {
+    const isAdmin = comment.user?.role === 'admin' || 
+                   comment.user?.role === 'manager' ||
+                   comment.user?.username?.toLowerCase().includes('admin') ||
+                   comment.user?.username?.toLowerCase().includes('manager')
+    
+    if (isAdmin) {
+      console.log(`👤 Admin note found from ${comment.user?.username || 'unknown'}: ${(comment.body || comment.comment || '').substring(0, 100)}...`)
+    }
+    
+    return isAdmin
+  })
+  
+  console.log(`👥 Ticket ${ticket.number}: Found ${adminNotes.length} admin notes`)
   
   // Look for patterns like "Started at", "Work began", "Repair started", etc.
   const timingPatterns = [
@@ -127,6 +140,8 @@ function extractTimingFromAdminNotes(ticket: any): Date | null {
   
   for (const note of adminNotes) {
     const noteText = note.body || note.comment || ''
+    console.log(`🔍 Checking note: "${noteText.substring(0, 200)}..."`)
+    
     for (const pattern of timingPatterns) {
       const match = noteText.match(pattern)
       if (match) {
@@ -138,27 +153,33 @@ function extractTimingFromAdminNotes(ticket: any): Date | null {
         const timingDate = new Date(noteDate)
         timingDate.setHours(hours, minutes, 0, 0)
         
-        console.log(`📝 Found timing from admin note: ${timeStr} on ${noteDate.toDateString()}`)
+        console.log(`✅ Ticket ${ticket.number}: Found timing from admin note: ${timeStr} on ${noteDate.toDateString()}`)
         return timingDate
       }
     }
   }
   
+  console.log(`❌ Ticket ${ticket.number}: No timing patterns found in admin notes`)
   return null
 }
 
 // Calculate time since last status change (more accurate for waiting time)
 function getTimeSinceStatusChange(ticket: any): string {
+  console.log(`⏰ Calculating timing for ticket ${ticket.number}...`)
+  
   // First, try to get timing from admin notes (for tickets not using our system)
   const adminTiming = extractTimingFromAdminNotes(ticket)
   if (adminTiming) {
     const now = new Date()
     const businessHours = calculateBusinessHours(adminTiming, now)
-    return formatBusinessHours(businessHours)
+    const result = formatBusinessHours(businessHours)
+    console.log(`✅ Ticket ${ticket.number}: Using admin timing - ${result}`)
+    return result
   }
   
   // If ticket has status changes, use the most recent one
   if (ticket.status_changes && ticket.status_changes.length > 0) {
+    console.log(`📊 Ticket ${ticket.number}: Using status changes (${ticket.status_changes.length} changes)`)
     // Sort by created_at and get the most recent status change
     const sortedChanges = ticket.status_changes.sort((a: any, b: any) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -167,10 +188,13 @@ function getTimeSinceStatusChange(ticket: any): string {
     const statusChangeDate = new Date(lastStatusChange.created_at)
     const now = new Date()
     const businessHours = calculateBusinessHours(statusChangeDate, now)
-    return formatBusinessHours(businessHours)
+    const result = formatBusinessHours(businessHours)
+    console.log(`📊 Ticket ${ticket.number}: Using status change timing - ${result} (from ${lastStatusChange.status})`)
+    return result
   }
   
   // Fallback to ticket creation date if no status changes
+  console.log(`📅 Ticket ${ticket.number}: Using creation date fallback`)
   return getTimeAgo(ticket.created_at)
 }
 
