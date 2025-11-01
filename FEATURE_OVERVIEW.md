@@ -14,12 +14,13 @@ Platinum Repairs TechDash 2.0 is a comprehensive repair management system design
 - **Platinum Repairs (PR)**: Main repair shop tickets
 - **Device Doctor (DD)**: Secondary repair shop tickets
 - **Real-time Sync**: Fetches tickets every 1-5 minutes
-- **Status Filtering**: Only shows 7 active statuses:
+- **Status Filtering**: Only shows 8 active statuses:
   - Awaiting Rework
   - Awaiting Workshop Repairs
   - Awaiting Damage Report
   - Awaiting Repair
   - In Progress
+  - Troubleshooting
   - Awaiting Walk-in Repair
   - Awaiting Walk-in DR
 

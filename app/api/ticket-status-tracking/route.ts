@@ -6,8 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const { ticketId, oldStatus, newStatus, technicianId, timestamp } = await request.json()
     
-    // Only track when tickets move to "In Progress" (tech starts working)
-    if (newStatus === 'In Progress' && oldStatus !== 'In Progress') {
+    // Only track when tickets move to "In Progress" or "Troubleshooting" (tech starts working)
+    if ((newStatus === 'In Progress' || newStatus === 'Troubleshooting') && (oldStatus !== 'In Progress' && oldStatus !== 'Troubleshooting')) {
       // Calculate the wait time from status change to now
       const statusChangeTime = new Date(timestamp)
       const now = new Date()

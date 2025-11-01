@@ -109,9 +109,9 @@ function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Techni
     return businessHoursWaiting > 4
   }).length
   
-  // Get waiting tickets (not in progress and not completed)
+  // Get waiting tickets (not in progress, not troubleshooting, and not completed)
   const waitingTickets = tickets.filter(ticket => 
-    ticket.status !== 'In Progress' && ticket.status !== 'Completed'
+    ticket.status !== 'In Progress' && ticket.status !== 'Troubleshooting' && ticket.status !== 'Completed'
   ).length
   
   // Get unassigned tickets

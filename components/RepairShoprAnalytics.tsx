@@ -229,7 +229,7 @@ function calculateAnalytics(tickets: ProcessedTicket[]): AnalyticsData {
       ticket.status === 'Awaiting Damage Report' || ticket.status === 'Awaiting Repair'
     )
     const repairTickets = techTickets.filter(ticket => 
-      ticket.status === 'In Progress' || ticket.status === 'Completed'
+      ticket.status === 'In Progress' || ticket.status === 'Troubleshooting' || ticket.status === 'Completed'
     )
     
     const averageDamageReportTime = damageReportTickets.length > 0 

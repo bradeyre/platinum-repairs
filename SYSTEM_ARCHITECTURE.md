@@ -165,7 +165,7 @@ if (user.role !== 'claim_manager' && user.role !== 'admin') router.push('/login'
 - **Platinum Repairs**: https://platinumrepairs.repairshopr.com/api/v1
 - **Device Doctor**: https://devicedoctorsa.repairshopr.com/api/v1
 - **Authentication**: API key in query parameter (`?api_key=TOKEN`)
-- **Method**: Multiple parallel calls (7 statuses × 2 instances = 14 calls)
+- **Method**: Multiple parallel calls (8 statuses × 2 instances = 16 calls)
 - **Filtering**: Server-side by status, client-side by technician/workshop
 
 ### Google Sheets Integration
@@ -281,7 +281,7 @@ Live Site: https://platinumrepairs.co.za
 ## Scalability Considerations
 
 ### Current Limitations
-1. **API Call Volume**: 14 parallel calls every refresh (1-5 minutes)
+1. **API Call Volume**: 16 parallel calls every refresh (1-5 minutes)
 2. **Photo Storage**: Base64 in database (not ideal for large scale)
 3. **No Pagination**: Loads all active tickets at once
 4. **Synchronous Processing**: No background job queue

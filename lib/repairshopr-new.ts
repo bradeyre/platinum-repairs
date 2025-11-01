@@ -54,7 +54,7 @@ export interface ProcessedTicket {
 const REPAIRSHOPR_BASE_URL = 'https://platinumrepairs.repairshopr.com/api/v1'
 const REPAIRSHOPR_DD_BASE_URL = 'https://devicedoctorsa.repairshopr.com/api/v1'
 
-// Status mappings - only map to the 6 allowed statuses
+// Status mappings - map to allowed statuses
 const STATUS_MAPPING: Record<string, string> = {
   // Awaiting Rework
   'Parts Allocated': 'Awaiting Rework',
@@ -79,6 +79,9 @@ const STATUS_MAPPING: Record<string, string> = {
   
   // In Progress
   'In Progress': 'In Progress',
+  
+  // Troubleshooting
+  'Troubleshooting': 'Troubleshooting',
   
   // Completed/Other (not shown in main view)
   'Completed': 'Completed',
@@ -380,13 +383,14 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
   try {
     console.log('🚀 Starting to fetch tickets from both APIs with proper filtering...')
     
-    // Define the 7 specific statuses we want to fetch (active tickets only)
+    // Define the specific statuses we want to fetch (active tickets only)
     const targetStatuses = [
       'Awaiting Rework',
       'Awaiting Workshop Repairs', 
       'Awaiting Damage Report',
       'Awaiting Repair',
       'In Progress',
+      'Troubleshooting',
       'Awaiting Walk-in Repair',
       'Awaiting Walk-in DR'
     ]
@@ -460,7 +464,8 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       'Awaiting Workshop Repairs': 2, 
       'Awaiting Damage Report': 3,
       'Awaiting Repair': 4,
-      'In Progress': 5
+      'In Progress': 5,
+      'Troubleshooting': 6
     }
     
     return filteredTickets.sort((a, b) => {

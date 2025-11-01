@@ -95,9 +95,9 @@ export async function GET(request: NextRequest) {
       return businessHoursWaiting > 4
     }).length
 
-    // Get waiting tickets (not in progress and not completed)
+    // Get waiting tickets (not in progress, not troubleshooting, and not completed)
     const waitingTickets = allTickets.filter(ticket => 
-      ticket.status !== 'In Progress' && ticket.status !== 'Completed'
+      ticket.status !== 'In Progress' && ticket.status !== 'Troubleshooting' && ticket.status !== 'Completed'
     ).length
 
 

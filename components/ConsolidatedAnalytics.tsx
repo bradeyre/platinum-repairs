@@ -171,7 +171,7 @@ export default function ConsolidatedAnalytics() {
     
     // Get active technicians
     const activeTechnicians = new Set(tickets
-      .filter(ticket => ticket.assignedTo && ticket.status === 'In Progress')
+      .filter(ticket => ticket.assignedTo && (ticket.status === 'In Progress' || ticket.status === 'Troubleshooting'))
       .map(ticket => ticket.assignedTo)
     ).size
     

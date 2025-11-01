@@ -279,7 +279,7 @@ iPhone 6                 | Screen Assembly          | R579.00            | Next 
 - **Status-Based Timing**: Measures wait time from when ticket status changes, not ticket creation
 - **Business Hours Only**: Only counts 8 AM - 6 PM, Monday-Friday (excludes weekends and after-hours)
 - **Real-Time Updates**: Time display updates automatically as tickets move through statuses
-- **Wait Time Recording**: Automatically records wait times when techs start working (status changes to "In Progress")
+- **Wait Time Recording**: Automatically records wait times when techs start working (status changes to "In Progress" or "Troubleshooting")
 - **Efficiency Scoring**: 0-100 score based on average wait times
 - **Performance Grades**: Excellent (<2h), Good (2-4h), Average (4-8h), Needs Improvement (>8h)
 - **Department Metrics**: Overall team performance and trends

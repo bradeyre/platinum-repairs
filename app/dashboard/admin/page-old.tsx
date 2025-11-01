@@ -141,7 +141,8 @@ export default function AdminDashboard() {
     'Awaiting Workshop Repairs': 2,
     'Awaiting Damage Report': 3,
     'Awaiting Repair': 4,
-    'In Progress': 5
+    'In Progress': 5,
+    'Troubleshooting': 6
   }
 
   // Sort tickets by status priority first, then by timestamp (oldest first)
@@ -158,7 +159,7 @@ export default function AdminDashboard() {
   // Calculate stats
   const stats = {
     total: sortedTickets.length,
-    waiting: sortedTickets.filter(t => t.status !== 'In Progress' && t.status !== 'Completed').length,
+    waiting: sortedTickets.filter(t => t.status !== 'In Progress' && t.status !== 'Troubleshooting' && t.status !== 'Completed').length,
     unassigned: sortedTickets.filter(t => !t.assignedTo).length,
     overdue: sortedTickets.filter(t => {
       const ticketDate = t.timestamp instanceof Date ? t.timestamp : new Date(t.timestamp)

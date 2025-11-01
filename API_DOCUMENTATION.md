@@ -12,12 +12,13 @@ This system integrates with two RepairShopper instances to fetch and filter tick
 ## Filtering Logic
 
 ### 1. Status Filtering
-The system fetches tickets with these **5 specific statuses only**:
+The system fetches tickets with these **6 specific statuses only**:
 - `Awaiting Rework`
 - `Awaiting Workshop Repairs`
 - `Awaiting Damage Report`
 - `Awaiting Repair`
 - `In Progress`
+- `Troubleshooting`
 
 ### 2. Technician Filtering (Both PR and DD)
 For both Platinum Repairs and Device Doctor tickets, only tickets assigned to these technicians are included:
@@ -39,24 +40,26 @@ Device Doctor tickets assigned to these workshops are **excluded**:
 ## API Implementation
 
 ### Multiple API Calls Strategy
-The system makes **10 total API calls** (5 for each instance):
+The system makes **12 total API calls** (6 for each instance):
 
-**Platinum Repairs (5 calls):**
+**Platinum Repairs (6 calls):**
 ```
 GET /tickets?status=Awaiting%20Rework&api_key={TOKEN}
 GET /tickets?status=Awaiting%20Workshop%20Repairs&api_key={TOKEN}
 GET /tickets?status=Awaiting%20Damage%20Report&api_key={TOKEN}
 GET /tickets?status=Awaiting%20Repair&api_key={TOKEN}
 GET /tickets?status=In%20Progress&api_key={TOKEN}
+GET /tickets?status=Troubleshooting&api_key={TOKEN}
 ```
 
-**Device Doctor (5 calls):**
+**Device Doctor (6 calls):**
 ```
 GET /tickets?status=Awaiting%20Rework&api_key={TOKEN}
 GET /tickets?status=Awaiting%20Workshop%20Repairs&api_key={TOKEN}
 GET /tickets?status=Awaiting%20Damage%20Report&api_key={TOKEN}
 GET /tickets?status=Awaiting%20Repair&api_key={TOKEN}
 GET /tickets?status=In%20Progress&api_key={TOKEN}
+GET /tickets?status=Troubleshooting&api_key={TOKEN}
 ```
 
 ## Available Endpoints
@@ -116,7 +119,7 @@ REPAIRSHOPR_TOKEN_DD=     # Device Doctor API token
 - **Device Doctor**: Tickets assigned to Cape Town Workshop  
 - **Both PR and DD**: Tickets assigned to Thasveer or Shannon
 - **Both PR and DD**: Tickets assigned to technicians not in the allowed list
-- **Both**: Tickets with statuses other than the 5 target statuses
+- **Both**: Tickets with statuses other than the 6 target statuses
 
 ## Logging and Debugging
 
@@ -128,7 +131,7 @@ The system provides detailed console logging:
 
 ## Performance Considerations
 
-- **Parallel API calls**: All 10 API calls execute simultaneously
+- **Parallel API calls**: All 12 API calls execute simultaneously
 - **Server-side filtering**: Uses RepairShopper's status parameter for efficiency
 - **Minimal data transfer**: Only fetches relevant tickets
 - **Client-side filtering**: Additional technician/workshop filtering applied after API calls

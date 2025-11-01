@@ -34,7 +34,7 @@ export interface ProcessedTicket {
 const REPAIRSHOPR_BASE_URL = 'https://platinumrepairs.repairshopr.com/api/v1'
 const REPAIRSHOPR_DD_BASE_URL = 'https://devicedoctor.repairshopr.com/api/v1'
 
-// Status mappings from RepairShopr to our 5 statuses
+// Status mappings from RepairShopr to our statuses
 const STATUS_MAPPING: Record<string, string> = {
   // Awaiting Rework
   'Parts Allocated': 'Awaiting Rework',
@@ -63,6 +63,9 @@ const STATUS_MAPPING: Record<string, string> = {
   // In Progress
   'In Progress': 'In Progress',
   'Damage Report Completed': 'In Progress',
+  
+  // Troubleshooting
+  'Troubleshooting': 'Troubleshooting',
   
   // Completed/Other (not shown in main view)
   'Resolved': 'Completed',
@@ -243,7 +246,8 @@ export async function getAllTickets(): Promise<ProcessedTicket[]> {
       'Awaiting Workshop Repairs': 2, 
       'Awaiting Damage Report': 3,
       'Awaiting Repair': 4,
-      'In Progress': 5
+      'In Progress': 5,
+      'Troubleshooting': 6
     }
     
     return activeTickets.sort((a, b) => {
