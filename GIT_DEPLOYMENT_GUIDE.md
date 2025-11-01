@@ -7,9 +7,9 @@ This guide provides step-by-step instructions for deploying code changes by push
 ## Repository Information
 
 - **GitHub Repository**: https://github.com/bradeyre/platinum-repairs
-- **Branch**: `master` (production)
+- **Branch**: `main` (production)
 - **Owner**: bradeyre (shared repository)
-- **Vercel**: Auto-deploys on push to master branch
+- **Vercel**: Auto-deploys on push to main branch
 
 ## Prerequisites
 
@@ -56,7 +56,7 @@ git commit -m "Description of your changes"
 ### 4. Push to GitHub (Triggers Vercel Deployment)
 
 ```bash
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 ```
 
 **Important**: Replace `YOUR_TOKEN_HERE` with your actual GitHub personal access token. This push will automatically trigger a Vercel deployment!
@@ -112,19 +112,19 @@ Set up once, then use simple `git push`:
 git config credential.helper store
 
 # First push will prompt for credentials
-git push origin master
+git push origin main
 # Enter username: bradeyre
 # Enter password: YOUR_TOKEN_HERE (your GitHub personal access token)
 
 # Subsequent pushes won't require credentials
-git push origin master
+git push origin main
 ```
 
 ### Method 2: Using Git Credential Manager (Windows)
 
 ```bash
 git config credential.helper manager
-git push origin master
+git push origin main
 ```
 
 Windows will prompt for credentials and store them securely.
@@ -132,7 +132,7 @@ Windows will prompt for credentials and store them securely.
 ### Method 3: Direct Token in URL (Current Method)
 
 ```bash
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 ```
 
 Replace `YOUR_TOKEN_HERE` with your actual GitHub personal access token.
@@ -170,7 +170,7 @@ After pushing, monitor the deployment:
 
 ```bash
 # 1. Pull latest changes (if working with team)
-git pull origin master
+git pull origin main
 
 # 2. Make your code changes
 # ... edit files ...
@@ -184,7 +184,7 @@ git add .
 git commit -m "Your descriptive message"
 
 # 5. Push and deploy
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 
 # 6. Monitor deployment in Vercel dashboard
 ```
@@ -196,7 +196,7 @@ If a deployment breaks production:
 ```bash
 # Option 1: Revert last commit
 git revert HEAD
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 
 # Option 2: Use Vercel Dashboard
 # Go to Vercel → Deployments → Select previous working deployment → Promote to Production
@@ -218,10 +218,10 @@ git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.g
 # Vercel will create a preview URL like:
 # https://platinum-repairs-git-feature-new-dashboard-bradeyre.vercel.app
 
-# When ready, merge to master
-git checkout master
+# When ready, merge to main
+git checkout main
 git merge feature-new-dashboard
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 ```
 
 ---
@@ -234,7 +234,7 @@ git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.g
 
 **Solution**: Use the token URL format:
 ```bash
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 ```
 Replace `YOUR_TOKEN_HERE` with your GitHub personal access token.
 
@@ -254,7 +254,7 @@ git remote add origin https://github.com/bradeyre/platinum-repairs.git
 **Solution**:
 ```bash
 # Pull latest changes first
-git pull origin master
+git pull origin main
 
 # Resolve conflicts in your editor
 # Look for <<<<<<< HEAD markers
@@ -262,7 +262,7 @@ git pull origin master
 # After resolving
 git add .
 git commit -m "Resolve merge conflicts"
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 ```
 
 ### Issue: Token Expired
@@ -287,7 +287,7 @@ npm install
 npm run build
 
 # If build succeeds locally, push again
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 ```
 
 ---
@@ -300,7 +300,7 @@ git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.g
 - ✅ Check for TypeScript errors: `npm run build`
 - ✅ Review your changes: `git diff`
 - ✅ Use descriptive commit messages
-- ✅ Pull latest changes if working with team: `git pull origin master`
+- ✅ Pull latest changes if working with team: `git pull origin main`
 
 ### After Pushing
 
@@ -330,8 +330,8 @@ git add .
 # Commit with message
 git commit -m "Your message"
 
-# Push to master (triggers deployment)
-git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git master
+# Push to main (triggers deployment)
+git push https://bradeyre:YOUR_TOKEN_HERE@github.com/bradeyre/platinum-repairs.git main
 
 # View commit history
 git log --oneline
@@ -340,13 +340,13 @@ git log --oneline
 git remote -v
 
 # Pull latest changes
-git pull origin master
+git pull origin main
 
 # Create new branch
 git checkout -b branch-name
 
 # Switch branches
-git checkout master
+git checkout main
 
 # Undo last commit (keep changes)
 git reset --soft HEAD~1
