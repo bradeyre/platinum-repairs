@@ -54,3 +54,8 @@ coverage/
 *.swp
 *.swo
 *~
+
+# Secrets and sensitive information
+*SECRET*.md
+*TOKEN*.txt
+.credentials
