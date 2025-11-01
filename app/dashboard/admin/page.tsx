@@ -87,22 +87,60 @@ function getBusinessHours(startDate: Date, endDate: Date): number {
   return hours
 }
 
+// Helper functions to get date ranges for filtering
+function getDateRanges(timeframe: 'today' | 'week' | 'month') {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  let startDate: Date
+  
+  switch (timeframe) {
+    case 'today':
+      startDate = today
+      break
+    case 'week':
+      // Week starts on Sunday
+      const startOfWeek = new Date(today)
+      startOfWeek.setDate(today.getDate() - today.getDay())
+      startDate = startOfWeek
+      break
+    case 'month':
+      // First day of current month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      break
+    default:
+      startDate = today
+  }
+  
+  return { startDate, endDate: now }
+}
+
 // Function to calculate dashboard stats from tickets data
-function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Technician[]): Partial<DashboardStats> {
+function calculateDashboardStats(
+  tickets: ProcessedTicket[], 
+  technicians: Technician[], 
+  timeframe: 'today' | 'week' | 'month' = 'today'
+): Partial<DashboardStats> {
+  const { startDate, endDate } = getDateRanges(timeframe)
   const today = new Date().toISOString().split('T')[0]
   const now = new Date()
   
-  // Calculate core stats from tickets
-  const totalTickets = tickets.length
+  // Filter tickets by creation date based on timeframe
+  const filteredTickets = tickets.filter(ticket => {
+    const ticketDate = new Date(ticket.timestamp)
+    return ticketDate >= startDate && ticketDate <= endDate
+  })
   
-  // Get tickets completed today (status = 'Completed')
-  const completedToday = tickets.filter(ticket =>
-    ticket.status === 'Completed' &&
-    new Date(ticket.timestamp).toISOString().split('T')[0] === today
+  // Calculate core stats from filtered tickets
+  const totalTickets = filteredTickets.length
+  
+  // Get tickets completed within the timeframe (status = 'Completed')
+  const completedToday = filteredTickets.filter(ticket =>
+    ticket.status === 'Completed'
   ).length
   
   // Get overdue tickets (older than 4 business hours and not completed)
-  const overdueTickets = tickets.filter(ticket => {
+  const overdueTickets = filteredTickets.filter(ticket => {
     if (ticket.status === 'Completed') return false
     const ticketDate = new Date(ticket.timestamp)
     const businessHoursWaiting = getBusinessHours(ticketDate, now)
@@ -110,17 +148,17 @@ function calculateDashboardStats(tickets: ProcessedTicket[], technicians: Techni
   }).length
   
   // Get waiting tickets (not in progress, not troubleshooting, and not completed)
-  const waitingTickets = tickets.filter(ticket => 
+  const waitingTickets = filteredTickets.filter(ticket => 
     ticket.status !== 'In Progress' && ticket.status !== 'Troubleshooting' && ticket.status !== 'Completed'
   ).length
   
   // Get unassigned tickets
-  const unassignedTickets = tickets.filter(ticket =>
+  const unassignedTickets = filteredTickets.filter(ticket =>
     !ticket.assignedTo || ticket.assignedTo === 'Unassigned'
   ).length
   
   // Calculate average wait time from actual tickets
-  const ticketWaitTimes = tickets
+  const ticketWaitTimes = filteredTickets
     .filter(ticket => ticket.status !== 'Completed')
     .map(ticket => {
       const ticketDate = new Date(ticket.timestamp)
@@ -217,7 +255,7 @@ export default function AdminDashboard() {
         }
 
         // Calculate dashboard stats from tickets data (no separate API call needed)
-        const calculatedStats = calculateDashboardStats(ticketsData.tickets || [], techData.technicians || [])
+        const calculatedStats = calculateDashboardStats(ticketsData.tickets || [], techData.technicians || [], selectedTimeframe)
         setStats(prevStats => ({ ...prevStats, ...calculatedStats }))
 
         setError(null)
@@ -231,6 +269,14 @@ export default function AdminDashboard() {
 
     fetchInitialData()
   }, [])
+
+  // Recalculate stats when timeframe changes
+  useEffect(() => {
+    if (tickets.length > 0 || technicians.length > 0) {
+      const calculatedStats = calculateDashboardStats(tickets, technicians, selectedTimeframe)
+      setStats(prevStats => ({ ...prevStats, ...calculatedStats }))
+    }
+  }, [selectedTimeframe, tickets, technicians])
 
   // Background data refresh (no loading screen)
   useEffect(() => {
@@ -256,7 +302,7 @@ export default function AdminDashboard() {
         }
 
         // Calculate dashboard stats from tickets data (no separate API call needed)
-        const calculatedStats = calculateDashboardStats(ticketsData.tickets || [], techData.technicians || [])
+        const calculatedStats = calculateDashboardStats(ticketsData.tickets || [], techData.technicians || [], selectedTimeframe)
         setStats(prevStats => ({ ...prevStats, ...calculatedStats }))
 
         setError(null)
@@ -547,7 +593,7 @@ export default function AdminDashboard() {
                     </svg>
                   </div>
                   <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Tickets</p>
+                <p className="text-sm font-medium text-gray-600">Total Tickets {getTimeframeLabel()}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats?.totalTickets || 0}</p>
                   </div>
                 </div>
@@ -561,7 +607,7 @@ export default function AdminDashboard() {
                     </svg>
                   </div>
                   <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Waiting</p>
+                <p className="text-sm font-medium text-gray-600">Waiting {getTimeframeLabel()}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats?.waitingTickets || 0}</p>
                   </div>
                 </div>
@@ -589,7 +635,7 @@ export default function AdminDashboard() {
                     </svg>
                   </div>
                   <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Overdue</p>
+                <p className="text-sm font-medium text-gray-600">Overdue {getTimeframeLabel()}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats?.overdueTickets || 0}</p>
                   </div>
                 </div>
@@ -617,7 +663,7 @@ export default function AdminDashboard() {
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Avg Wait Time</p>
+                <p className="text-sm font-medium text-gray-600">Avg Wait Time {getTimeframeLabel()}</p>
                 <p className="text-2xl font-bold text-gray-900">{(stats?.averageWaitTimeHours || 0).toFixed(1)}h</p>
               </div>
             </div>
@@ -870,7 +916,11 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                      {tickets.map((ticket) => (
+                      {tickets.filter(ticket => {
+                        const { startDate, endDate } = getDateRanges(selectedTimeframe)
+                        const ticketDate = new Date(ticket.timestamp)
+                        return ticketDate >= startDate && ticketDate <= endDate
+                      }).map((ticket) => (
                         <tr key={ticket.ticketId} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
